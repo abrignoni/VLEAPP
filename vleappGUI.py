@@ -135,7 +135,7 @@ while True:
                 if output_folder[1] == ':': output_folder = '\\\\?\\' + output_folder.replace('/', '\\')
             
             # re-create modules list based on user selection
-            search_list = { 'usagestatsVersion' : tosearch['usagestatsVersion'] } # hardcode usagestatsVersion as first item
+            search_list = { } # use 'usagestatsVersion' : tosearch['usagestatsVersion'] to hardcode usagestatsVersion as first item
             s_items = 0
             for x in range(1000,indx):
                 if window.FindElement(x).Get():

@@ -5,7 +5,7 @@
 
 import traceback
 
-from scripts.artifacts.usagestatsVersion import get_usagestatsVersion
+#from scripts.artifacts.usagestatsVersion import get_usagestatsVersion
 from scripts.artifacts.btDevices import get_btDevices
 
 from scripts.ilapfuncs import *
@@ -18,7 +18,6 @@ from scripts.ilapfuncs import *
 # Don't forget to import the module above!!!!
 
 tosearch = {
-    'usagestatsVersion':('Usage Stats', ('*/system/usagestats/*/version', '*/system_ce/*/usagestats/version')),
     'btDevices':('Bluetooth', '*/BT/devlog_*.txt'),
     }
 
