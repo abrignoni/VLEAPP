@@ -6,6 +6,7 @@
 import traceback
 
 from scripts.artifacts.usagestatsVersion import get_usagestatsVersion
+from scripts.artifacts.btDevices import get_btDevices
 
 from scripts.ilapfuncs import *
 
@@ -18,6 +19,7 @@ from scripts.ilapfuncs import *
 
 tosearch = {
     'usagestatsVersion':('Usage Stats', ('*/system/usagestats/*/version', '*/system_ce/*/usagestats/version')),
+    'btDevices':('Bluetooth', '*/BT/devlog_*.txt'),
     }
 
 slash = '\\' if is_platform_windows() else '/'
