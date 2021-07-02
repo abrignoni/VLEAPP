@@ -5,9 +5,7 @@
 
 import traceback
 
-#from scripts.artifacts.usagestatsVersion import get_usagestatsVersion
 from scripts.artifacts.btDevices import get_btDevices
-
 from scripts.ilapfuncs import *
 
 # GREP searches for each module
