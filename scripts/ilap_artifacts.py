@@ -6,6 +6,7 @@
 import traceback
 
 from scripts.artifacts.btDevices import get_btDevices
+from scripts.artifacts.vehicleInfo import get_vehicleInfo
 from scripts.ilapfuncs import *
 
 # GREP searches for each module
@@ -17,6 +18,7 @@ from scripts.ilapfuncs import *
 
 tosearch = {
     'btDevices':('Bluetooth', '*/BT/devlog_*.txt'),
+    'vehicleInfo':('Vehicle Info', '*/ppsp/services/reconn/vehicle'),
     }
 
 slash = '\\' if is_platform_windows() else '/'
