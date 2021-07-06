@@ -23,7 +23,7 @@ def get_icon_name(category, artifact):
         if artifact.find('AUTH') >= 0:  icon = 'key'
         else:                           icon = 'user'
     elif category == 'BLUETOOTH':       icon = 'bluetooth'
-
+    elif category == 'VEHICLE INFO':    icon = 'truck'
     return icon
     
     '''
