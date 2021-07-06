@@ -1,4 +1,5 @@
 import csv
+import os
 import scripts.artifacts.artGlobals 
 
 from scripts.artifact_report import ArtifactHtmlReport
@@ -38,6 +39,8 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                         devfriendval = value    
                     if  key == 'Class Of Device' :
                         classdevval = value    
+                    if  key == 'CHLD capabilities' :
+                        chldval = value    
                 else:
                     if 'BRSF' in splits[0]:
                         brsfval = splits[0].strip()
@@ -46,6 +49,8 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                         chldval = eqsplit[1].strip()
                     if 'In-Band' in splits[0]:
                         inbandval = splits[0].strip()
+                    if 'Phonebook' in splits[0]:
+                        phonedownval = splits[0].strip()
         data_list.append((devmodval,manuval,subscribenumval,devfriendval,devaddval,devsoftval,netnameval,supprofval,classdevval,servsupval,availcodecval,phonedownval,chldval,brsfval,inbandval))                    
             
     if len(data_list) > 0:
@@ -53,6 +58,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
         report.add_script()
         data_headers = ('Device Model','Manufacturer','Subscriber Number','Device Friendly Name','Device Address','Device Software Version','Network Name','Supported Profiles','Class of Device','Service Supported','Available Codec','Phonebook Download Support','CHLD Capabilities','BRSF','In-Band')
+        file_found = os.path.dirname(file_found)
         report.write_artifact_data_table(data_headers, data_list, file_found)
         report.end_artifact_report()
         
@@ -61,3 +67,5 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
         
     else:
         logfunc(f'No Bluetooth Devices available')
+
+#Compatible = 
