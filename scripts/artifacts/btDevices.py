@@ -7,7 +7,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
 
 #Compatability Data
 vehicles = ['Ford Mustang','F-150']
-platforms = ['SYNC3.2V2']
+platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUC T']
 
 def get_btDevices(files_found, report_folder, seeker, wrap_text):
     data_list = []
