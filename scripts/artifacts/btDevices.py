@@ -5,10 +5,17 @@ import scripts.artifacts.artGlobals
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
 
+#Compatability Data
+vehicles = ['Ford Mustang','F-150']
+platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUC T']
+
 def get_btDevices(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:
+            devaddval = manuval = devmodval = supprofval = phonedownval = ''
+            availcodecval = servsupval = subscribenumval = netnameval = ''
+            devsoftval = devfriendval = classdevval = chldval = ''
             for line in f:
                 splits = line.split(':',1)
                 totalvalues = len(splits)
@@ -51,7 +58,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                         inbandval = splits[0].strip()
                     if 'Phonebook' in splits[0]:
                         phonedownval = splits[0].strip()
-        data_list.append((devmodval,manuval,subscribenumval,devfriendval,devaddval,devsoftval,netnameval,supprofval,classdevval,servsupval,availcodecval,phonedownval,chldval,brsfval,inbandval))                    
+        data_list.append((devmodval,manuval,subscribenumval,devfriendval,devaddval,devsoftval,netnameval,supprofval,classdevval,servsupval,availcodecval,phonedownval,chldval,brsfval,inbandval))
             
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
@@ -67,5 +74,3 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
         
     else:
         logfunc(f'No Bluetooth Devices available')
-
-#Compatible = 
