@@ -9,7 +9,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, kmlgen, timeline, is_pla
 
 #Compatability Data
 vehicles = ['Ford Mustang','F-150']
-platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUC T']
+platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUC T','SyncGen3_v2_b']
 
 def timeorder(line):
     month = line.split('/', 3)[0]
@@ -42,7 +42,18 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
                     if 'dev_loc_results' in line:
                         if 'ERROR  RPT!!!' in line:
                             pass 
-                        elif 'Lon' in line:
+                        elif 'Longitude =' in line:
+                            #print(line)
+                            timestamp = timeorder(line)
+                            devmatchObj1 = re.search(r"(Longitude =  ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                            devmatchObj2 = re.search(r"(Latitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                            devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                            devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                            category = 'NAV_FRAMEWORK_IF'
+                            subcategory = 'dev_loc_results'
+                            #logfunc(line)
+                            data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
+                        elif 'Lon =' in line:
                             #print(line)
                             timestamp = timeorder(line)
                             devmatchObj1 = re.search(r"(Lon =  ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
@@ -51,7 +62,7 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
                             devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                             category = 'NAV_FRAMEWORK_IF'
                             subcategory = 'dev_loc_results'
-                            #logfunc(line)
+                            logfunc(line)
                             data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
             
                             
