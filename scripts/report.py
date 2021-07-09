@@ -19,11 +19,18 @@ def get_icon_name(category, artifact):
     artifact = artifact.upper()
     icon = 'alert-triangle' # default (if not defined!)
 
-    if category.find('ACCOUNT') >= 0:
-        if artifact.find('AUTH') >= 0:  icon = 'key'
-        else:                           icon = 'user'
-    elif category == 'BLUETOOTH':       icon = 'bluetooth'
-    elif category == 'VEHICLE INFO':    icon = 'truck'
+    
+    if category == 'BLUETOOTH':
+        icon = 'bluetooth'
+    elif category == 'VEHICLE INFO':
+        icon = 'truck'
+    elif category == 'PAS_DEBUG':
+        if artifact == 'SEND GPS CAN DATA':
+            icon = 'map-pin'
+        elif artifact == 'DEV LOC RESULTS':
+            icon = 'map-pin'
+        else:
+            icon = 'archive'
     return icon
     
     '''
@@ -242,4 +249,5 @@ def mark_item_active(data, itemname):
     else:
         ret = data[0 : pos] + " active" + data[pos:]
         return ret
+    
     
