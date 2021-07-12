@@ -15,7 +15,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
         with open(file_found, "r") as f:
             devaddval = manuval = devmodval = supprofval = phonedownval = ''
             availcodecval = servsupval = subscribenumval = netnameval = ''
-            devsoftval = devfriendval = classdevval = chldval = ''
+            devsoftval = devfriendval = classdevval = chldval = inbandval = ''
             for line in f:
                 splits = line.split(':',1)
                 totalvalues = len(splits)

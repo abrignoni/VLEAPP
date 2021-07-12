@@ -29,6 +29,10 @@ def get_icon_name(category, artifact):
             icon = 'map-pin'
         elif artifact == 'DEV LOC RESULTS':
             icon = 'map-pin'
+        elif artifact == 'ROAD SPEED LIMITS':
+            icon = 'navigation'
+        elif artifact == 'ACCESS POINT LIST':
+            icon = 'wifi'
         else:
             icon = 'archive'
     return icon
