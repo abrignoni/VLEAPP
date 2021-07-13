@@ -42,9 +42,10 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
     data_list_dev = []
     data_list_speed = []
     data_list_apinfo = []
+    data_list_vspeed = []
     for file_found in files_found:
         basename = os.path.basename(file_found)
-        with open(file_found, 'r', encoding='windows-1252') as f:
+        with open(file_found, 'r', encoding='cp437') as f:
             for line in f:
                 if 'NAV_FRAMEWORK_IF' in line: #put a print here to get all GPS stuff related to nav    
                     if 'dev_loc_results' in line:
@@ -91,7 +92,13 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
                         ssid = lineparts[0].split(':')[-1].strip()
                         signalstrenght = lineparts[-1].split(',')[-1].split(':')[-1].strip()
                         data_list_apinfo.append((timestamp, extractedbssid, ssid, signalstrenght, basename))
-                        
+                
+                if 'QT_HMI'	in  line:
+                    if 'VehicleSpeed' in line:
+                        timestamp = timeorder(line)
+                        lineparts = line.strip().split(' ')
+                        data_list_vspeed.append((timestamp, lineparts[-1].replace('"',''), basename))
+                            
     if len(data_list_dev) > 0:
         report = ArtifactHtmlReport('Dev Loc Results')
         report.start_artifact_report(report_folder, f'Dev Loc Results')
@@ -148,3 +155,21 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
         
     else:
         logfunc(f'No Access Point List available')
+    
+    if len(data_list_vspeed) > 0:
+        report = ArtifactHtmlReport('Vehicle Speed *Not Validated*')
+        report.start_artifact_report(report_folder, f'Vehicle Speed *Not Validated*')
+        report.add_script()
+        data_headers_vspeed = ('Timestamp','Vehicle Speed','Log Filename')
+        pathname = os.path.dirname(file_found)
+        report.write_artifact_data_table(data_headers_vspeed, data_list_vspeed, pathname)
+        report.end_artifact_report()
+        
+        tsvname = f'Vehicle Speed - Not Validated'
+        tsv(report_folder, data_headers_vspeed , data_list_vspeed, tsvname)
+        
+        tlactivity = 'Vehicle Speed - Not Validated '
+        timeline(report_folder, tlactivity, data_list_vspeed, data_headers_vspeed)
+    else:
+        logfunc(f'No Vehicle Speed *Not Validated* available')
+        
