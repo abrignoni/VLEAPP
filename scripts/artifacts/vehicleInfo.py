@@ -29,7 +29,7 @@ def get_vehicleInfo(files_found, report_folder, seeker, wrap_text):
                         if  key == 'platform' :
                             logdevinfo(f"Platform: {value}")
                         if  key == 'vin' :
-                            logdevinfo(f"Vin: {value}")
+                            logdevinfo(f"VIN from PPSP: {value}")
                         if  key == 'vmcufpn' :
                             logdevinfo(f"Firmware: {value}")
             

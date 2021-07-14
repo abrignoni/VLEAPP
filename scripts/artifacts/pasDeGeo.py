@@ -8,7 +8,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, kmlgen, timeline, is_pla
 
 #Compatability Data
 vehicles = ['Ford Mustang','F-150']
-platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUC T','SyncGen3_v2_b']
+platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUCT','SyncGen3_v2_b', 'SYNCGen3.0_1.0.15139_PRODUCT']
 
 def timeorder(line):
     month = line.split('/', 3)[0]
@@ -20,12 +20,15 @@ def timeorder(line):
     return timestamp
 
 def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
+    vinlist = []
+    platformversion = []
     data_list_dev = []
     data_list_speed = []
     data_list_apinfo = []
     data_list_vspeed = []
     data_list_transm = []
     data_list_outtemp = []
+    data_list_odometer = []
     for file_found in files_found:
         basename = os.path.basename(file_found)
         with open(file_found, 'r', encoding='cp437') as f:
@@ -96,7 +99,44 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
                         timestamp = timeorder(line)
                         lineparts = line.strip().split(' ')
                         data_list_outtemp.append((timestamp, lineparts[-1].replace('"','').strip(), basename ))
+                
+                if 'USBUPDT_MID' in line:
+                    if '=Line read is Version Number =' in line:
+                        lineparts = line.strip().split('=')
+                        ver = lineparts[-1].strip()
+                        if ver not in platformversion:
+                            platformversion.append(ver)
+                            
+                
+                if 'CAppLinkService' in line:
+                    timestampLink = timeorder(line)
+                    
+                if 'odometer' in line: 
+                    lineparts = line.strip().split(':')
+                    data_list_odometer.append((timestampLink, lineparts[-1].strip(), basename))
+                
+                if '"vin" :' in line: 
+                    #print(timestampLink)
+                    #print(line)
+                    lineparts = line.strip().split(':')
+                    vin = lineparts[-1].strip().replace('"','')
+                    if vin not in vinlist:
+                        vinlist.append(vin)
                         
+                if 'VIN got from GGC' in line:
+                    lineparts = line.strip().split('=')
+                    vin = lineparts[-1].strip()
+                    if vin not in vinlist:
+                        vinlist.append(vin)
+                        
+    if len(vinlist) > 0:
+        for item in vinlist:
+            logdevinfo(f"VIN from pas_debug: {item}")
+    
+    if len(platformversion) > 0:
+        for item in platformversion:
+            logdevinfo(f"Platform from pas_debug: {item}")
+    
     if len(data_list_dev) > 0:
         report = ArtifactHtmlReport('Dev Loc Results')
         report.start_artifact_report(report_folder, f'Dev Loc Results')
@@ -206,4 +246,22 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
         
     else:
         logfunc(f'No Outside Temperature available')
+        
+    if len(data_list_odometer) > 0:
+        report = ArtifactHtmlReport('Odometer')
+        report.start_artifact_report(report_folder, f'Odometer')
+        report.add_script()
+        data_headers_odometer = ('Timestamp','Odometer','Log Filename')
+        pathname = os.path.dirname(file_found)
+        report.write_artifact_data_table(data_headers_odometer, data_list_odometer, pathname)
+        report.end_artifact_report()
+        
+        tsvname = f'Odometer'
+        tsv(report_folder, data_headers_odometer , data_list_odometer, tsvname)
+        
+        tlactivity = 'Odometer'
+        timeline(report_folder, tlactivity, data_list_odometer, data_headers_odometer)
+        
+    else:
+        logfunc(f'No Odometer available')
         
