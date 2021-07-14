@@ -33,8 +33,12 @@ def get_icon_name(category, artifact):
             icon = 'target'
         elif artifact == 'ACCESS POINT LIST':
             icon = 'wifi'
-        elif artifact == 'VEHICLE SPEED *NOT VALIDATED*':
+        elif artifact == 'VEHICLE SPEED':
             icon = 'trending-up'
+        elif artifact == 'TRANSMISSION STATUS':
+            icon = 'corner-up-right'
+        elif artifact == 'OUTSIDE TEMPERATURE':
+            icon = 'thermometer'
         else:
             icon = 'archive'
     return icon

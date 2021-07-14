@@ -18,31 +18,14 @@ def timeorder(line):
     time = yeartime.split(' ')[1]
     timestamp = f'{year}-{month}-{day} {time}'
     return timestamp
-def timeorder(line):
-    month = line.split('/', 3)[0]
-    day = line.split('/', 3)[1]
-    yeartime = line.split('/', 3)[2]
-    year = yeartime.split(' ')[0]
-    time = yeartime.split(' ')[1]
-    timestamp = f'{year}-{month}-{day} {time}'
-    return timestamp
-
-def degtodec(deg, min, sec):
-    deg = float(deg)
-    if deg < 0:
-        min = -abs(float(min))/60
-        sec = -abs(float(sec))/3600
-    else:
-        min = float(min)/60
-        sec = float(sec)/3600
-    decimal = deg+min+sec
-    return decimal
 
 def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
     data_list_dev = []
     data_list_speed = []
     data_list_apinfo = []
     data_list_vspeed = []
+    data_list_transm = []
+    data_list_outtemp = []
     for file_found in files_found:
         basename = os.path.basename(file_found)
         with open(file_found, 'r', encoding='cp437') as f:
@@ -98,7 +81,22 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
                         timestamp = timeorder(line)
                         lineparts = line.strip().split(' ')
                         data_list_vspeed.append((timestamp, lineparts[-1].replace('"',''), basename))
-                            
+                
+                    if 'TransmissionStatus' in line: 
+                        timestamp = timeorder(line)
+                        lineparts = line.strip().split(' ')
+                        data_list_transm.append((timestamp, lineparts[-1].replace('"','').strip(), basename))
+                    
+                    if 'General_Temperature_Unit_INT' in line:
+                        timestamp = timeorder(line)
+                        lineparts = line.strip().split(' ')
+                        data_list_outtemp.append((timestamp,'Temp. Unit: '+ lineparts[-1].replace('"','').strip(), basename))
+                        
+                    if 'OutsideAirTemperature_E_FLT' in line:
+                        timestamp = timeorder(line)
+                        lineparts = line.strip().split(' ')
+                        data_list_outtemp.append((timestamp, lineparts[-1].replace('"','').strip(), basename ))
+                        
     if len(data_list_dev) > 0:
         report = ArtifactHtmlReport('Dev Loc Results')
         report.start_artifact_report(report_folder, f'Dev Loc Results')
@@ -157,19 +155,55 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
         logfunc(f'No Access Point List available')
     
     if len(data_list_vspeed) > 0:
-        report = ArtifactHtmlReport('Vehicle Speed *Not Validated*')
-        report.start_artifact_report(report_folder, f'Vehicle Speed *Not Validated*')
+        report = ArtifactHtmlReport('Vehicle Speed')
+        report.start_artifact_report(report_folder, f'Vehicle Speed')
         report.add_script()
         data_headers_vspeed = ('Timestamp','Vehicle Speed','Log Filename')
         pathname = os.path.dirname(file_found)
         report.write_artifact_data_table(data_headers_vspeed, data_list_vspeed, pathname)
         report.end_artifact_report()
         
-        tsvname = f'Vehicle Speed - Not Validated'
+        tsvname = f'Vehicle Speed'
         tsv(report_folder, data_headers_vspeed , data_list_vspeed, tsvname)
         
-        tlactivity = 'Vehicle Speed - Not Validated '
+        tlactivity = 'Vehicle Speed'
         timeline(report_folder, tlactivity, data_list_vspeed, data_headers_vspeed)
     else:
-        logfunc(f'No Vehicle Speed *Not Validated* available')
+        logfunc(f'No Vehicle Speed available')
+    
+    if len(data_list_transm) > 0:
+        report = ArtifactHtmlReport('Transmission Status')
+        report.start_artifact_report(report_folder, f'Transmission Status')
+        report.add_script()
+        data_headers_transm = ('Timestamp','Transmission Status','Log Filename')
+        pathname = os.path.dirname(file_found)
+        report.write_artifact_data_table(data_headers_transm, data_list_transm, pathname)
+        report.end_artifact_report()
+        
+        tsvname = f'Transmission Status'
+        tsv(report_folder, data_headers_transm , data_list_transm, tsvname)
+        
+        tlactivity = 'Transmission Status'
+        timeline(report_folder, tlactivity, data_list_transm, data_headers_transm)
+        
+    else:
+        logfunc(f'No Transmission Status available')
+        
+    if len(data_list_outtemp) > 0:
+        report = ArtifactHtmlReport('Outside Temperature')
+        report.start_artifact_report(report_folder, f'Outside Temperature')
+        report.add_script()
+        data_headers_outtemp = ('Timestamp','Temperature', 'Log Filename')
+        pathname = os.path.dirname(file_found)
+        report.write_artifact_data_table(data_headers_outtemp, data_list_outtemp, pathname)
+        report.end_artifact_report()
+        
+        tsvname = f'Outside Temperature'
+        tsv(report_folder, data_headers_outtemp , data_list_outtemp, tsvname)
+        
+        tlactivity = 'Outside Temperature'
+        timeline(report_folder, tlactivity, data_list_outtemp, data_headers_outtemp)
+        
+    else:
+        logfunc(f'No Outside Temperature available')
         
