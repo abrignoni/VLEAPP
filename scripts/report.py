@@ -39,6 +39,8 @@ def get_icon_name(category, artifact):
             icon = 'corner-up-right'
         elif artifact == 'OUTSIDE TEMPERATURE':
             icon = 'thermometer'
+        elif artifact == 'ODOMETER':
+            icon = 'plus-circle'
         else:
             icon = 'archive'
     return icon
