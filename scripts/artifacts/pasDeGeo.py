@@ -128,7 +128,26 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
                     vin = lineparts[-1].strip()
                     if vin not in vinlist:
                         vinlist.append(vin)
-                        
+                
+                if '"make"' in line:
+                    linepartsma = line.strip().split(':')
+                    make = linepartsma[-1].strip().replace('"','')
+                
+                if '"model"' in line:
+                    linepartsmo = line.strip().split(':')
+                    model = linepartsmo[-1].strip().replace('"','')
+    try:
+        if make:
+            logdevinfo(f'Make from pas_debug: {make}')
+    except:
+        pass
+    
+    try:
+        if model:
+            logdevinfo(f'Model from pas_debug: {model}')
+    except:
+        pass
+        
     if len(vinlist) > 0:
         for item in vinlist:
             logdevinfo(f"VIN from pas_debug: {item}")
