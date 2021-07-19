@@ -9,6 +9,7 @@ from scripts.artifacts.btDevices import get_btDevices
 from scripts.artifacts.vehicleInfo import get_vehicleInfo
 from scripts.artifacts.pasDeGeo import get_pasDeGeo
 from scripts.artifacts.nvcaContacts import get_nvcaContacts
+from scripts.artifacts.contactsInfo import get_contactsInfo
 
 from scripts.ilapfuncs import *
 
@@ -24,6 +25,7 @@ tosearch = {
     'vehicleInfo':('Vehicle Info', '*/ppsp/services/reconn/vehicle'),
     'pasDeGeo':('pas_Debug', '*/fordlogs/pas_debug.log*'),
     'nvcaContacts':('Contacts', '*/Nuance/NuanceVCAdb/Phone*.sqlite*'),
+    'contactsInfo':('Contacts', '*/contact.db*')
     }
 
 slash = '\\' if is_platform_windows() else '/'
