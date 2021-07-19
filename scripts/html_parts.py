@@ -205,7 +205,7 @@ thank_you_note = \
                             </div>
                             <div class="col-md-8">
                             <div class="card-body">
-                                <h5 class="card-title">Thank you for using ALEAPP</h5>
+                                <h5 class="card-title">Thank you for using VLEAPP</h5>
                                 <p class="card-text">
                                     Support open source and report any bugs!
                                 </p>
