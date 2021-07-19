@@ -5,6 +5,10 @@ import scripts.artifacts.artGlobals
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
 
+#Compatability Data
+vehicles = ['Ford Mustang','F-150']
+platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUCT','SyncGen3_v2_b', 'SYNCGen3.0_1.0.15139_PRODUCT']
+
 def get_vehicleInfo(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
