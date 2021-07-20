@@ -26,6 +26,8 @@ def get_icon_name(category, artifact):
         icon = 'truck'
     elif category == 'CONTACTS':
         icon = 'users'
+    elif category == 'CONNECTED DEVICES':
+        icon = 'smartphone'
     elif category == 'PAS_DEBUG':
         if artifact == 'SEND GPS CAN DATA':
             icon = 'map-pin'
