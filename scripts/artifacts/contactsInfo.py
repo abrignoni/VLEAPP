@@ -4,6 +4,9 @@ import os
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import timeline, tsv, is_platform_windows, open_sqlite_db_readonly
 
+#Compatability Data
+vehicles = ['Chevrolet','Equinox']
+platforms = []
 
 def get_contactsInfo(files_found, report_folder, seeker, wrap_text):
     
