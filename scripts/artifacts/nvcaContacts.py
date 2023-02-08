@@ -1,6 +1,5 @@
 import csv
 import os
-import scripts.artifacts.artGlobals 
 
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, open_sqlite_db_readonly
@@ -49,4 +48,10 @@ def get_nvcaContacts(files_found, report_folder, seeker, wrap_text):
             else:
                 logfunc('No Nuance VCA Contacts data available')
 
-        
+    
+__artifacts__ = {
+        "NVCA Contacts": (
+                "Contacts",
+                ('*/Nuance/NuanceVCAdb/Phone*.sqlite*'),
+                get_nvcaContacts)
+}

@@ -3,17 +3,17 @@
 block_cipher = None
 
 a = Analysis(['vleappGUI.py'],
-             pathex=[],
+             pathex=['.\\scripts\\artifacts'],
              binaries=[],
              datas=[('.\\scripts\\logo.jpg', '.\\scripts'),
                     ('.\\scripts\\dashboard.css', '.\\scripts'),
                     ('.\\scripts\\dark-mode.css', '.\\scripts'),
                     ('.\\scripts\\dark-mode-switch.js', '.\\scripts'),
                     ('.\\scripts\\feather.min.js', '.\\scripts'),
-                    ('.\\scripts\\chats.css', '.\\scripts'),
-                    ('.\\scripts\\MDB-Free_4.13.0', '.\\scripts\\MDB-Free_4.13.0')],
+                    ('.\\scripts\\MDB-Free_4.13.0', '.\\scripts\\MDB-Free_4.13.0'),
+                    ('.\\scripts\\artifacts', '\\scripts\\artifacts')],
              hiddenimports=[],
-             hookspath=[],
+             hookspath=['.\\'],
              runtime_hooks=[],
              excludes=[],
              win_no_prefer_redirects=False,
@@ -34,5 +34,4 @@ exe = EXE(pyz,
           strip=False,
           upx=True,
           upx_exclude=[],
-          runtime_tmpdir=None,
-          console=False )
+          runtime_tmpdir=None )

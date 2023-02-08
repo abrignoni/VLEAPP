@@ -1,6 +1,5 @@
 import csv
 import os
-import scripts.artifacts.artGlobals 
 
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
@@ -74,3 +73,11 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
         
     else:
         logfunc(f'No Bluetooth Devices available')
+
+
+__artifacts__ = {
+        "Bluetooth": (
+                "Bluetooth",
+                ('*/BT/devlog_*.txt'),
+                get_btDevices)
+}

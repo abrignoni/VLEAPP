@@ -57,8 +57,12 @@ def get_connDevices(files_found, report_folder, seeker, wrap_text):
     else:
         logfunc('No device data available')
     
-    db.close()
-    return 
+__artifacts__ = {
+        "Connected Devices'": (
+                "Connected Devices'",
+                ('*/devices.db*'),
+                get_connDevices)
+}
 
         
         

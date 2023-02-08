@@ -1,6 +1,5 @@
 import csv
 import os
-import scripts.artifacts.artGlobals 
 
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
@@ -51,4 +50,10 @@ def get_vehicleInfo(files_found, report_folder, seeker, wrap_text):
     else:
         logfunc(f'No Vehicle Info available')
 
-        
+
+__artifacts__ = {
+        "Vehicle Info": (
+                "Vehicle Info",
+                ('*/ppsp/services/reconn/vehicle'),
+                get_vehicleInfo)
+}

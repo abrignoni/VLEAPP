@@ -1,5 +1,4 @@
 import csv
-import scripts.artifacts.artGlobals 
 import os
 import re
 
@@ -283,4 +282,11 @@ def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
         
     else:
         logfunc(f'No Odometer available')
-        
+
+
+__artifacts__ = {
+        "pas_Debug": (
+                "pas_Debug",
+                ('*/fordlogs/pas_debug.log*'),
+                get_pasDeGeo)
+}

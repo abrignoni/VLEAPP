@@ -19,8 +19,11 @@ def get_icon_name(category, artifact):
     artifact = artifact.upper()
     icon = 'alert-triangle' # default (if not defined!)
 
-    
-    if category == 'BLUETOOTH':
+    if category.find('TELEMATICS') >=0:
+        if artifact.find('GPS DETAIL') >=0:      icon = 'map-pin'
+        elif artifact == 'WDWSTATUS REPORT': icon = 'map-pin'
+        else:                              icon = 'arrow-right-circle'
+    elif category == 'BLUETOOTH':
         icon = 'bluetooth'
     elif category == 'VEHICLE INFO':
         icon = 'truck'
@@ -50,6 +53,7 @@ def get_icon_name(category, artifact):
     return icon
     
     '''
+
     '''
 def generate_report(reportfolderbase, time_in_secs, time_HMS, extraction_type, image_input_path):
 
@@ -181,7 +185,7 @@ def create_index_html(reportfolderbase, time_in_secs, time_HMS, extraction_type,
     filename = 'index.html'
     page_title = 'VLEAPP Report'
     body_heading = 'Vehicle Logs Events And Properties Parser'
-    body_description = 'VLEAPP is an open source project that aims to parse every known Vehicle artifact for the purpose of forensic analysis.'
+    body_description = 'VLEAPP is an open source project that aims to parse vehicle data for the purpose of triage analysis and validation.'
     active_nav_list_data = mark_item_active(nav_list_data, filename) + nav_bar_script
 
     f = open(os.path.join(reportfolderbase, filename), 'w', encoding='utf8')
@@ -265,5 +269,6 @@ def mark_item_active(data, itemname):
     else:
         ret = data[0 : pos] + " active" + data[pos:]
         return ret
+    
     
     

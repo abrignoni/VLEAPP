@@ -76,8 +76,13 @@ def get_contactsInfo(files_found, report_folder, seeker, wrap_text):
     else:
         logfunc('No contacts data available')
     
-    db.close()
-    return 
 
+
+__artifacts__ = {
+        "Contacts": (
+                "Contacts",
+                ('*/contact.db*'),
+                get_contactsInfo)
+}
         
         
