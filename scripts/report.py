@@ -25,6 +25,8 @@ def get_icon_name(category, artifact):
         else:                              icon = 'arrow-right-circle'
     elif category == 'BLUETOOTH':
         icon = 'bluetooth'
+    elif category == 'PHONE CONFIG':
+        icon = 'smartphone'
     elif category == 'VEHICLE INFO':
         icon = 'truck'
     elif category == 'AUDIO UUIDS':
