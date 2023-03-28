@@ -35,6 +35,13 @@ def get_icon_name(category, artifact):
         icon = 'smartphone'
     elif category == 'CONTACTS':
         icon = 'users'
+    elif category == 'BT REPORT':
+        if artifact == 'GPS DETAIL':
+            icon = 'map-pin'
+        elif artifact == 'BT CALL REPORT':
+            icon = 'bluetooth'
+        else:
+            icon == 'bluetooth'
     elif category == 'CONNECTED DEVICES':
         icon = 'smartphone'
     elif category == 'PAS_DEBUG':
