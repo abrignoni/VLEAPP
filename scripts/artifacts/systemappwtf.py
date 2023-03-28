@@ -23,7 +23,6 @@ def get_systemappwtf(files_found, report_folder, seeker, wrap_text):
         filename = os.path.basename(file_found)
         location = os.path.dirname(file_found)
         
-        logfunc(file_found)
         if file_found.endswith('.gz'):
             with gzip.open(file_found, 'rb') as f_in:
                 file = f_in.readlines()
