@@ -23,11 +23,12 @@ def get_systemappwtf(files_found, report_folder, seeker, wrap_text):
         filename = os.path.basename(file_found)
         location = os.path.dirname(file_found)
         
+        logfunc(file_found)
         if file_found.endswith('.gz'):
             with gzip.open(file_found, 'rb') as f_in:
                 file = f_in.readlines()
         else:
-            with open(file_found, 'r') as f:
+            with open(file_found, 'r', errors='backslashreplace') as f:
                 file = f.readlines()
                 
         for x in file:
@@ -56,9 +57,19 @@ def get_systemappwtf(files_found, report_folder, seeker, wrap_text):
                     
                     status = (currentcalls.split(',', 11))[1]
                     
-                    print(fecha,number,'NULL',status)
+                    data_list.append((fecha,number,' ',status,file_found,x))
+                
+                if '[BTCallTracker] poll: conn' and ']=null,' in x:
+                    datacall = x.split(',number=')[1]
+                    number = datacall.split(',')[0]
                     
-                if '[BTCallTracker] poll: conn' in x:
+                    datacall = x.split(',toa=')[0]
+                    state = datacall.split(',')[-1]
+                    
+                    data_list.append((fecha,number,' ',state,file_found,x))
+                    
+                elif '[BTCallTracker] poll: conn' in x:
+                    #logfunc(str(x))
                     datacall = x.split('addr: ')[1]
                     number = datacall.split(' ',1)[0]
                     
