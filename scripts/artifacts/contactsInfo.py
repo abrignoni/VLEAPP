@@ -2,7 +2,7 @@ import sqlite3
 import os
 
 from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import timeline, tsv, is_platform_windows, open_sqlite_db_readonly
+from scripts.ilapfuncs import timeline, logfunc, tsv, is_platform_windows, open_sqlite_db_readonly
 
 #Compatability Data
 vehicles = ['Chevrolet','Equinox']
