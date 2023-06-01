@@ -18,17 +18,17 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
 
             devAddr = devFriendlyName = '' # Look for device addresses (hex) & friendly names
 
-            for line in f: # Search line for certain keywords
+            for line in f:  # Search line for certain keywords
                 splits = ''
-                if 'name: ' in line:
-                    splits = line.split('name: ')
-                    devFriendlyName = splits[1]
-
                 if 'bdAddr: ' in line:
                     splits = line.split('bdAddr: ')
                     devAddr = splits[1]
-                
-                data_list.append((devAddr, devFriendlyName)) # Add new found data to datalist
+                if 'name: ' in line:
+                    splits = line.split('name: ')
+                    devFriendlyName = splits[1]
+                # Add found item pair to data list                
+                if (devAddr, devFriendlyName) not in data_list:
+                    data_list.append((devAddr, devFriendlyName)) # Add new found data to datalist
 
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
@@ -48,8 +48,9 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:
-            pass 
-                
+            pass
+
+            
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Vehicle Info')
         report.start_artifact_report(report_folder, f'Vehicle Info')
@@ -69,11 +70,14 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:
-            pass 
+            vehicleID = ''
+            for line in f:
+                if "AA_VEHICLE_ID" in line:
+                    data_list.append(line)
                 
     if len(data_list) > 0:
-        report = ArtifactHtmlReport('Vehicle Info')
-        report.start_artifact_report(report_folder, f'Vehicle Info')
+        report = ArtifactHtmlReport('Diagnostic Data')
+        report.start_artifact_report(report_folder, f'Diagnostic Data')
         report.add_script()
         data_headers = ('Key','Value')
         report.write_artifact_data_table(data_headers, data_list, file_found)
