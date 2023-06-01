@@ -23,12 +23,17 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                     line = next(f)
                     while not pattern.match(line): #Keep iterating until next timestamp
                         splits = ''
+                        if 'name: ' in line:
+                            splits = line.split('name: ')
+                            devFriendlyName = splits[1]
                         if 'bdAddr: ' in line:
                             splits = line.split('bdAddr: ')
                             devAddr = splits[1]
-                        elif 'name: ' in line:
-                            splits = line.split('name: ')
-                            devFriendlyName = splits[1]
+                            line = next(f)
+                            line = next(f)
+                            if 'name: ' in line:
+                                splits = line.split('name: ')
+                                devFriendlyName = splits[1]
                         line = next(f) # Get next line
 
                 # Add found item pair to data list                
