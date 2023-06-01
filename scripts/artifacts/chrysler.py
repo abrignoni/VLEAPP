@@ -13,12 +13,17 @@ platforms = ['Carplay']
 ## Get connected Bluetooth Devices
 def get_btDevices(files_found, report_folder, seeker, wrap_text):
     data_list = []
+    pattern = re.compile(r"\[\d\d:\d\d:\d\d:\d\d\d\]", re.IGNORECASE)
+
     for file_found in files_found:
         with open(file_found, "r") as f:
-
             devAddr = devFriendlyName = '' # Look for device addresses (hex) & friendly names
+            
 
             for line in f:  # Search line for certain keywords
+                while pattern.match(line):
+                    pass
+
                 splits = ''
                 if 'bdAddr: ' in line:
                     splits = line.split('bdAddr: ')
@@ -117,35 +122,17 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     for file_found in files_found:
         with open(file_found, "r") as f:
             for line in f:
-                if 'GPS Positioning' in line: #put a print here to get all GPS stuff related to nav    
-                    if 'dev_loc_results' in line:
-                        if 'ERROR  RPT!!!' in line:
-                            pass 
-                        elif 'Longitude =' in line:
-                            #print(line)
-                            timestamp = timeorder(line)
-                            devmatchObj1 = re.search(r"(Longitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj2 = re.search(r"(Latitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            category = 'NAV_FRAMEWORK_IF'
-                            subcategory = 'dev_loc_results'
-                            #logfunc(line)
-                            data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
-                        elif 'Lon =' in line:
-                            #print(line)
-                            timestamp = timeorder(line)
-                            devmatchObj1 = re.search(r"(Lon  ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj2 = re.search(r"(Lat ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj7 = re.search(r"(Alt = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            category = 'NAV_FRAMEWORK_IF'
-                            subcategory = 'dev_loc_results'
-                            #logfunc(line)
-                            data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
+                timestamp = timeorder(line)
+                devmatchObj1 = re.search(r"(Longitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                devmatchObj2 = re.search(r"(Latitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                category = 'NAV_FRAMEWORK_IF'
+                subcategory = 'dev_loc_results'
+                data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
             if len(data_list) > 0:
-                report = ArtifactHtmlReport('Vehicle Info')
-                report.start_artifact_report(report_folder, f'Vehicle Info')
+                report = ArtifactHtmlReport('GPS Data')
+                report.start_artifact_report(report_folder, f'GPS Data')
                 report.add_script()
                 data_headers = ('Key','Value')
                 report.write_artifact_data_table(data_headers, data_list, file_found)
