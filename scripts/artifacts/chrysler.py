@@ -74,10 +74,10 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
             vehicleID = ''
             for line in f:
                 if "AA_VEHICLE_ID" in line:
-                    Key = "AA_VEHICLE_ID"
+                    key = "AA_VEHICLE_ID"
                     Value = line
-                if Key not in data_list:
-                    data_list.append(Key, Value)                
+                if key not in data_list:
+                    data_list.append(key, Value)                
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Diagnostic Data')
         report.start_artifact_report(report_folder, f'Diagnostic Data')
