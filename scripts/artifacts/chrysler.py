@@ -20,12 +20,12 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
 
             for line in f:  # Search line for certain keywords
                 splits = ''
-                if 'name: ' in line:
-                    splits = line.split('name: ')
-                    devFriendlyName = splits[1]
                 if 'bdAddr: ' in line:
                     splits = line.split('bdAddr: ')
                     devAddr = splits[1]
+                if 'name: ' in line:
+                    splits = line.split('name: ')
+                    devFriendlyName = splits[1]
 
                 # Add found item pair to data list                
                 if (devAddr, devFriendlyName) not in data_list:
@@ -76,8 +76,7 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
                 if "AA_VEHICLE_ID" in line:
                     key = "AA_VEHICLE_ID"
                     Value = line
-                if key not in data_list:
-                    data_list.append(key, Value)                
+            data_list.append(key, Value)             
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Diagnostic Data')
         report.start_artifact_report(report_folder, f'Diagnostic Data')
