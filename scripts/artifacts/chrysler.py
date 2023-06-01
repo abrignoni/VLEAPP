@@ -31,8 +31,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                             if 'name: ' in line:
                                 splits = line.split('name: ')
                                 devFriendlyName = splits[1]
-                        if 
-                        line = next(f) # Get next line
+                        line = next(f, None) # Get next line
 
                 # Add found item pair to data list                
                 if (devAddr, devFriendlyName) not in data_list:
