@@ -21,8 +21,6 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
             
 
             for line in f:  # Search line for certain keywords
-                while pattern.match(line):
-                    pass
 
                 splits = ''
                 if 'bdAddr: ' in line:
@@ -131,8 +129,8 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                 subcategory = 'dev_loc_results'
                 data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
             if len(data_list) > 0:
-                report = ArtifactHtmlReport('GPS Data')
-                report.start_artifact_report(report_folder, f'GPS Data')
+                report = ArtifactHtmlReport('Vehicle Info')
+                report.start_artifact_report(report_folder, f'Vehicle Info')
                 report.add_script()
                 data_headers = ('Key','Value')
                 report.write_artifact_data_table(data_headers, data_list, file_found)
