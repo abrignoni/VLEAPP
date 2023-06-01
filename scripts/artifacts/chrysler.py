@@ -95,7 +95,7 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
         tsv(report_folder, data_headers, data_list, tsvname)
 
     else:
-        logfunc(f'No Contacts')
+        logfunc(f'No Diagnostic Data')
 
 ## Get recent calls
 #def get_calllogs(files_found, report_folder, seeker, wrap_text):
@@ -159,7 +159,7 @@ __artifacts__ = {
      #   get_calllogs),
      "gps_data": (
          "gps_data",
-         ('*/mnt/p3/logs/slogs*'),
+         ('*/mnt/p3/logs/slogs1'),
          get_gpsdata
      ),
     "diagnostic_data": (
