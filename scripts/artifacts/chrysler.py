@@ -15,23 +15,20 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:
-            devAddr = devFriendlyName = '' # Look for device addresses (hex) & friendly names
-            for line in f:
-                print("Current: " + line)
-                if 'name: ' in line:
-                    pass
-                    
-                splits = line.split(' ')
 
-                #if key == 'name: '
-                if 'name:' in splits[0]:
+            devAddr = devFriendlyName = '' # Look for device addresses (hex) & friendly names
+
+            for line in f: # Search line for certain keywords
+                splits = ''
+                if 'name: ' in line:
+                    splits = line.split('name: ')
                     devFriendlyName = splits[1]
 
-                #if key == 'bdAddr: '
-                if 'bdAddr:' in splits[0]:
+                if 'bdAddr: ' in line:
+                    splits = line.splits('bdAddr: ')
                     devAddr = splits[1]
                 
-                data_list.append((devAddr, devFriendlyName))
+                data_list.append((devAddr, devFriendlyName)) # Add new found data to datalist
 
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
@@ -51,7 +48,29 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:
-            pass # Insert code here
+            pass 
+                
+    if len(data_list) > 0:
+        report = ArtifactHtmlReport('Vehicle Info')
+        report.start_artifact_report(report_folder, f'Vehicle Info')
+        report.add_script()
+        data_headers = ('Key','Value')
+        report.write_artifact_data_table(data_headers, data_list, file_found)
+        report.end_artifact_report()
+    
+        tsvname = f'Vehicle Info'
+        tsv(report_folder, data_headers, data_list, tsvname)
+
+    else:
+        logfunc(f'No Contacts')
+
+
+def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
+    data_list = []
+    for file_found in files_found:
+        with open(file_found, "r") as f:
+            pass 
+                
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Vehicle Info')
         report.start_artifact_report(report_folder, f'Vehicle Info')
@@ -96,8 +115,8 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                         elif 'Longitude =' in line:
                             #print(line)
                             timestamp = timeorder(line)
-                            devmatchObj1 = re.search(r"(Longitude =  ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj2 = re.search(r"(Latitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                            devmatchObj1 = re.search(r"(Longitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                            devmatchObj2 = re.search(r"(Latitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                             devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                             devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                             category = 'NAV_FRAMEWORK_IF'
@@ -107,8 +126,8 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                         elif 'Lon =' in line:
                             #print(line)
                             timestamp = timeorder(line)
-                            devmatchObj1 = re.search(r"(Lon =  ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj2 = re.search(r"(Lat = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                            devmatchObj1 = re.search(r"(Lon  ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                            devmatchObj2 = re.search(r"(Lat ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                             devmatchObj7 = re.search(r"(Alt = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                             devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                             category = 'NAV_FRAMEWORK_IF'
@@ -144,10 +163,15 @@ __artifacts__ = {
      #  "call_logs",
       #  ('*/com.android.cooldata/files/cool.xml'),
      #   get_calllogs),
-    "gps_data": (
-        "gps_data",
+     "gps_data": (
+         "gps_data",
+         ('*/mnt/p3/logs/slogs*'),
+         get_gpsdata
+     ),
+    "diagnostic_data": (
+        "diagnostic_data",
         ('*/mnt/p3/persistence/nonvol_*.ps'),
-        get_gpsdata)
+        get_diagnosticdata)
 
     
 }
