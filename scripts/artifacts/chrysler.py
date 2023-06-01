@@ -25,7 +25,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                     devFriendlyName = splits[1]
 
                 if 'bdAddr: ' in line:
-                    splits = line.splits('bdAddr: ')
+                    splits = line.split('bdAddr: ')
                     devAddr = splits[1]
                 
                 data_list.append((devAddr, devFriendlyName)) # Add new found data to datalist
