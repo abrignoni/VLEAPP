@@ -77,7 +77,7 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
                 if "AA_VEHICLE_ID" in line:
                     splits = line.split('AA_VEHICLE_ID')
                     key = splits[1]
-            data_list.append(key)             
+            data_list.append((key))             
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Diagnostic Data')
         report.start_artifact_report(report_folder, f'Diagnostic Data')
