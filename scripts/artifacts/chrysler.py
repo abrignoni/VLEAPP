@@ -17,20 +17,34 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
         with open(file_found, "r") as f:
             devAddr = devFriendlyName = '' # Look for device addresses (hex) & friendly names
             for line in f:
-                pass
+                print("Current: " + line)
+                if 'name: ' in line:
+                    pass
+                    
+                splits = line.split(' ')
+
+                #if key == 'name: '
+                if 'name:' in splits[0]:
+                    devFriendlyName = splits[1]
+
+                #if key == 'bdAddr: '
+                if 'bdAddr:' in splits[0]:
+                    devAddr = splits[1]
+                
+                data_list.append((devAddr, devFriendlyName))
+
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
         report.add_script()
-        # look for: 'name: ', 'bdAddr: ', 
         data_headers = ('Device Address','Device Friendly Name')
         report.write_artifact_data_table(data_headers, data_list, file_found)
         report.end_artifact_report()
 
-        tsvname = f'Vehicle Info'
+        tsvname = f'Bluetooth Devices'
         tsv(report_folder, data_headers, data_list, tsvname)
     else:
-        logfunc(f'No Vehicle Info available')
+        logfunc(f'No Bluetooth Devices found')
 
 ## Get known contacts
 def get_contacts(files_found, report_folder, seeker, wrap_text):
@@ -137,3 +151,6 @@ __artifacts__ = {
 
     
 }
+
+if __name__ == '__main__':
+    get_btDevices('*/mnt/p3/betula/bt_log.txt')
