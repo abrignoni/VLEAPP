@@ -18,11 +18,10 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
     for file_found in files_found:
         with open(file_found, "r") as f:
             devAddr = devFriendlyName = '' # Look for device addresses (hex) & friendly names
-            
 
             for line in f:  # Search line for certain keywords
                 if pattern.match(line):
-                    line = f.next()
+                    line = next()
                     while not pattern.match(line): #Keep iterating until next timestamp
                         splits = ''
                         if 'bdAddr: ' in line:
