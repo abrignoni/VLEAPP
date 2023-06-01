@@ -31,7 +31,8 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                             if 'name: ' in line:
                                 splits = line.split('name: ')
                                 devFriendlyName = splits[1]
-                        #line = next(f) # Get next line
+                        if 
+                        line = next(f) # Get next line
 
                 # Add found item pair to data list                
                 if (devAddr, devFriendlyName) not in data_list:
@@ -77,7 +78,8 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:
-            vehicleID = ''
+            id = ''
+            val = ''
             for i, line in f:
                 splits = ''
                 #Search for key values in the diagnostic logs
