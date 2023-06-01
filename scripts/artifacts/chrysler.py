@@ -31,7 +31,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                 if 'bdAddr:' in splits[0]:
                     devAddr = splits[1]
                 
-                data_list.append(devAddr, devFriendlyName)
+                data_list.append((devAddr, devFriendlyName))
 
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
