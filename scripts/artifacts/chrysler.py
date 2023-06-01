@@ -21,7 +21,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
             
 
             for line in f:  # Search line for certain keywords
-
+                #if pattern.match(line)
                 splits = ''
                 if 'bdAddr: ' in line:
                     splits = line.split('bdAddr: ')
@@ -69,7 +69,7 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
     else:
         logfunc(f'No Contacts')
 
-
+## Get diagnostic data from Extraction
 def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
@@ -80,8 +80,8 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
                 #Search for key values in the diagnostic logs
                 if "AA_VEHICLE_ID" in line:
                     splits = line.split('AA_VEHICLE_ID')
-                    key = splits[1]
-           # data_list.append((key))             
+                    vehicleID = splits[1]
+            data_list.append((vehicleID))             
     if len(data_list) > 0:
         #Send new data to report generator
         report = ArtifactHtmlReport('Diagnostic Data')
