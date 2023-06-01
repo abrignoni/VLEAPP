@@ -21,14 +21,17 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
             
 
             for line in f:  # Search line for certain keywords
-                #if pattern.match(line)
-                splits = ''
-                if 'bdAddr: ' in line:
-                    splits = line.split('bdAddr: ')
-                    devAddr = splits[1]
-                if 'name: ' in line:
-                    splits = line.split('name: ')
-                    devFriendlyName = splits[1]
+                if pattern.match(line):
+                    line = f.next()
+                    while not pattern.match(line): #Keep iterating until next timestamp
+                        splits = ''
+                        if 'bdAddr: ' in line:
+                            splits = line.split('bdAddr: ')
+                            devAddr = splits[1]
+                        elif 'name: ' in line:
+                            splits = line.split('name: ')
+                            devFriendlyName = splits[1]
+                        line = f.next() # Get next line
 
                 # Add found item pair to data list                
                 if (devAddr, devFriendlyName) not in data_list:
