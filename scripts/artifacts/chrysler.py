@@ -21,7 +21,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
             for line in f:  # Search line for certain keywords
                 if pattern.match(line): #Handle each block of timestamps only
                     line = next(f)
-                    while not pattern.match(line): #Keep iterating until next timestamp
+                    while not pattern.match(line) or line is None: #Keep iterating until next timestamp
                         splits = ''
                         if 'bdAddr: ' in line:
                             splits = line.split('bdAddr: ')
