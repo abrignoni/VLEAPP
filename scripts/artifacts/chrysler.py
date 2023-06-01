@@ -50,7 +50,7 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         tsv(report_folder, data_headers, data_list, tsvname)
 
     else:
-        logfunc(f'No Vehicle Info available')
+        logfunc(f'No Contacts')
 
 ## Get recent calls
 #def get_calllogs(files_found, report_folder, seeker, wrap_text):
@@ -71,6 +71,7 @@ def timeorder(line):
 def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     data_list_dev = []
+    basename = os.path.basename(file_found)
     for file_found in files_found:
         with open(file_found, "r") as f:
             for line in f:
@@ -112,7 +113,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                 tsv(report_folder, data_headers, data_list, tsvname)
                 
             else:
-                logfunc(f'No Vehicle Info available')
+                logfunc(f'No GPS Info Found')
 
 
 
