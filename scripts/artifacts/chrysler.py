@@ -108,7 +108,6 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
 #   print("nothing")
 
 ## Get GPS data
-
 def timeorder(line):
     month = line.split('/', 3)[0]
     day = line.split('/', 3)[1]
@@ -118,7 +117,6 @@ def timeorder(line):
     timestamp = f'{year}-{month}-{day} {time}'
     return timestamp
 
-
 def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     data_list_dev = []
@@ -127,13 +125,14 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
         with open(file_found, "r") as f:
             for line in f:
                 timestamp = timeorder(line)
-                devmatchObj1 = re.search(r"(Longitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                devmatchObj2 = re.search(r"(Latitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                devmatchObj1 = re.search(r"(Latitude\sread from\sPS: \d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line)
+               #devmatchObj2 = re.search(r"(Latitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                #devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
+                #devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                 category = 'NAV_FRAMEWORK_IF'
                 subcategory = 'dev_loc_results'
-                data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
+                #data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
+                data_list_dev.append((timestamp,devmatchObj1[2], category, subcategory, basename))
             if len(data_list) > 0:
                 report = ArtifactHtmlReport('GPS Info')
                 report.start_artifact_report(report_folder, f'GPS Info')
@@ -165,7 +164,7 @@ __artifacts__ = {
      #   get_calllogs),
      "gps_data": (
          "gps_data",
-         ('*/mnt/p3/logs/slogs*'),
+         ('*/mnt/p3/log/slogs*'),
          get_gpsdata),
     "diagnostic_data": (
         "diagnostic_data",
