@@ -164,7 +164,7 @@ __artifacts__ = {
      #   get_calllogs),
      "gps_data": (
          "gps_data",
-         ('*/mnt/p3/log/slogs1'),
+         ('*/mnt/p3/log/slogs2'),
          get_gpsdata),
     "diagnostic_data": (
         "diagnostic_data",
