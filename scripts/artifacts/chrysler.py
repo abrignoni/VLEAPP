@@ -120,7 +120,7 @@ def timeorder(line):
 def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     data_list_dev = []
-    basename = os.path.basename(file_found)
+    basename = os.path.basename(files_found)
     for file_found in files_found:
         with open(file_found, "r") as f:
             for line in f:
