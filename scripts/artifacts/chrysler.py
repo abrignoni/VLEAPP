@@ -100,21 +100,16 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:
-            count = 0
-            for line in f:
-                if count == 322:
-                    pass
-                else:
-                    try: 
-                        line_str = str(line)
-                        line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape", errors="replace")
-                        line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
-                        line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="replace") 
-                        devmatchObj1 = re.search(r"(Latitude\sread from\sPS: \d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line_wanted)
-                        data_list.append((devmatchObj1[2]))
-                    except UnicodeDecodeError:
-                        pass
-                count += 1
+            try:
+                for line in f:
+                    line_str = str(line)
+                    line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape", errors="replace")
+                    line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
+                    line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="replace") 
+                    devmatchObj1 = re.search(r"(Latitude\sread from\sPS: \d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line_wanted)
+                    data_list.append((devmatchObj1[2]))
+            except UnicodeDecodeError:
+                pass
     if len(data_list) > 0:
         report = ArtifactHtmlReport('GPS Info')
         report.start_artifact_report(report_folder, f'GPS Info')
