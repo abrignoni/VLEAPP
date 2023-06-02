@@ -119,7 +119,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                 line_str = str(line)
                 line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape")
                 line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
-                line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii')
+                line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="ignore") 
                 #timestamp = timeorder(line_wanted)
                 devmatchObj1 = re.search(r"(Latitude\sread from\sPS: \d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line_wanted)
                #devmatchObj2 = re.search(r"(Latitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
@@ -138,7 +138,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
         report.write_artifact_data_table(data_headers, data_list, file_found)
         report.end_artifact_report()
         
-        tsvname = f'Vehicle Info'
+        tsvname = f'GPS Info'
         tsv(report_folder, data_headers, data_list, tsvname)
     else:
         logfunc(f'No GPS Info Found')
@@ -152,10 +152,6 @@ __artifacts__ = {
         "contacts",
         ('*/mnt/p3/voice/asr/context/phonebook/*.txt'),
         get_contacts),
-   # "call_logs": (
-     #  "call_logs",
-      #  ('*/com.android.cooldata/files/cool.xml'),
-     #   get_calllogs),
      "gps_data": (
          "gps_data",
          ('*/mnt/p3/log/slogs*'),
