@@ -77,14 +77,16 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
         with open(file_found, "r") as f:
             id = ''
             val = ''
-            for i, line in f:
+            count = 0
+            for line in f:
                 splits = ''
                 #Search for key values in the diagnostic logs
-                if i%2==0:
+                if count%2==0:
                     id = line
                 else:
                     val = line
-                data_list.append((id, val))             
+                data_list.append((id, val))  
+                count += 1           
     if len(data_list) > 0:
         #Send new data to report generator
         report = ArtifactHtmlReport('Diagnostic Data')
