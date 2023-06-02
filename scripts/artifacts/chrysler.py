@@ -117,7 +117,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
         with open(file_found, "r") as f:
             for line in f:
                 line_str = str(line)
-                line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape")
+                line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape", errors="ignore")
                 line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
                 line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="ignore") 
                 #timestamp = timeorder(line_wanted)
