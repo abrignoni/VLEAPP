@@ -133,11 +133,11 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                #devmatchObj2 = re.search(r"(Latitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                 #devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                 #devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                category = 'NAV_FRAMEWORK_IF'
-                subcategory = 'dev_loc_results'
+                #category = 'NAV_FRAMEWORK_IF'
+                #subcategory = 'dev_loc_results'
                 #data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
                 #data_list.append((timestamp,devmatchObj1[2], category, subcategory))
-                data_list.append((devmatchObj1[2]))
+                data_list.append((timestamp, devmatchObj1[2]))
     if len(data_list) > 0:
         report = ArtifactHtmlReport('GPS Info')
         report.start_artifact_report(report_folder, f'GPS Info')
