@@ -120,7 +120,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                 line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape")
                 line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
                 line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii')
-                timestamp = timeorder(line_wanted)
+                #timestamp = timeorder(line_wanted)
                 devmatchObj1 = re.search(r"(Latitude\sread from\sPS: \d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line_wanted)
                #devmatchObj2 = re.search(r"(Latitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                 #devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
@@ -129,7 +129,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                 #subcategory = 'dev_loc_results'
                 #data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
                 #data_list.append((timestamp,devmatchObj1[2], category, subcategory))
-                data_list.append((timestamp, devmatchObj1[2]))
+                data_list.append((devmatchObj1[2]))
     if len(data_list) > 0:
         report = ArtifactHtmlReport('GPS Info')
         report.start_artifact_report(report_folder, f'GPS Info')
@@ -158,7 +158,7 @@ __artifacts__ = {
      #   get_calllogs),
      "gps_data": (
          "gps_data",
-         ('*/mnt/p3/log/slogs2'),
+         ('*/mnt/p3/log/*'),
          get_gpsdata),
     "diagnostic_data": (
         "diagnostic_data",
