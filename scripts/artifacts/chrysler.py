@@ -114,7 +114,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                         data_list.append((devmatchObj1[2]))
                     except UnicodeDecodeError:
                         pass
-                        count += 1
+                count += 1
     if len(data_list) > 0:
         report = ArtifactHtmlReport('GPS Info')
         report.start_artifact_report(report_folder, f'GPS Info')
