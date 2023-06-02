@@ -13,7 +13,6 @@ platforms = ['Carplay']
 ## Get connected Bluetooth Devices
 def get_btDevices(files_found, report_folder, seeker, wrap_text):
     data_list = []
-
     for file_found in files_found:
         with open(file_found, "r") as f:
             devAddr = devFriendlyName = '' # Look for device addresses (hex) & friendly names
@@ -30,11 +29,9 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                         devFriendlyName = splits2[1]
                     else: 
                         devAddr = devFriendlyName = ''
-
                 # Add found item pair to data list                
                 if (devAddr, devFriendlyName) not in data_list and devAddr != '':
                     data_list.append((devAddr, devFriendlyName)) # Add new found data to datalist
-
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
@@ -42,8 +39,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
         data_headers = ('Device Address','Device Friendly Name')
         report.write_artifact_data_table(data_headers, data_list, file_found)
         report.end_artifact_report()
-
-        tsvname = f'Connected Bluetooth Devices'
+        tsvname = f'Bluetooth Devices'
         tsv(report_folder, data_headers, data_list, tsvname)
     else:
         logfunc(f'No Bluetooth Devices found')
@@ -54,8 +50,6 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
     for file_found in files_found:
         with open(file_found, "r") as f:
             pass
-
-            
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Vehicle Info')
         report.start_artifact_report(report_folder, f'Vehicle Info')
@@ -66,7 +60,6 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
     
         tsvname = f'Vehicle Info'
         tsv(report_folder, data_headers, data_list, tsvname)
-
     else:
         logfunc(f'No Contacts')
 
@@ -99,7 +92,6 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
     
         tsvname = f'Vehicle Info'
         tsv(report_folder, data_headers, data_list, tsvname)
-
     else:
         logfunc(f'No Diagnostic Data')
 
@@ -107,7 +99,6 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
 #def get_calllogs(files_found, report_folder, seeker, wrap_text):
 #   print("nothing")
 
-## Get GPS data
 def timeorder(line):
     month = line.split('/', 3)[0]
     day = line.split('/', 3)[1]
@@ -117,6 +108,7 @@ def timeorder(line):
     timestamp = f'{year}-{month}-{day} {time}'
     return timestamp
 
+## Get GPS data
 def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     data_list_dev = []
@@ -148,11 +140,8 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
         
         tsvname = f'Vehicle Info'
         tsv(report_folder, data_headers, data_list, tsvname)
-        
     else:
         logfunc(f'No GPS Info Found')
-
-
 
 __artifacts__ = {
     "bluetooth_devices": (
