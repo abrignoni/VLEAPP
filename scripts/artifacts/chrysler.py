@@ -132,8 +132,8 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                 subcategory = 'dev_loc_results'
                 data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
             if len(data_list) > 0:
-                report = ArtifactHtmlReport('Vehicle Info')
-                report.start_artifact_report(report_folder, f'Vehicle Info')
+                report = ArtifactHtmlReport('GPS Info')
+                report.start_artifact_report(report_folder, f'GPS Info')
                 report.add_script()
                 data_headers = ('Key','Value')
                 report.write_artifact_data_table(data_headers, data_list, file_found)
@@ -162,9 +162,8 @@ __artifacts__ = {
      #   get_calllogs),
      "gps_data": (
          "gps_data",
-         ('*/mnt/p3/logs/slogs1'),
-         get_gpsdata
-     ),
+         ('*/mnt/p3/logs/slogs*'),
+         get_gpsdata),
     "diagnostic_data": (
         "diagnostic_data",
         ('*/mnt/p3/persistence/nonvol_*.ps'),
@@ -172,6 +171,3 @@ __artifacts__ = {
 
     
 }
-
-if __name__ == '__main__':
-    get_btDevices('*/mnt/p3/betula/bt_log.txt')
