@@ -124,8 +124,12 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     for file_found in files_found:
         with open(file_found, "r") as f:
             for line in f:
-                timestamp = timeorder(line)
-                devmatchObj1 = re.search(r"(Latitude\sread from\sPS: \d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line)
+                line_str = str(line)
+                line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape")
+                line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
+                line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii')
+                timestamp = timeorder(line_wanted)
+                devmatchObj1 = re.search(r"(Latitude\sread from\sPS: \d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line_wanted)
                #devmatchObj2 = re.search(r"(Latitude ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                 #devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
                 #devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
