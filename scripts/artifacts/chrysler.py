@@ -33,7 +33,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                         devAddr = devFriendlyName = ''
 
                 # Add found item pair to data list                
-                if (devAddr, devFriendlyName) not in data_list or devAddr is not '':
+                if (devAddr, devFriendlyName) not in data_list and devAddr is not '':
                     data_list.append((devAddr, devFriendlyName)) # Add new found data to datalist
 
     if len(data_list) > 0:
