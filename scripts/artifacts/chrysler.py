@@ -120,7 +120,7 @@ def timeorder(line):
 def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     data_list_dev = []
-    basename = os.path.basename(files_found)
+    #basename = os.path.basename(files_found)
     for file_found in files_found:
         with open(file_found, "r") as f:
             for line in f:
@@ -132,7 +132,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                 category = 'NAV_FRAMEWORK_IF'
                 subcategory = 'dev_loc_results'
                 #data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
-                data_list_dev.append((timestamp,devmatchObj1[2], category, subcategory, basename))
+                data_list_dev.append((timestamp,devmatchObj1[2], category, subcategory))
             if len(data_list) > 0:
                 report = ArtifactHtmlReport('GPS Info')
                 report.start_artifact_report(report_folder, f'GPS Info')
