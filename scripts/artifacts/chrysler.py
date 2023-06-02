@@ -132,20 +132,20 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                 category = 'NAV_FRAMEWORK_IF'
                 subcategory = 'dev_loc_results'
                 #data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
-                data_list_dev.append((timestamp,devmatchObj1[2], category, subcategory))
-            if len(data_list) > 0:
-                report = ArtifactHtmlReport('GPS Info')
-                report.start_artifact_report(report_folder, f'GPS Info')
-                report.add_script()
-                data_headers = ('Key','Value')
-                report.write_artifact_data_table(data_headers, data_list, file_found)
-                report.end_artifact_report()
-                
-                tsvname = f'Vehicle Info'
-                tsv(report_folder, data_headers, data_list, tsvname)
-                
-            else:
-                logfunc(f'No GPS Info Found')
+                data_list.append((timestamp,devmatchObj1[2], category, subcategory))
+    if len(data_list) > 0:
+        report = ArtifactHtmlReport('GPS Info')
+        report.start_artifact_report(report_folder, f'GPS Info')
+        report.add_script()
+        data_headers = ('Key','Value')
+        report.write_artifact_data_table(data_headers, data_list, file_found)
+        report.end_artifact_report()
+        
+        tsvname = f'Vehicle Info'
+        tsv(report_folder, data_headers, data_list, tsvname)
+        
+    else:
+        logfunc(f'No GPS Info Found')
 
 
 
