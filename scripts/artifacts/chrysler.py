@@ -108,7 +108,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                         line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
                         line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="replace") 
                         devmatchObj1 = re.search(r"(Latitude\sread\s from\sPS:\s\d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line_wanted)
-                        data_list.append((devmatchObj1[2]))
+                        data_list.append((devmatchObj1))
                 except UnicodeDecodeError:
                     pass
     if len(data_list) > 0:
@@ -129,14 +129,14 @@ __artifacts__ = {
         "bluetooth devices",
         ('*/mnt/p3/betula/bt_log.txt'),
         get_btDevices),
-    "contacts": (
-        "contacts",
-        ('*/mnt/p3/voice/asr/context/phonebook/*.txt'),
-        get_contacts),
-     "gps_data": (
-         "gps_data",
-         ('*/mnt/p3/log/slogs*'),
-         get_gpsdata),
+#    "contacts": (
+#        "contacts",
+#        ('*/mnt/p3/voice/asr/context/phonebook/*.txt'),
+#        get_contacts),
+#     "gps_data": (
+#         "gps_data",
+#         ('*/mnt/p3/log/slogs*'),
+#         get_gpsdata),
     "diagnostic_data": (
         "diagnostic_data",
         ('*/mnt/p3/persistence/nonvol_*.ps'),
