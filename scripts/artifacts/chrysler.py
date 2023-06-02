@@ -19,19 +19,15 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
         with open(file_found, "r") as f:
             devAddr = devFriendlyName = '' # Look for device addresses (hex) & friendly names
             for line in f:  # Search line for certain keywords
-                if pattern.match(line): #Handle each block of timestamps only
+                splits = ''
+                if 'bdAddr: ' in line:
+                    splits = line.split('bdAddr: ')
+                    devAddr = splits[1]
                     line = next(f)
-                    while not pattern.match(line) or line is not None: #Keep iterating until next timestamp
-                        splits = ''
-                        if 'bdAddr: ' in line:
-                            splits = line.split('bdAddr: ')
-                            devAddr = splits[1]
-                            line = next(f)
-                            line = next(f)
-                            if 'name: ' in line:
-                                splits = line.split('name: ')
-                                devFriendlyName = splits[1]
-                        line = next(f, None) # Get next line
+                    line = next(f)
+                    if 'name: ' in line:
+                        splits = line.split('name: ')
+                        devFriendlyName = splits[1]
 
                 # Add found item pair to data list                
                 if (devAddr, devFriendlyName) not in data_list:
