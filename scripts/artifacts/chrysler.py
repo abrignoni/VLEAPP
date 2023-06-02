@@ -36,7 +36,7 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
                     data_list.append((devAddr, devFriendlyName)) # Add new found data to datalist
 
     if len(data_list) > 0:
-        report = ArtifactHtmlReport('Bluetooth Devices')
+        report = ArtifactHtmlReport('Connected Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
         report.add_script()
         data_headers = ('Device Address','Device Friendly Name')
