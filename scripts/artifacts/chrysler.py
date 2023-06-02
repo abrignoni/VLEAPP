@@ -107,18 +107,18 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                 line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="replace") 
                 devmatchObj1 = re.search(r"(Latitude\sread from\sPS: \d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line_wanted)
                 data_list.append((devmatchObj1[2]))
-    if len(data_list) > 0:
-        report = ArtifactHtmlReport('GPS Info')
-        report.start_artifact_report(report_folder, f'GPS Info')
-        report.add_script()
-        data_headers = ('Key','Value')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
+                if len(data_list) > 0:
+                    report = ArtifactHtmlReport('GPS Info')
+                    report.start_artifact_report(report_folder, f'GPS Info')
+                    report.add_script()
+                    data_headers = ('Key','Value')
+                    report.write_artifact_data_table(data_headers, data_list, file_found)
+                    report.end_artifact_report()
         
-        tsvname = f'GPS Info'
-        tsv(report_folder, data_headers, data_list, tsvname)
-    else:
-        logfunc(f'No GPS Info Found')
+                    tsvname = f'GPS Info'
+                    tsv(report_folder, data_headers, data_list, tsvname)
+   # else:
+    #    logfunc(f'No GPS Info Found')
 
 __artifacts__ = {
     "bluetooth_devices": (
