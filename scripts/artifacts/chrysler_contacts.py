@@ -21,6 +21,10 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
             information = ''
             count = 0
             for line in f:
+                line_str = str(line)
+                line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape", errors="replace")
+                line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
+                line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="replace")
                 splits = ''
                 if count%2==0:
                     name = line
