@@ -49,6 +49,6 @@ def get_btDevices(files_found, report_folder, seeker, wrap_text):
 __artifacts__ = {
     "bluetooth_devices": (
         "bluetooth devices",
-        ('*/mnt/p3/betula/bt_log.txt'),
+        ('*/betula/bt_log.txt'),
         get_btDevices),
 }
