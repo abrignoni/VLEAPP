@@ -24,8 +24,8 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
                     id = line
                 else:
                     val = line
-                    if (id not in data_list):
-                        data_list.append((id, val))  
+                if (id not in data_list):
+                    data_list.append((id, val))  
                 count += 1           
     if len(data_list) > 0:
         #Send new data to report generator
