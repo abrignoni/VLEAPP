@@ -17,16 +17,28 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:
-            pass
+            name = ''
+            information = ''
+            count = 0
+            for line in f:
+                splits = ''
+                #Search for key values in the diagnostic logs
+                if count%2==0:
+                    name = line
+                else:
+                    information = line
+                    if (name not in data_list):
+                        data_list.append((name, information))  
+                count += 1   
     if len(data_list) > 0:
-        report = ArtifactHtmlReport('Vehicle Info')
-        report.start_artifact_report(report_folder, f'Vehicle Info')
+        report = ArtifactHtmlReport('Contacts List')
+        report.start_artifact_report(report_folder, f'Contacts List')
         report.add_script()
-        data_headers = ('Key','Value')
+        data_headers = ('Name','Information')
         report.write_artifact_data_table(data_headers, data_list, file_found)
         report.end_artifact_report()
     
-        tsvname = f'Vehicle Info'
+        tsvname = f'Contacts List'
         tsv(report_folder, data_headers, data_list, tsvname)
     else:
         logfunc(f'No Contacts')

@@ -36,7 +36,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
         report = ArtifactHtmlReport('GPS Info')
         report.start_artifact_report(report_folder, f'GPS Info')
         report.add_script()
-        data_headers = ('Key','Value')
+        data_headers = ('Latitude','Longitude', 'Timestamp')
         report.write_artifact_data_table(data_headers, data_list, file_found)
         report.end_artifact_report()
         
