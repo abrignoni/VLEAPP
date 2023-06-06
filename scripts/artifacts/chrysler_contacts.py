@@ -44,7 +44,7 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         logfunc(f'No Contacts')
 
 
-        __artifacts__ = {
+__artifacts__ = {
        "contactList": (
         "contactsList",
         ('*/mnt/p3/voice/asr/context/phonebook/*.txt'),
