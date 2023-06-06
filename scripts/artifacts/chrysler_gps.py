@@ -25,8 +25,8 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                             line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape", errors="replace")
                             line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
                             line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="replace") 
-                            devmatchObj1 = re.search(r"(Latitude\sread\s from\sPS:\s\d\d\.\d\d\d\d\d\d\sLongitude\sread\sfrom\sPS:\s-\d\d\.\d\d\d\d\d\d\d)", line_wanted)
-                            data_list.append((devmatchObj1))
+                            if line_wanted.contains("Latitude"):
+                                data_list.append((line_wanted))
                     except UnicodeDecodeError:
                         pass
         except PermissionError:
