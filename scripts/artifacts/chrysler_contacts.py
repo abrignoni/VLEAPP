@@ -22,7 +22,6 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
             count = 0
             for line in f:
                 splits = ''
-                #Search for key values in the diagnostic logs
                 if count%2==0:
                     name = line
                 else:
