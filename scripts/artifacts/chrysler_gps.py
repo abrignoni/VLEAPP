@@ -53,6 +53,6 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
 __artifacts__ = {
        "gps_data": (
          "gps_data",
-         ('*/mnt/p3/log/slog*'),
+         ('*/log/slog*'),
          get_gpsdata)
 }
