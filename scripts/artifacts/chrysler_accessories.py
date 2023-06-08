@@ -21,6 +21,8 @@ def get_accessorydata(files_found, report_folder, seeker, wrap_text):
                         for line in f:
                             names = line.split("::")
                             data_list.append((names[0],names[1]))
+                            logfunc(data_list)
+                            #[A-Za-z]+::[A-Za-z]+   -  regex for the accessory_data.txt file
 
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Accessory Data')
