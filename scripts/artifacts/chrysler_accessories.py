@@ -20,7 +20,7 @@ def get_accessorydata(files_found, report_folder, seeker, wrap_text):
                 while(data_list == ''):
                         for line in f:
                             names = line.split("::")
-                            data_list.append(names[0],names[1])
+                            data_list.append((names[0],names[1]))
 
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Accessory Data')
