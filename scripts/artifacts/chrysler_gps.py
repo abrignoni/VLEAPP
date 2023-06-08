@@ -28,7 +28,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                             if line_wanted.contains("Latitude"):
                                 data_list.append((line_wanted))
                     except UnicodeDecodeError:
-                        print("UnicodeDecodeError handled")
+                        logfunc("UnicodeDecodeError handled")
         except PermissionError:
             print("directory is not writable")
 
