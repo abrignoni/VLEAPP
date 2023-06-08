@@ -19,8 +19,8 @@ def get_accessorydata(files_found, report_folder, seeker, wrap_text):
             with open(file_found, "r") as f:
                 while(data_list == ''):
                         for line in f:
-                            name = line.split('::', 1)[0]
-                            value = line.split('::', 2)[1]
+                            name = line.split('', 1)[0]
+                            value = line.split('', 1)[1]
                             data_list.append(name,value)
 
     if len(data_list) > 0:
