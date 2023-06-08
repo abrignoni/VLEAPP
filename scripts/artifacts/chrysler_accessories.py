@@ -20,7 +20,7 @@ def get_accessorydata(files_found, report_folder, seeker, wrap_text):
                 while(data_list == ''):
                         for line in f:
                             a = line.strip().split('::')
-                            data_list.append(a[0],a[1])
+                            data_list.append(a[0],a[1:])
 
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Accessory Data')
@@ -43,6 +43,6 @@ def get_accessorydata(files_found, report_folder, seeker, wrap_text):
 __artifacts__ = {
        "accessory_data": (
          "accessory_data",
-         ('*/mnt/p3/media/accessory_data.txt'),
+         ('*/media/accessory_data.txt'),
          get_accessorydata)
 }
