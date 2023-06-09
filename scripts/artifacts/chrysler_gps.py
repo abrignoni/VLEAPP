@@ -32,8 +32,9 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                         if "Longitude" in line_wanted:
                             for i in re.findall(r"Longitude\sread\sfrom\sPS:\s([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[Ee]([+-]?\d+))?", line_wanted):
                                 long.append(i)
-                        if len(long) > 0 or len(lat) > 0:
-                            data_list.append((lat[0], long[0]))
+                        if ((lat[0], long[0])) not in data_list: 
+                            if len(long) > 0 or len(lat) > 0:
+                                data_list.append((lat[0], long[0]))
                     except UnicodeDecodeError:
                         pass
         except PermissionError:
