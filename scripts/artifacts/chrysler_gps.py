@@ -15,12 +15,12 @@ platforms = ['Carplay']
 ## Get GPS data
 def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
-    long = []
-    lat = []
     for file_found in files_found:
         try:
             with open(file_found, "r", encoding = "ISO-8859-1") as f:
                 for line in f:
+                    long = []
+                    lat = []
                     try:
                         line_str = str(line)
                         line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape", errors="replace")
@@ -30,7 +30,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                             for i in re.findall(r"Latitude\sread\sfrom\sPS:\s\d\d\.[0-9]+\s", line_wanted):
                                 lat.append(i)
                         if "Longitude" in line_wanted:
-                            for i in re.findal(r"Longitude\sread\sfrom\sPS:\s([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[Ee]([+-]?\d+))?", line_wanted):
+                            for i in re.findall(r"Longitude\sread\sfrom\sPS:\s([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[Ee]([+-]?\d+))?", line_wanted):
                                 long.append(i)
                         if len(long) > 0 or len(lat) > 0:
                             data_list.append(lat[0], long[0])
