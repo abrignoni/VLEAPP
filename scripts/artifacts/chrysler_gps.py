@@ -17,7 +17,7 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         try:
-            with open(file_found, "r") as f:
+            with open(file_found, "r", encoding = "ISO-8859-1") as f:
                 for line in f:
                     try:
                         line_str = str(line)
