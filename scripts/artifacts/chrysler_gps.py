@@ -19,12 +19,15 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
         try:
             with open(file_found, "r") as f:
                 for line in f:
-                    line_str = str(line)
-                    line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape", errors="replace")
-                    line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
-                    line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="replace") 
-                    if line_wanted.contains("Latitude"):
-                        data_list.append((line_wanted))
+                    try:
+                        line_str = str(line)
+                        line_str_decoded = bytes(line_str, "utf-8").decode("unicode_escape", errors="replace")
+                        line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
+                        line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="replace") 
+                        if line_wanted.contains("Latitude"):
+                            data_list.append((line_wanted))
+                    except UnicodeDecodeError:
+                        pass
         except PermissionError:
             print("directory is not writable")
 
