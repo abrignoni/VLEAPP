@@ -15,6 +15,8 @@ platforms = ['Carplay']
 ## Get GPS data
 def get_gpsdata(files_found, report_folder, seeker, wrap_text):
     data_list = []
+    long = []
+    lat = []
     for file_found in files_found:
         try:
             with open(file_found, "r", encoding = "ISO-8859-1") as f:
@@ -25,10 +27,13 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
                         line_decoded = re.sub('r\\\\x[0-9a-fA-F]{2}', "", line_str_decoded)
                         line_wanted = line_decoded.encode('ascii', 'ignore').decode('ascii', errors="replace") 
                         if "Latitude" in line_wanted:
-                            for i in re.findall(r"Latitude\sread\sfrom\sPS:\s\d\d\.[0-9]+\sLongitude\sread\sfrom\sPS:\s([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[Ee]([+-]?\d+))?", line_wanted):
-                                data_list.append(i)
-                           
-
+                            for i in re.findall(r"Latitude\sread\sfrom\sPS:\s\d\d\.[0-9]+\s", line_wanted):
+                                lat.append(i)
+                        if "Longitude" in line_wanted:
+                            for i in re.findal(r"Longitude\sread\sfrom\sPS:\s([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[Ee]([+-]?\d+))?", line_wanted):
+                                long.append(i)
+                        if len(long) > 0 or len(lat) > 0:
+                            data_list.append(lat[0], long[0])
                     except UnicodeDecodeError:
                         pass
         except PermissionError:
@@ -48,17 +53,12 @@ def get_gpsdata(files_found, report_folder, seeker, wrap_text):
         logfunc(f'No GPS Info Found')
 
 
-def reg_pattern(input_text):
-    pattern = re.compile(r"Latitude\sread\sfrom\sPS:\s\d\d\.[0-9]+\sLongitude\sread\sfrom\sPS:\s([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[Ee]([+-]?\d+))?")
-    return pattern.match(input_text)
-
-
         
 
 
 __artifacts__ = {
        "gps_data": (
          "gps_data",
-         ('*/log/slog*'),
+         ('*/log/slogs*'),
          get_gpsdata)
 }
