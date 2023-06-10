@@ -45,6 +45,6 @@ def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
 __artifacts__ = {
         "diagnostic_data": (
         "diagnostic_data",
-        ('*/mnt/p3/persistence/nonvol_*.ps'),
+        ('*/persistence/nonvol_*.ps'),
         get_diagnosticdata)
 }
