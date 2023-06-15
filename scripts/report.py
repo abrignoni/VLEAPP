@@ -44,6 +44,14 @@ def get_icon_name(category, artifact):
             icon == 'bluetooth'
     elif category == 'CONNECTED DEVICES':
         icon = 'smartphone'
+    elif category == 'bluetooth_devices':
+        icon = 'bluetooth'
+    elif category == 'contact_list':
+        icon = 'users'
+    elif category == 'diagnostic_data':
+        icon = 'thermometer'
+    elif category == 'gps_data':
+        icon = 'map-pin'
     elif category == 'PAS_DEBUG':
         if artifact == 'SEND GPS CAN DATA':
             icon = 'map-pin'
