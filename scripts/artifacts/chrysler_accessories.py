@@ -41,8 +41,8 @@ def get_accessorydata(files_found, report_folder, seeker, wrap_text):
 
 
 __artifacts__ = {
-       "accessory_data": (
-         "accessory_data",
+       "Accessory Data Chrysler": (
+         "Accessory Data Chrysler",
          ('*/media/accessory_data.txt'),
          get_accessorydata)
 }
