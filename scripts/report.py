@@ -35,6 +35,12 @@ def get_icon_name(category, artifact):
         icon = 'smartphone'
     elif category == 'CONTACTS':
         icon = 'users'
+    elif category == 'ALFA ROMEO CONTACTS':
+        icon = 'users'
+    elif category == 'ALFA ROMEO BLUETOOTH':
+        icon = 'bluetooth'
+    elif category == 'ALFA ROMEO SIRIUS DATA':
+        icon = 'settings'
     elif category == 'BT REPORT':
         if artifact == 'GPS DETAIL':
             icon = 'map-pin'
