@@ -14,7 +14,7 @@ def get_infotainmentData(files_found, report_folder, seeker, wrap_text):
         with open(file_found, 'r') as f:
             lines = f.readlines()
             for line in lines:
-                if line.contains("[") or line.contains("]"):
+                if "]" in line or "[" in line:
                     pass
                 else:
                     splits = line.split("=")
