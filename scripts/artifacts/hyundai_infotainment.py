@@ -27,8 +27,8 @@ def get_infotainmentData(files_found, report_folder, seeker, wrap_text):
 
 
 __artifacts__ = {
-    "accessory_data": (
-        "accessory data",
+    "Accessory Data Hyundai": (
+        "Accessory Data Hyundai",
         ('*/wifi/settings'),
         get_infotainmentData),
 }
