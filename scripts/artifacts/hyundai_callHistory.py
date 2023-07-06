@@ -52,20 +52,9 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
         numberTypes = cursor.fetchall()
         #data_list.append(numberTypes)
         i = 0
-        for id in ids:
-            data_list.append(ids[i])
-            data_list.append(givens[i])
-            data_list.append(familys[i])
-            data_list.append(phone_numbers[i])
-            data_list.append(callTypes[i])
-            data_list.append(dates[i])
-            data_list.append(date_sorts[i])
-            data_list.append(durations[i])
-            data_list.append(numberTypes[i])
-            i += 1
 
     #append array for each column to data_list, push data_list to report
-        #data_list.append(ids, givens, familys, phone_numbers, callTypes, dates, date_sorts, durations, numberTypes)
+        data_list.append((ids, givens, familys, phone_numbers, callTypes, dates, date_sorts, durations, numberTypes))
                     
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Call History')
