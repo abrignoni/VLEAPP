@@ -31,11 +31,13 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         phone_number = cursor.fetchall()
         #data_list.append(phone_number)
 
-        for i in ids:
+        i = 0
+        for id in ids:
             data_list.append(ids[i])
             data_list.append(given_names[i])
             data_list.append(family_names[i])
             data_list.append(phone_number[i])
+            i += 1
                     
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Contact Data')

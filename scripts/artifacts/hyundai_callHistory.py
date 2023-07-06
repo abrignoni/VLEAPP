@@ -51,8 +51,8 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
         cursor.execute("SELECT numberType from bluetooth_callhistory")
         numberTypes = cursor.fetchall()
         #data_list.append(numberTypes)
-
-        for i in ids:
+        i = 0
+        for id in ids:
             data_list.append(ids[i])
             data_list.append(givens[i])
             data_list.append(familys[i])
@@ -62,6 +62,7 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
             data_list.append(date_sorts[i])
             data_list.append(durations[i])
             data_list.append(numberTypes[i])
+            i += 1
 
     #append array for each column to data_list, push data_list to report
         #data_list.append(ids, givens, familys, phone_numbers, callTypes, dates, date_sorts, durations, numberTypes)
