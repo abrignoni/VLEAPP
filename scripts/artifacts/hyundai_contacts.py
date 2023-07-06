@@ -14,16 +14,10 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
     for file_found in files_found:
         db = open_sqlite_db_readonly(file_found)
         cursor = db.cursor()
+
         res = cursor.execute("SELECT name FROM sqlite_master WHERE name='bluetooth_contacts'")
-        all_rows = res.fetchall()
-        usageentries = len(all_rows)
-        if usageentries > 0:
-            for row in all_rows:
-                data_list = []
                     
-                tablename = (row[0])
-                #tablenamenum = tablename.split('_')[2]
-                res.execute("SELECT _id from bluetooth_contacts")
+        res.execute("SELECT _id from bluetooth_contacts")
                     
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Contact Data')
