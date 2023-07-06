@@ -18,7 +18,8 @@ def get_infotainmentData(files_found, report_folder, seeker, wrap_text):
                     pass
                 else:
                     splits = line.split("=")
-                    data_list.append((splits[0], splits[1]))
+                    if len(splits) == 2:
+                        data_list.append((splits[0], splits[1]))
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Infotainment Data')
         report.start_artifact_report(report_folder, f'Infotainment Data')

@@ -11,6 +11,7 @@ platforms = ['Carplay']
 def get_devices(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
+        devAddr = devFriendlyName = ''
         with open(file_found, 'r') as f:
             pass
     if len(data_list) > 0:
