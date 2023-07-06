@@ -14,16 +14,8 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
     for file_found in files_found:
         db = open_sqlite_db_readonly(file_found)
         cursor = db.cursor()
-        cursor.execute('''
-            SELECT
-            FROM
-            NAME
-            FROM SQLITE_SCHEMA
-            WHERE NAME LIKE ''
-            order by name
-            '''
-        )
-        all_rows = cursor.fetchall()
+        res = cursor.execute("SELECT name FROM sqlite_master WHERE name='bluetooth_callhistory'")
+        all_rows = res.fetchall()
         usageentries = len(all_rows)
         if usageentries > 0:
             for row in all_rows:
@@ -32,42 +24,24 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
                     
                 tablename = (row[0])
                 tablenamenum = tablename.split('_')[2]
-                    
-                cursor.execute(f''' 
-                    SELECT
-                    num_phonebook_{tablenamenum}.entry_id,
-                    phonebook_{tablenamenum}.first_name,
-                    phonebook_{tablenamenum}.last_name,
-                    GROUP_CONCAT(num_phonebook_{tablenamenum}.number, '; ')
-                    from num_phonebook_{tablenamenum}
-                    join phonebook_{tablenamenum} where num_phonebook_{tablenamenum}.entry_id = phonebook_{tablenamenum}.entry_id
-                    group by num_phonebook_{tablenamenum}.entry_id
-                    ''')
-                    
-                all_rows_inner = cursor.fetchall()
-                usageentries_inner = len(all_rows_inner)
-                    
-                if usageentries_inner > 0:
-                    for rows_inner in all_rows_inner:
-                        data_list.append((rows_inner[0], rows_inner[1], rows_inner[2], rows_inner[3].replace(';', '<br>')))
-                        data_list_as_is.append((rows_inner[0], rows_inner[1], rows_inner[2], rows_inner[3]))
+
                     
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Call History')
         report.start_artifact_report(report_folder, f'Call History')
         report.add_script()
-        data_headers = ('ID','Value')
+        data_headers = ('ID','given_name', 'family_name', 'phone_number', 'calltype', 'date', 'date_sort', 'duration', 'numberType')
         report.write_artifact_data_table(data_headers, data_list, file_found)
         report.end_artifact_report()
         tsvname = f'Call History'
         tsv(report_folder, data_headers, data_list, tsvname)
     else:
-        logfunc(f'No Call Histoyr found')
+        logfunc(f'No Call History found')
 
 
 __artifacts__ = {
     "call history": (
         "call history",
-        ('*/bluetooth.DB_BMS/CH_*.db'),
+        ('*/bluetooth/DB_BMS/CH_*.db'),
         get_callHistory),
 }
