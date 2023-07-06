@@ -44,6 +44,54 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
         cursor.execute("SELECT numberType from bluetooth_callhistory")
         numberTypes = cursor.fetchall()
         i = 0
+        j = 0
+        for id in ids:
+            ids[j].replace("(", "")
+            ids[j].replace(")", "")
+            ids[j].replace(",", "")
+            ids[j].replace("'", "")
+
+            givens[j].replace("(", "")
+            givens[j].replace(")", "")
+            givens[j].replace(",", "")
+            givens[j].replace("'", "")
+
+            familys[j].replace("(", "")
+            familys[j].replace(")", "")
+            familys[j].replace(",", "")
+            familys[j].replace("'", "")
+
+            phone_numbers[j].replace("(", "")
+            phone_numbers[j].replace(")", "")
+            phone_numbers[j].replace(",", "")
+            phone_numbers[j].replace("'", "")
+
+            callTypes[j].replace("(", "")
+            callTypes[j].replace(")", "")
+            callTypes[j].replace(",", "")
+            callTypes[j].replace("'", "")
+
+            dates[j].replace("(", "")
+            dates[j].replace(")", "")
+            dates[j].replace(",", "")
+            dates[j].replace("'", "")
+
+            date_sorts[j].replace("(", "")
+            date_sorts[j].replace(")", "")
+            date_sorts[j].replace(",", "")
+            date_sorts[j].replace("'", "")
+
+            durations[j].replace("(", "")
+            durations[j].replace(")", "")
+            durations[j].replace(",", "")
+            durations[j].replace("'", "")
+
+            numberTypes[j].replace("(", "")
+            numberTypes[j].replace(")", "")
+            numberTypes[j].replace(",", "")
+            numberTypes[j].replace("'", "")
+
+            j += 1
 
     #append array for each column to data_list, push data_list to report
         for id in ids:
