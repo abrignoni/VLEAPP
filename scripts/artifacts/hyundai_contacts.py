@@ -29,30 +29,6 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
 
         i = 0
         for id in ids:
-            id.replace("(", "")
-            id.replace(")", "")
-            id.replace(",", "")
-            id.replace("'", "")
-
-        for names in given_names:
-            names.replace("(", "")
-            names.replace(")", "")
-            names.replace(",", "")
-            names.replace("'", "")
-
-        for name in family_names:
-            name.replace("(", "")
-            name.replace(")", "")
-            name.replace(",", "")
-            name.replace("'", "")
-
-        for number in phone_number:
-            number.replace("(", "")
-            number.replace(")", "")
-            number.replace(",", "")
-            number.replace("'", "")
-
-        for id in ids:
             data_list.append((ids[i], given_names[i], family_names[i], phone_number[i]))
             i += 1
                     
