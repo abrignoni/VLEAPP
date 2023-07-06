@@ -28,29 +28,29 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         phone_number = cursor.fetchall()
 
         i = 0
-        j = 0
         for id in ids:
-            ids[j].replace("(", "")
-            ids[j].replace(")", "")
-            ids[j].replace(",", "")
-            ids[j].replace("'", "")
+            id.replace("(", "")
+            id.replace(")", "")
+            id.replace(",", "")
+            id.replace("'", "")
 
-            given_names[j].replace("(", "")
-            given_names[j].replace(")", "")
-            given_names[j].replace(",", "")
-            given_names[j].replace("'", "")
+        for names in given_names:
+            names.replace("(", "")
+            names.replace(")", "")
+            names.replace(",", "")
+            names.replace("'", "")
 
-            family_names[j].replace("(", "")
-            family_names[j].replace(")", "")
-            family_names[j].replace(",", "")
-            family_names[j].replace("'", "")
+        for name in family_names:
+            name.replace("(", "")
+            name.replace(")", "")
+            name.replace(",", "")
+            name.replace("'", "")
 
-            phone_number[j].replace("(", "")
-            phone_number[j].replace(")", "")
-            phone_number[j].replace(",", "")
-            phone_number[j].replace("'", "")
-
-            j += 1
+        for number in phone_number:
+            number.replace("(", "")
+            number.replace(")", "")
+            number.replace(",", "")
+            number.replace("'", "")
 
         for id in ids:
             data_list.append((ids[i], given_names[i], family_names[i], phone_number[i]))

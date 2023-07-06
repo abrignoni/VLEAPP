@@ -44,52 +44,51 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
         cursor.execute("SELECT numberType from bluetooth_callhistory")
         numberTypes = cursor.fetchall()
         i = 0
-        j = 0
         for id in ids:
-            ids[j].replace("(", "")
-            ids[j].replace(")", "")
-            ids[j].replace(",", "")
-            ids[j].replace("'", "")
-
-            givens[j].replace("(", "")
-            givens[j].replace(")", "")
-            givens[j].replace(",", "")
-            givens[j].replace("'", "")
-
-            familys[j].replace("(", "")
-            familys[j].replace(")", "")
-            familys[j].replace(",", "")
-            familys[j].replace("'", "")
-
-            phone_numbers[j].replace("(", "")
-            phone_numbers[j].replace(")", "")
-            phone_numbers[j].replace(",", "")
-            phone_numbers[j].replace("'", "")
-
-            callTypes[j].replace("(", "")
-            callTypes[j].replace(")", "")
-            callTypes[j].replace(",", "")
-            callTypes[j].replace("'", "")
-
-            dates[j].replace("(", "")
-            dates[j].replace(")", "")
-            dates[j].replace(",", "")
-            dates[j].replace("'", "")
-
-            date_sorts[j].replace("(", "")
-            date_sorts[j].replace(")", "")
-            date_sorts[j].replace(",", "")
-            date_sorts[j].replace("'", "")
-
-            durations[j].replace("(", "")
-            durations[j].replace(")", "")
-            durations[j].replace(",", "")
-            durations[j].replace("'", "")
-
-            numberTypes[j].replace("(", "")
-            numberTypes[j].replace(")", "")
-            numberTypes[j].replace(",", "")
-            numberTypes[j].replace("'", "")
+            id.replace("(", "")
+            id.replace(")", "")
+            id.replace(",", "")
+            id.replace("'", "")
+        for given in givens:
+            given.replace("(", "")
+            given.replace(")", "")
+            given.replace(",", "")
+            given.replace("'", "")
+        for family in familys:
+            family.replace("(", "")
+            family.replace(")", "")
+            family.replace(",", "")
+            family.replace("'", "")
+        for phone_number in phone_numbers:
+            phone_number.replace("(", "")
+            phone_number.replace(")", "")
+            phone_number.replace(",", "")
+            phone_number.replace("'", "")
+        for callType in callTypes:
+            callType.replace("(", "")
+            callType.replace(")", "")
+            callType.replace(",", "")
+            callType.replace("'", "")
+        for date in dates:
+            date.replace("(", "")
+            date.replace(")", "")
+            date.replace(",", "")
+            date.replace("'", "")
+        for date_sort in date_sorts:
+            date_sort.replace("(", "")
+            date_sort.replace(")", "")
+            date_sort.replace(",", "")
+            date_sort.replace("'", "")
+        for duration in durations:
+            duration.replace("(", "")
+            duration.replace(")", "")
+            duration.replace(",", "")
+            duration.replace("'", "")
+        for numberType in numberTypes:
+            numberType.replace("(", "")
+            numberType.replace(")", "")
+            numberType.replace(",", "")
+            numberType.replace("'", "")
 
             j += 1
 
