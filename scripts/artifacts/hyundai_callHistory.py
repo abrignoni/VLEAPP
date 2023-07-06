@@ -14,6 +14,7 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
     for file_found in files_found:
         db = open_sqlite_db_readonly(file_found)
         cursor = db.cursor()
+        
 
         cursor.execute("SELECT _id from bluetooth_callhistory")
         ids = cursor.fetchall()
@@ -43,8 +44,9 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
         numberTypes = cursor.fetchall()
 
     #append array for each column to data_list, push data_list to report
+        data_list.append(ids, givens, familys, phone_numbers, callTypes, dates, date_sorts, durations, numberTypes)
                     
-    if len(ids) > 0:
+    if len(data_list) > 0:
         report = ArtifactHtmlReport('Call History')
         report.start_artifact_report(report_folder, f'Call History')
         report.add_script()
