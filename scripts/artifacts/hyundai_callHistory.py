@@ -18,33 +18,42 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
 
         cursor.execute("SELECT _id from bluetooth_callhistory")
         ids = cursor.fetchall()
+        data_list.append(ids)
 
         cursor.execute("SELECT given_name from bluetooth_callhistory")
         givens = cursor.fetchall()
+        data_list.append(givens)
 
         cursor.execute("SELECT family_name from bluetooth_callhistory")
         familys = cursor.fetchall()
+        data_list.append(familys)
 
         cursor.execute("SELECT phone_number from bluetooth_callhistory")
         phone_numbers = cursor.fetchall()
+        data_list.append(phone_numbers)
 
         cursor.execute("SELECT calltype from bluetooth_callhistory")
         callTypes = cursor.fetchall()
+        data_list.append(callTypes)
 
         cursor.execute("SELECT date from bluetooth_callhistory")
         dates = cursor.fetchall()
+        data_list.append(dates)
 
         cursor.execute("SELECT date_sort from bluetooth_callhistory")
         date_sorts = cursor.fetchall()
+        data_list.append(date_sorts)
 
         cursor.execute("SELECT duration from bluetooth_callhistory")
         durations = cursor.fetchall()
+        data_list.append(durations)
 
         cursor.execute("SELECT numberType from bluetooth_callhistory")
         numberTypes = cursor.fetchall()
+        data_list.append(numberTypes)
 
     #append array for each column to data_list, push data_list to report
-        data_list.append(ids, givens, familys, phone_numbers, callTypes, dates, date_sorts, durations, numberTypes)
+        #data_list.append(ids, givens, familys, phone_numbers, callTypes, dates, date_sorts, durations, numberTypes)
                     
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Call History')
