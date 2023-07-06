@@ -60,6 +60,8 @@ def get_icon_name(category, artifact):
         icon = 'map-pin'
     elif category == 'CALL HISTORY':
         icon = 'phone'
+    elif category == 'ACCESSORY DATA HYUNDAI':
+        icon = 'settings'
     elif category == 'PAS_DEBUG':
         if artifact == 'SEND GPS CAN DATA':
             icon = 'map-pin'

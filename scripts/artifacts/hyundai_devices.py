@@ -17,7 +17,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
         report.add_script()
-        data_headers = ('ID','Value')
+        data_headers = ('Bluetooth MAC Address','Device Friendly Name')
         report.write_artifact_data_table(data_headers, data_list, file_found)
         report.end_artifact_report()
         tsvname = f'Bluetooth Devices'

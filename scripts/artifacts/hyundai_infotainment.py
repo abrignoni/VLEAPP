@@ -12,7 +12,13 @@ def get_infotainmentData(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, 'r') as f:
-            pass
+            lines = f.readlines()
+            for line in lines:
+                if line.contains("[") or line.contains("]"):
+                    pass
+                else:
+                    splits = line.split("=")
+                    data_list.append((splits[0], splits(1)))
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Infotainment Data')
         report.start_artifact_report(report_folder, f'Infotainment Data')
