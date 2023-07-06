@@ -17,26 +17,21 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
                     
         cursor.execute("SELECT _id from bluetooth_contacts")
         ids = cursor.fetchall()
-        #data_list.append(ids)
 
         cursor.execute("SELECT given_name from bluetooth_contacts")
         given_names = cursor.fetchall()
-        #data_list.append(given_names)
 
         cursor.execute("SELECT family_name from bluetooth_contacts")
         family_names = cursor.fetchall()
-        #data_list.append(family_names)
 
         cursor.execute("SELECT phone_number from bluetooth_contacts")
         phone_number = cursor.fetchall()
-        #data_list.append(phone_number)
 
         i = 0
         for id in ids:
             data_list.append((ids[i], given_names[i], family_names[i], phone_number[i]))
             i += 1
                     
-        data_list.append((ids, given_names, family_names, phone_number))
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Contact Data')
         report.start_artifact_report(report_folder, f'Contact Data')

@@ -58,6 +58,8 @@ def get_icon_name(category, artifact):
         icon = 'thermometer'
     elif category == 'gps_data':
         icon = 'map-pin'
+    elif category == 'call history':
+        icon = 'phone-call'
     elif category == 'PAS_DEBUG':
         if artifact == 'SEND GPS CAN DATA':
             icon = 'map-pin'
