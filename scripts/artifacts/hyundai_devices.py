@@ -21,13 +21,12 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 addrPattern = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+", re.IGNORECASE)
                 line_str_2 = re.sub(addrPattern, ':::', line_str_2)
                 devFriendlyName = line_str_2.split(':::')
-                for name in devFriendlyName:
-                    name = re.sub(r'\W+', "", name)
+#                for name in devFriendlyName:
+#                    name = re.sub(r'\W+', "", name)
                 for m in re.findall(addrPattern, line_str):
                     if m not in devAddr:
                         devAddr.append(str(m))
-                for name in devFriendlyName:
-                    logfunc(name)
+                logfunc(str(print(devFriendlyName)))
                 i = 0
                 for addr in devAddr:
                     logfunc(addr) 
