@@ -19,7 +19,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 line_str = str(line)
                 addrPattern = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+", re.IGNORECASE)
                 match = addrPattern.match(line_str)
-            data_list.append((match.string, devFriendlyName))
+            data_list.append((match, devFriendlyName))
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
