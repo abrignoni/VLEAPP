@@ -30,16 +30,28 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         i = 0
         for id in ids:
             id = str(id)
-            id.strip(",", "(", ")", "'")
+            id.strip(",")
+            id.strip("(")
+            id.strip(")")
+            id.strip("'")
         for given in given_names:
             given = str(given)
-            given.strip(",", "(", ")", "'")
+            given.strip(",")
+            given.strip("(")
+            given.strip(")")
+            id.strip("'")
         for family in family_names:
             family = str(family)
-            family.strip(",", "(", ")", "'")
+            family.strip(",")
+            family.strip("(")
+            family.strip(")")
+            family.strip("'")
         for number in phone_number:
             number = str(number)
-            number.strip(",", "(", ")", "'")
+            number.strip(",")
+            number.strip("(")
+            number.strip(")")
+            number.strip("'")
         
         for id in ids:
             data_list.append((ids[i], given_names[i], family_names[i], phone_number[i]))
