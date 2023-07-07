@@ -35,8 +35,8 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                     logfunc(addr)
 
                 i = 0
-                for name in devFriendlyName:
-                    data_list.append((devAddr[i], name))
+                for addr in devAddr:
+                    data_list.append((addr, devFriendlyName[i]))
                     i += 1
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
