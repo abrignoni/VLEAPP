@@ -23,12 +23,14 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 devFriendlyName = line_str_2.split(':::')
                 for name in devFriendlyName:
                     name = re.sub(r'\W+', "", name)
-                    logfunc(name)
-                i = 0 
                 for m in re.findall(addrPattern, line_str):
-                    if (m, devFriendlyName[i]) not in data_list:
-                        data_list.append((m, devFriendlyName[i]))
-                        i += 1
+                    if m not in devAddr:
+                        devAddr.append(str(m))
+                i = 0
+                for addr in devAddr:
+                    logfunc(addr) 
+                    data_list.append((m, devFriendlyName[i]))
+                    i += 1
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
