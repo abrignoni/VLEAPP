@@ -33,9 +33,6 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         tf = []
         tn = []
 
-
-
-
         i = 0
         for id in ids:
             id = str(id)
