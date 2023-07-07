@@ -33,6 +33,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                         devAddr.append(str(m))
                         logfunc(m)
                 for name in devFriendlyName:
+                    name = name.strip()
                     logfunc(name)
 
                 i = 0
