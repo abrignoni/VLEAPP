@@ -30,7 +30,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 result = re.findall(addrPattern, line_str)
                 for m in result:
                     m = str(m).strip()
-                    if m not in devAddr:
+                    if m not in devAddr and m is not '':
                         devAddr.append(m)
 
                 for name in devFriendlyName:
