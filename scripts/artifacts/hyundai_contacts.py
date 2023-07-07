@@ -27,34 +27,47 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         cursor.execute("SELECT phone_number from bluetooth_contacts")
         phone_number = cursor.fetchall()
 
+        ti = []
+        tg = []
+        tf = []
+        tn = []
+
+
+
+
         i = 0
         for id in ids:
             id = str(id)
-            id.strip(",")
-            id.strip("(")
-            id.strip(")")
-            id.strip("'")
+            id.replace(",", "")
+            id.replace("(", "")
+            id.replace(")", "")
+            id.replace("'", "")
+            ti.append(id)
+
         for given in given_names:
             given = str(given)
-            given.strip(",")
-            given.strip("(")
-            given.strip(")")
-            id.strip("'")
+            given.replace(",", "")
+            given.replace("(", "")
+            given.replace(")", "")
+            given.replace("'", "")
+            tg.append(given)
         for family in family_names:
             family = str(family)
-            family.strip(",")
-            family.strip("(")
-            family.strip(")")
-            family.strip("'")
+            family.strip(",", "")
+            family.replace("(", "")
+            family.replace(")", "")
+            family.replace("'", "")
+            tf.append(family)
         for number in phone_number:
             number = str(number)
-            number.strip(",")
-            number.strip("(")
-            number.strip(")")
-            number.strip("'")
+            number.replace(",", "")
+            number.replace("(", "")
+            number.replace(")", "")
+            number.replace("'", "")
+            tn.append(number)
         
         for id in ids:
-            data_list.append((ids[i], given_names[i], family_names[i], phone_number[i]))
+            data_list.append((ti[i], tg[i], tf[i], tn[i]))
             i += 1
                     
     if len(data_list) > 0:
