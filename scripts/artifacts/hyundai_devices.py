@@ -18,28 +18,23 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
             for line in f:
                 line_str = str(line)
                 line_str_2 = line_str # Copy of line 
-                line_str_2 = re.sub(r'\W+', '', line_str_2)
 
                 #Pattern to find addresses
                 addrPattern = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+", re.IGNORECASE)
 
                 #Given pattern, remove from copy of line to find only text
-                line_str_2 = re.sub(addrPattern, ':::', line_str_2)
-
-                logfunc("Line str: " + line_str_2)
-                devFriendlyName = line_str_2.split(':::')
-                logfunc("devFriendlyName: " + str(devFriendlyName))
+                line_str_2 = re.sub(addrPattern, '~~~', line_str_2)
+                devFriendlyName = line_str_2.split('~~~')
 
                 #Get address from pattern in given line
                 result = re.findall(addrPattern, line_str)
                 for m in result:
+                    m = str(m).strip()
                     if m not in devAddr:
-                        m = str(m).strip()
                         devAddr.append(m)
-                        logfunc(m)
+
                 for name in devFriendlyName:
                     name = str(name).strip()
-                    logfunc(name)
 
                 for addr in devAddr:
                     for name in devFriendlyName:  
