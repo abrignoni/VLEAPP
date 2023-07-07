@@ -33,8 +33,6 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                         devAddr.append(str(m))
                         logfunc(m)
 
-                for addr in devAddr:
-                    logfunc(addr)
 
                 i = 0
                 for addr in devAddr:
