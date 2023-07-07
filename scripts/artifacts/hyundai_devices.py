@@ -24,6 +24,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 i = 0 
                 for m in re.findall(addrPattern, line_str):
                     if m not in data_list:
+                        logfunc(devFriendlyName[i])
                         data_list.append((m, devFriendlyName[i]))
                         i += 1
     if len(data_list) > 0:
