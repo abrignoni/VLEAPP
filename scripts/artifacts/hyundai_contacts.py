@@ -29,10 +29,15 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
 
         i = 0
         for id in ids:
-            ids[i].strip(",", "(", ")", "'")
-            given_names[i].strip(",", "(", ")", "'")
-            family_names[i].strip(",", "(", ")", "'")
-            phone_number[i].strip(",", "(", ")", "'")
+            id.strip(",", "(", ")", "'")
+        for given in given_names:
+            given.strip(",", "(", ")", "'")
+        for family in family_names:
+            family.strip(",", "(", ")", "'")
+        for number in phone_number:
+            number.strip(",", "(", ")", "'")
+        
+        for id in ids:
             data_list.append((ids[i], given_names[i], family_names[i], phone_number[i]))
             i += 1
                     
