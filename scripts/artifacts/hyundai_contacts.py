@@ -68,6 +68,7 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         
         for id in ids:
             data_list.append((ti[i], tg[i], tf[i], tn[i]))
+            logfunc(f"here")
             i += 1
                     
     if len(data_list) > 0:
