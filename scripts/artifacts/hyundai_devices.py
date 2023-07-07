@@ -15,6 +15,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
         with open(file_found, 'r') as f:
             text = f.read()
             print(text)
+            data_list.append((text))
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
