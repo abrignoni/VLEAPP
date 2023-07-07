@@ -53,7 +53,7 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
             tg.append(given)
         for family in family_names:
             family = str(family)
-            family.strip(",", "")
+            family.replace(",", "")
             family.replace("(", "")
             family.replace(")", "")
             family.replace("'", "")
