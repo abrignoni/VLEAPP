@@ -1,5 +1,6 @@
 import csv
 import os
+import re
 
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
@@ -11,11 +12,14 @@ platforms = ['Carplay']
 def get_devices(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
-        devAddr = devFriendlyName = ''
+        devAddr = []
+        devFriendlyName = []
         with open(file_found, 'r') as f:
             text = f.read()
-            print(text)
-            data_list.append((text))
+            addrPattern = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+", re.IGNORECASE)
+            if addrPattern.match(text):
+                devAddr.append(addrPattern.match(text))
+            data_list.append((devAddr, devFriendlyName))
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
