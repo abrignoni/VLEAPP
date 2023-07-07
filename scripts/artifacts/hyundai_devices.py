@@ -24,7 +24,9 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
 
                 #Given pattern, remove from copy of line to find only text
                 line_str_2 = re.sub(addrPattern, ':::', line_str_2)
+                logfunc("Line str: " + line_str_2)
                 devFriendlyName = line_str_2.split(':::')
+                logfunc("devFriendlyName: " + str(devFriendlyName))
 
                 #Get address from pattern in given line
                 result = re.findall(addrPattern, line_str)
