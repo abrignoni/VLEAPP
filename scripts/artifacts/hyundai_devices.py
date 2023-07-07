@@ -27,7 +27,8 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 devFriendlyName = line_str_2.split(':::')
 
                 #Get address from pattern in given line
-                for m in re.findall(addrPattern, line_str):
+                result = re.findall(addrPattern, line_str)
+                for m in result:
                     devAddr.append(str(m))
 
                 for addr in devAddr:
