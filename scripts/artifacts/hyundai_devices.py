@@ -35,11 +35,13 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
 
                 for name in devFriendlyName:
                     name = str(name).strip()
-
-                for addr in devAddr:
-                    logfunc("Addr: " + addr)
-                for name in devFriendlyName:  
-                    logfunc("Name: " + name)
+                var = len(devAddr)
+                while i != var:
+                    for addr in devAddr:
+                        logfunc("Addr: " + addr)
+                    for name in devFriendlyName:  
+                        logfunc("Name: " + name)
+                        i += 1
 
                 for addr in devAddr:
                     for name in devFriendlyName:
