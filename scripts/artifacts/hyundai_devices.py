@@ -30,6 +30,9 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                     if m not in devAddr:
                         devAddr.append(str(m))
 
+                for addr in devAddr:
+                    logfunc(addr)
+
                 i = 0
                 for name in devFriendlyName:
                     data_list.append((devAddr[i], name))
