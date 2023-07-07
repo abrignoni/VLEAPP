@@ -26,6 +26,8 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 for m in re.findall(addrPattern, line_str):
                     if m not in devAddr:
                         devAddr.append(str(m))
+                for name in devFriendlyName:
+                    logfunc(name)
                 i = 0
                 for addr in devAddr:
                     logfunc(addr) 
