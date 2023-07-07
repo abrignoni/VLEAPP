@@ -23,7 +23,9 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 addrPattern = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+", re.IGNORECASE)
 
                 #Given pattern, remove from copy of line to find only text
-                line_str_2 = re.sub(addrPattern, ':::', line_str_2)
+                while line_str_2.contains__(":::"):
+                    line_str_2 = re.sub(addrPattern, ':::', line_str_2)
+
                 logfunc("Line str: " + line_str_2)
                 devFriendlyName = line_str_2.split(':::')
                 logfunc("devFriendlyName: " + str(devFriendlyName))
