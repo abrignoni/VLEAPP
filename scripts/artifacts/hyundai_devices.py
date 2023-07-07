@@ -23,21 +23,17 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 addrPattern = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+", re.IGNORECASE)
                 #Given pattern, remove from copy of line to find only text
                 line_str_2 = re.sub(addrPattern, ':::', line_str_2)
-                line_str_2 = re.sub(r'\W+', '', line_str_2)
                 devFriendlyName = line_str_2.split(':::')
 
-                i = 0
-                for addr in devAddr:
-                    logfunc("Address " + str(i) + ": " + addr)
-                    i += 1
-
+                #Get address from pattern in given line
                 for m in re.findall(addrPattern, line_str):
                     if m not in devAddr:
                         devAddr.append(str(m))
 
                 i = 0
-                for addr in devAddr:
-                    data_list.append((m, devFriendlyName[i]))
+                for name in devFriendlyName:
+                #for addr in devAddr:
+                    data_list.append((m[i], name))
                     i += 1
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
