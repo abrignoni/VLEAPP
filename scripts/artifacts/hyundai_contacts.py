@@ -1,6 +1,7 @@
 import csv
 import os
 import sqlite3
+import re
 
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, open_sqlite_db_readonly
@@ -38,32 +39,20 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         i = 0
         for id in ids:
             id = str(id)
-            id.replace(",", "")
-            id.replace("(", "")
-            id.replace(")", "")
-            id.replace("'", "")
+            id = re.sub(r'\W+', '', id)
             ti.append(id)
 
         for given in given_names:
             given = str(given)
-            given.replace(",", "")
-            given.replace("(", "")
-            given.replace(")", "")
-            given.replace("'", "")
+            given = re.sub(r'\W+', '', given)
             tg.append(given)
         for family in family_names:
             family = str(family)
-            family.replace(",", "")
-            family.replace("(", "")
-            family.replace(")", "")
-            family.replace("'", "")
+            family = re.sub(r'\W+', '', family)
             tf.append(family)
         for number in phone_number:
             number = str(number)
-            number.replace(",", "")
-            number.replace("(", "")
-            number.replace(")", "")
-            number.replace("'", "")
+            number = re.sub(r'\W+', '', number)
             tn.append(number)
         
         for id in ids:
