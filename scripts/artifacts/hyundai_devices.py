@@ -28,7 +28,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
 
                 i = 0
                 for addr in devAddr:
-                    logfunc("Address " + i + ": " + addr)
+                    logfunc("Address " + str(i) + ": " + addr)
                     i += 1
 
                 for m in re.findall(addrPattern, line_str):
