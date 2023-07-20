@@ -39,9 +39,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                         devFriendlyName.append(name)
 
                 for addr in devAddr:
-                    logfunc("Addr: " + addr)
                     for name in devFriendlyName:
-                        logfunc("Name: " + name)
                         if (addr, name) not in data_list:
                             data_list.append((addr, name))
     if len(data_list) > 0:
