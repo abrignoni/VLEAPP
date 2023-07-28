@@ -29,6 +29,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                     #Remove leading/trailing whitespaces in names
                     devFriendlyName_temp = str(devFriendlyName_temp).strip()
                     if devFriendlyName_temp not in devFriendlyName:
+                        devFriendlyName_temp = devFriendlyName_temp.rstrip('\x00') # Remove trailing bytes from name
                         devFriendlyName.append(devFriendlyName_temp) # add to name list
                         logfunc("devFriendlyName_temp: " + str(devFriendlyName_temp))
 
@@ -42,7 +43,10 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
 #                    for name in devFriendlyName:
 #                        if (addr, name) not in data_list:
 #                           data_list.append((addr, name))
-                data_list = tuple(zip(devAddr, devFriendlyName))
+                data_list_temp = tuple(zip(devAddr, devFriendlyName))
+                for (addr, name) in data_list_temp:
+
+
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
