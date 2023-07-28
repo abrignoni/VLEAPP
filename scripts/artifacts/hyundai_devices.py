@@ -26,7 +26,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 line_str_2 = re.sub(addrPattern, '~~~', line_str_2)
                 devFriendlyName_temp = line_str_2.split('~~~')
                 if len(devFriendlyName_temp) == 1: # don't add garbage values to name list
-                    logfunc("bytes(name): " + str(devFriendlyName_temp))
+                    #logfunc("Bytes of devFriendlyName_temp[0]: \n\t" + str(devFriendlyName_temp))
                     devFriendlyName_temp[0] = str(devFriendlyName_temp[0]).strip().strip('\x00').strip('\x01').strip('\x02')
                     if devFriendlyName_temp[0] not in devFriendlyName:
                         devFriendlyName.append(devFriendlyName_temp[0]) # add to name list
