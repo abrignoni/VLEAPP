@@ -26,18 +26,18 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 line_str_2 = re.sub(addrPattern, '~~~', line_str_2)
                 devFriendlyName_temp = line_str_2.split('~~~')
                 if len(devFriendlyName_temp) == 1: # don't add garbage values to name list
+                    logfunc("bytes(name): " + devFriendlyName_temp)
                     devFriendlyName_temp[0] = str(devFriendlyName_temp[0]).strip().strip('\x00').strip('\x01').strip('\x02')
-                    #devFriendlyName_temp = str(devFriendlyName_temp).strip() #Remove leading/trailing whitespaces in names
                     if devFriendlyName_temp[0] not in devFriendlyName:
                         devFriendlyName.append(devFriendlyName_temp[0]) # add to name list
-                        logfunc("devFriendlyName_temp: " + devFriendlyName_temp[0])
+                        #logfunc("devFriendlyName_temp: " + devFriendlyName_temp[0])
 
                 #Get addresses from pattern in given line
                 result = re.findall(addrPattern, line_str)
                 if len(result) == 1:
                     if result[0] not in devAddr:
                         devAddr.append(result[0])
-                        logfunc("Address result: " + str(result[0]))
+                        #logfunc("Address result: " + str(result[0]))
 
                 data_list = tuple(zip(devAddr, devFriendlyName))
 
