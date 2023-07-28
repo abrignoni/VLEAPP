@@ -54,8 +54,8 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                                 devAddr.append('')
                                 tup = (devAddr[i], devFriendlyName[i])
                             continue
+                        logfunc("TUPLE: " + str(tup))
                         data_list.append(tup)
-                        break
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
