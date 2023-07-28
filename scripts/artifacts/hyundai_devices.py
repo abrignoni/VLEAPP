@@ -25,20 +25,18 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 #Given pattern, remove from copy of line to find only text
                 line_str_2 = re.sub(addrPattern, '~~~', line_str_2)
                 devFriendlyName_temp = line_str_2.split('~~~')
-                logfunc("devFriendlyName_temp: " + str(devFriendlyName_temp))
+                if len(devFriendlyName_temp) == 1: # don't add garbage values to name list
+                    #Remove leading/trailing whitespaces in names
+                    devFriendlyName_temp = str(devFriendlyName_temp).strip()
+                    if devFriendlyName_temp not in devFriendlyName:
+                        devFriendlyName.append(devFriendlyName_temp) # add to name list
+                        logfunc("devFriendlyName_temp: " + str(devFriendlyName_temp))
 
                 #Get addresses from pattern in given line
                 result = re.findall(addrPattern, line_str)
-                logfunc("Result: " + str(result))
-                for m in result:
-                    m = str(m).strip()
-                    if m not in devAddr and m != '':
-                        devAddr.append(m)
-                #Remove leading/trailing whitespaces in names
-                for name in devFriendlyName_temp:
-                    if name != '':
-                        name = str(name).strip()
-                        devFriendlyName.append(name)
+                if result not in devAddr and len(result) == 1:
+                    devAddr.append(result)
+                    logfunc("Address result: " + str(result))
 
                 for addr in devAddr:
                     for name in devFriendlyName:
