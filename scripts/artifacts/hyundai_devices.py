@@ -29,7 +29,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
 
                 #Get addresses from pattern in given line
                 result = re.findall(addrPattern, line_str)
-                logfunc("Result: " + result)
+                logfunc("Result: " + str(result))
                 for m in result:
                     m = str(m).strip()
                     if m not in devAddr and m != '':
