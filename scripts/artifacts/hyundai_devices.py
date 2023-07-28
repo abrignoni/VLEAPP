@@ -22,8 +22,6 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 #Pattern to find addresses
                 addrPattern = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+", re.IGNORECASE)
 
-                #Pattern to get rid of bytes from device name
-                namePattern = re.compile(r"") 
                 #Given pattern, remove from copy of line to find only text
                 line_str_2 = re.sub(addrPattern, '~~~', line_str_2)
                 devFriendlyName_temp = line_str_2.split('~~~')
@@ -32,6 +30,11 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                     if devFriendlyName_temp not in devFriendlyName:
                         devFriendlyName.append(devFriendlyName_temp) # add to name list
                         logfunc("devFriendlyName_temp: " + str(devFriendlyName_temp))
+            
+                for name in devFriendlyName:
+                    name = str(name)
+                    name = name.replace('\x00', '')
+
 
                 #Get addresses from pattern in given line
                 result = re.findall(addrPattern, line_str)
