@@ -42,7 +42,20 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
 #                    for name in devFriendlyName:
 #                        if (addr, name) not in data_list:
 #                           data_list.append((addr, name))
-                data_list = [(devAddr[i], devFriendlyName[i]) for i in range(0, len(devAddr))]
+                for i in range(max((len(devAddr), len(devFriendlyName)))):
+                    while True:
+                        try:
+                            tup = (devAddr[i], devFriendlyName[i])
+                        except IndexError:
+                            if len(devAddr) > len(devFriendlyName):
+                                devFriendlyName.append('')
+                                tup = (devAddr[i], devFriendlyName[i])
+                            elif len(devAddr) < len(devFriendlyName):
+                                devAddr.append('')
+                                tup = (devAddr[i], devFriendlyName[i])
+                            continue
+                        data_list.append(tup)
+                        break
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Bluetooth Devices')
         report.start_artifact_report(report_folder, f'Bluetooth Devices')
