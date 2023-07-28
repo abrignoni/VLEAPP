@@ -34,9 +34,9 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
 
                 #Get addresses from pattern in given line
                 result = re.findall(addrPattern, line_str)
-                if result not in devAddr and len(result) == 1:
-                    devAddr.append(result)
-                    logfunc("Address result: " + str(result))
+                if result[0] not in devAddr and len(result) == 1:
+                    devAddr.append(result[0])
+                    logfunc("Address result: " + str(result[0]))
 
                 data_list = tuple(zip(devAddr, devFriendlyName))
 
