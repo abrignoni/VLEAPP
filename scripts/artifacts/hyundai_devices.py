@@ -26,10 +26,9 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 line_str_2 = re.sub(addrPattern, '~~~', line_str_2)
                 devFriendlyName_temp = line_str_2.split('~~~')
                 if len(devFriendlyName_temp) == 1: # don't add garbage values to name list
-                    #Remove leading/trailing whitespaces in names
-                    devFriendlyName_temp = str(devFriendlyName_temp).strip()
+                    devFriendlyName_temp = str(devFriendlyName_temp).strip() #Remove leading/trailing whitespaces in names
+                    devFriendlyName_temp = str(devFriendlyName_temp).rstrip('\x00') #Remove trailing bytes from name
                     if devFriendlyName_temp not in devFriendlyName:
-                        devFriendlyName_temp = devFriendlyName_temp.rstrip('\x00') # Remove trailing bytes from name
                         devFriendlyName.append(devFriendlyName_temp) # add to name list
                         logfunc("devFriendlyName_temp: " + str(devFriendlyName_temp))
 
