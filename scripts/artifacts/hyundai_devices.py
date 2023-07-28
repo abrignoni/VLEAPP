@@ -22,12 +22,14 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
                 #Pattern to find addresses
                 addrPattern = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+", re.IGNORECASE)
 
+                #Pattern to get rid of bytes from device name
+                namePattern = re.compile(r"") 
                 #Given pattern, remove from copy of line to find only text
                 line_str_2 = re.sub(addrPattern, '~~~', line_str_2)
                 devFriendlyName_temp = line_str_2.split('~~~')
                 if len(devFriendlyName_temp) == 1: # don't add garbage values to name list
                     devFriendlyName_temp = str(devFriendlyName_temp).strip() #Remove leading/trailing whitespaces in names
-                    devFriendlyName_temp = devFriendlyName_temp.replace('\x00', '') #Remove trailing bytes from name
+                    devFriendlyName_temp = devFriendlyName_temp[0].replace('\x00', '') #Remove trailing bytes from name
                     if devFriendlyName_temp not in devFriendlyName:
                         devFriendlyName.append(devFriendlyName_temp) # add to name list
                         logfunc("devFriendlyName_temp: " + str(devFriendlyName_temp))
