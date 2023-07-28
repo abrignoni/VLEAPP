@@ -16,7 +16,7 @@ def get_devices(files_found, report_folder, seeker, wrap_text):
         devFriendlyName = []
         with open(file_found, 'r') as f:
             for line in f:
-                line_str = str(line)
+                line_str = str(line, 'UTF-8')
                 line_str_2 = line_str # Copy of line 
 
                 #Pattern to find addresses
