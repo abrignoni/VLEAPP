@@ -14,6 +14,7 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         db = open_sqlite_db_readonly(file_found)
+        db_name = os.path.splittext(file_found)
         cursor = db.cursor()
         
 
@@ -92,7 +93,8 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
             nt = str(nt)
             nt = re.sub(r'\W', '', nt)
             tnt.append(nt)
-
+        if db_name[1] == 'db':
+            break
 
 
     #append array for each column to data_list, push data_list to report
@@ -115,6 +117,6 @@ def get_callHistory(files_found, report_folder, seeker, wrap_text):
 __artifacts__ = {
     "call history": (
         "call history",
-        ('*/bluetooth/DB_BMS/CH_*.db'),
+        ('*/bluetooth/DB_BMS/CH_*.db*'),
         get_callHistory),
 }

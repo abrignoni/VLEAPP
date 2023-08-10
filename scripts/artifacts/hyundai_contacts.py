@@ -14,6 +14,7 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         db = open_sqlite_db_readonly(file_found)
+        db_name = os.path.splittext(file_found)
         cursor = db.cursor()
                     
         cursor.execute("SELECT _id from bluetooth_contacts")
@@ -55,6 +56,8 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
         for id in ids:
             data_list.append((ti[i], tg[i], tf[i], tn[i]))
             i += 1
+        if db_name[1] == 'db':
+            break
                     
     if len(data_list) > 0:
         report = ArtifactHtmlReport('Contact Data')
@@ -71,6 +74,6 @@ def get_contacts(files_found, report_folder, seeker, wrap_text):
 __artifacts__ = {
     "contacts": (
         "contacts",
-        ('*/bluetooth/DB_BMS/MC_*.db'),
+        ('*/bluetooth/DB_BMS/MC_*.db*'),
         get_contacts),
 }
