@@ -8,7 +8,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
 vehicles = ['Ford Mustang','F-150']
 platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUC T']
 
-def get_btDevices(files_found, report_folder, seeker, wrap_text):
+def get_btDevices(files_found, report_folder, seeker, wrap_text, time_offset):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:

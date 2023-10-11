@@ -8,7 +8,7 @@ from scripts.ilapfuncs import timeline, tsv, logfunc, is_platform_windows, open_
 vehicles = ['Nissan Altima',]
 platforms = []
 
-def get_phonedbAltima(files_found, report_folder, seeker, wrap_text):
+def get_phonedbAltima(files_found, report_folder, seeker, wrap_text, time_offset):
     
     for file_found in files_found:
         file_found = str(file_found)

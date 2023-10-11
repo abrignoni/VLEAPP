@@ -10,7 +10,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
 vehicles = ['FCA','Jeep Cherokee']
 platforms = ['Carplay']
 
-def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
+def get_diagnosticdata(files_found, report_folder, seeker, wrap_text, time_offset):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:

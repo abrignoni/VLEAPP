@@ -8,7 +8,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
 vehicles = ['Hyundai Santa Fe',]
 platforms = ['Android Automotive',]
 
-def get_dipoAudio(files_found, report_folder, seeker, wrap_text):
+def get_dipoAudio(files_found, report_folder, seeker, wrap_text, time_offset):
     data_list = []
     for file_found in files_found:
 

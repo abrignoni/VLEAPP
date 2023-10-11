@@ -8,7 +8,7 @@ from scripts.ilapfuncs import timeline, logfunc, tsv, is_platform_windows, open_
 vehicles = ['Chevrolet','Equinox']
 platforms = []
 
-def get_contactsInfo(files_found, report_folder, seeker, wrap_text):
+def get_contactsInfo(files_found, report_folder, seeker, wrap_text, time_offset):
     
     for file_found in files_found:
         file_found = str(file_found)

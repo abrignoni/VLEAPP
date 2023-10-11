@@ -8,7 +8,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, ope
 vehicles = ['Ford Mustang','F-150']
 platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUCT','SyncGen3_v2_b', 'SYNCGen3.0_1.0.15139_PRODUCT']
 
-def get_nvcaContacts(files_found, report_folder, seeker, wrap_text):
+def get_nvcaContacts(files_found, report_folder, seeker, wrap_text, time_offset):
     for file_found in files_found:
         file_found = str(file_found)
         

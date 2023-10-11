@@ -13,7 +13,7 @@ platforms = ['Carplay']
 
 
 ## Get GPS data
-def get_gpsdata(files_found, report_folder, seeker, wrap_text):
+def get_gpsdata(files_found, report_folder, seeker, wrap_text, time_offset):
     data_list = []
     for file_found in files_found:
         try:

@@ -7,7 +7,7 @@ from scripts.ilapfuncs import logfunc, tsv, kmlgen, logdevinfo, is_platform_wind
 vehicles = ['Nissan Altima',]
 platforms = ['-',]
 
-def get_phoneconfigAltima(files_found, report_folder, seeker, wrap_text):
+def get_phoneconfigAltima(files_found, report_folder, seeker, wrap_text, time_offset):
     
     for file_found in files_found:
         file_found = str(file_found)
