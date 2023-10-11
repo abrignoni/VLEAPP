@@ -10,7 +10,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, ope
 vehicles = ['Hyundai Sonata']
 platforms = ['Carplay']
 
-def get_contacts(files_found, report_folder, seeker, wrap_text):
+def get_contacts(files_found, report_folder, seeker, wrap_text, time_offset):
     data_list = []
     for file_found in files_found:
         db = open_sqlite_db_readonly(file_found)

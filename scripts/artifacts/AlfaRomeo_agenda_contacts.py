@@ -11,7 +11,7 @@ platforms = []
 #This artifact parses contact information from the
 #The test data we had was limited, so additional information may be added if more test data is gathered.
 
-def get_Contacts(files_found, report_folder, seeker, wrap_text):
+def get_Contacts(files_found, report_folder, seeker, wrap_text, time_offset):
     
     for file_found in files_found:
         file_found = str(file_found)

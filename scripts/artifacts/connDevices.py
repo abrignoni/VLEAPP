@@ -8,7 +8,7 @@ from scripts.ilapfuncs import timeline, tsv, is_platform_windows, open_sqlite_db
 vehicles = ['Chevrolet','Equinox']
 platforms = []
 
-def get_connDevices(files_found, report_folder, seeker, wrap_text):
+def get_connDevices(files_found, report_folder, seeker, wrap_text, time_offset):
     
     for file_found in files_found:
         file_found = str(file_found)

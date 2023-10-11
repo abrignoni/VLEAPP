@@ -8,7 +8,7 @@ from scripts.ilapfuncs import logfunc, tsv, kmlgen, logdevinfo, is_platform_wind
 vehicles = ['Hyundai Santa Fe',]
 platforms = ['Android Automotive',]
 
-def get_telematicsHyundai(files_found, report_folder, seeker, wrap_text):
+def get_telematicsHyundai(files_found, report_folder, seeker, wrap_text, time_offset):
     initLastGpsDetail = []
     wdwStatus = []
     weatherWaypoint = []

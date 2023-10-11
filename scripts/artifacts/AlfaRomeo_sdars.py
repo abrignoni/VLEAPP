@@ -8,7 +8,7 @@ from scripts.ilapfuncs import timeline, logfunc, tsv, is_platform_windows, open_
 vehicles = ['Alfa Romeo','Giulia']
 platforms = []
 
-def get_sdarsInfo(files_found, report_folder, seeker, wrap_text):
+def get_sdarsInfo(files_found, report_folder, seeker, wrap_text, time_offset):
     
     for file_found in files_found:
         file_found = str(file_found)
