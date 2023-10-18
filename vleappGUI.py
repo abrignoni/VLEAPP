@@ -249,7 +249,7 @@ while True:
             time_offset = values['timezone']
             if time_offset == '':
                 time_offset = 'UTC'
-                
+            
             try:
                 casedata
             except NameError:
