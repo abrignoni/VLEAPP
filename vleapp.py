@@ -20,19 +20,20 @@ def validate_args(args):
         value = getattr(args, arg)
         if value is None:
             raise argparse.ArgumentError(None, f'No {arg.upper()} provided. Run the program again.')
-                
+
     # Check existence of paths
     if not os.path.exists(args.input_path):
         raise argparse.ArgumentError(None, 'INPUT file/folder does not exist! Run the program again.')
-        
+
     if not os.path.exists(args.output_path):
         raise argparse.ArgumentError(None, 'OUTPUT folder does not exist! Run the program again.')
-            
+
     try:
         timezone = pytz.timezone(args.timezone)
     except pytz.UnknownTimeZoneError:
-        raise argparse.ArgumentError(None, 'Unknown timezone! Run the program again.')
-                
+      raise argparse.ArgumentError(None, 'Unknown timezone! Run the program again.')
+        
+
 def main():
     parser = argparse.ArgumentParser(description='VLEAPP: Vehicle Logs, Events, and Protobuf Parser.')
     parser.add_argument('-t', choices=['fs', 'tar', 'zip', 'gz'], required=False, action="store",
@@ -41,14 +42,14 @@ def main():
                                 "'tar', 'zip', or 'gz' for compressed packages containing files with normal names. "
                                 ))
     parser.add_argument('-o', '--output_path', required=False, action="store",
-                                            help='Path to base output folder (this must exist)')
+                        help='Path to base output folder (this must exist)')
     parser.add_argument('-i', '--input_path', required=False, action="store", help='Path to input file/folder')
     parser.add_argument('-tz', '--timezone', required=False, action="store", default='UTC', type=str, help="Timezone name (e.g., 'America/New_York')")
     parser.add_argument('-w', '--wrap_text', required=False, action="store_false", default=True,
-                                            help='Do not wrap text for output of data files')
+                        help='Do not wrap text for output of data files')
     parser.add_argument('-p', '--artifact_paths', required=False, action="store_true",
-                                            help=("Generate a text file list of artifact paths. "
-                                                        "This argument is meant to be used alone, without any other arguments."))
+                        help=("Generate a text file list of artifact paths. "
+                              "This argument is meant to be used alone, without any other arguments."))
 
     loader = plugin_loader.PluginLoader()
 
@@ -60,7 +61,7 @@ def main():
         validate_args(args)
     except argparse.ArgumentError as e:
         parser.error(str(e))
-        
+
     if args.artifact_paths:
         print('Artifact path list generation started.')
         print('')
@@ -88,136 +89,136 @@ def main():
     if is_platform_windows():
         if input_path[1] == ':' and extracttype =='fs': input_path = '\\\\?\\' + input_path.replace('/', '\\')
         if output_path[1] == ':': output_path = '\\\\?\\' + output_path.replace('/', '\\')
-        
+
     out_params = OutputParameters(output_path)
 
     try:
         casedata
     except NameError:
         casedata = {}
-        
+
     crunch_artifacts(list(loader.plugins), extracttype, input_path, out_params, 1, wrap_text, loader, casedata, time_offset)
-    
-    
+
+
 def crunch_artifacts(
-                plugins: typing.Sequence[plugin_loader.PluginSpec], extracttype, input_path, out_params, ratio, wrap_text,
-                loader: plugin_loader.PluginLoader, casedata, time_offset):
-        start = process_time()
-        start_wall = perf_counter()
+        plugins: typing.Sequence[plugin_loader.PluginSpec], extracttype, input_path, out_params, ratio, wrap_text,
+        loader: plugin_loader.PluginLoader, casedata, time_offset):
+    start = process_time()
+    start_wall = perf_counter()
+ 
+    logfunc('Processing started. Please wait. This may take a few minutes...')
+
+    logfunc('\n--------------------------------------------------------------------------------------')
+    logfunc(f'VLEAPP v{vleapp_version}: VLEAPP Vehicle Logs, Events, and Protobuf Parser')
+    logfunc('Objective: Triage Service Provider Returns.')
+    logfunc('By: Alexis Brignoni | @AlexisBrignoni | abrignoni.com')
+    logfunc('By: Yogesh Khatri   | @SwiftForensics | swiftforensics.com')
+    logdevinfo()
     
-        logfunc('Processing started. Please wait. This may take a few minutes...')
-    
-        logfunc('\n--------------------------------------------------------------------------------------')
-        logfunc(f'VLEAPP v{vleapp_version}: VLEAPP Vehicle Logs, Events, and Protobuf Parser')
-        logfunc('Objective: Triage Service Provider Returns.')
-        logfunc('By: Alexis Brignoni | @AlexisBrignoni | abrignoni.com')
-        logfunc('By: Yogesh Khatri   | @SwiftForensics | swiftforensics.com')
-        logdevinfo()
-    
-        seeker = None
-        try:
-                if extracttype == 'fs':
-                        seeker = FileSeekerDir(input_path)
+    seeker = None
+    try:
+        if extracttype == 'fs':
+            seeker = FileSeekerDir(input_path)
+
+        elif extracttype in ('tar', 'gz'):
+            seeker = FileSeekerTar(input_path, out_params.temp_folder)
+
+        elif extracttype == 'zip':
+            seeker = FileSeekerZip(input_path, out_params.temp_folder)
                     
-                elif extracttype in ('tar', 'gz'):
-                        seeker = FileSeekerTar(input_path, out_params.temp_folder)
-                    
-                elif extracttype == 'zip':
-                        seeker = FileSeekerZip(input_path, out_params.temp_folder)
-                    
-                else:
-                        logfunc('Error on argument -o (input type)')
-                        return False
-        except Exception as ex:
-                logfunc('Had an exception in Seeker - see details below. Terminating Program!')
-                temp_file = io.StringIO()
-                traceback.print_exc(file=temp_file)
-                logfunc(temp_file.getvalue())
-                temp_file.close()
-                return False
+        else:
+            logfunc('Error on argument -o (input type)')
+            return False
+    except Exception as ex:
+        logfunc('Had an exception in Seeker - see details below. Terminating Program!')
+        temp_file = io.StringIO()
+        traceback.print_exc(file=temp_file)
+        logfunc(temp_file.getvalue())
+        temp_file.close()
+        return False
+
+    # Now ready to run
+    logfunc(f'Artifact categories to parse: {str(len(plugins))}')
+    logfunc(f'File/Directory selected: {input_path}')
+    logfunc('\n--------------------------------------------------------------------------------------')
+
+    log = open(os.path.join(out_params.report_folder_base, 'Script Logs', 'ProcessedFilesLog.html'), 'w+', encoding='utf8')
+    nl = '\n' #literal in order to have new lines in fstrings that create text files
+    log.write(f'Extraction/Path selected: {input_path}<br><br>')
+    log.write(f'Timezone selected: {time_offset}<br><br>')
     
-        # Now ready to run
-        logfunc(f'Artifact categories to parse: {str(len(plugins))}')
-        logfunc(f'File/Directory selected: {input_path}')
-        logfunc('\n--------------------------------------------------------------------------------------')
+    categories_searched = 0
     
-        log = open(os.path.join(out_params.report_folder_base, 'Script Logs', 'ProcessedFilesLog.html'), 'w+', encoding='utf8')
-        nl = '\n' #literal in order to have new lines in fstrings that create text files
-        log.write(f'Extraction/Path selected: {input_path}<br><br>')
-        log.write(f'Timezone selected: {time_offset}<br><br>')
+    # Search for the files per the arguments
+    for plugin in plugins:
+        artifact_pretty_name = plugin.name
+        if isinstance(plugin.search, list) or isinstance(plugin.search, tuple):
+            search_regexes = plugin.search
+        else:
+            search_regexes = [plugin.search]
+        files_found = []
+        for artifact_search_regex in search_regexes:
+            found = seeker.search(artifact_search_regex)
+            if not found:
+                log.write(f'No files found for {plugin.name} -> {artifact_search_regex}<br><br>')
+            else:
+                for pathh in found:
+                    if pathh.startswith('\\\\?\\'):
+                        pathh = pathh[4:]
+                    log.write(f'Files for {artifact_search_regex} located at {pathh}<br><br>')
+                files_found.extend(found)
+        if files_found:
+            logfunc('{} [{}] artifact started'.format(plugin.name, plugin.module_name))
+            category_folder = os.path.join(out_params.report_folder_base, plugin.category)
+            if not os.path.exists(category_folder):
+                try:
+                    os.mkdir(category_folder)
+                except (FileExistsError, FileNotFoundError) as ex:
+                    logfunc('Error creating {} report directory at path {}'.format(plugin.name, category_folder))
+                    logfunc('Error was {}'.format(str(ex)))
+                    continue  # cannot do work
+            try:
+                plugin.method(files_found, category_folder, seeker, wrap_text, time_offset)
+            except Exception as ex:
+                logfunc('Reading {} artifact had errors!'.format(plugin.name))
+                logfunc('Error was {}'.format(str(ex)))
+                logfunc('Exception Traceback: {}'.format(traceback.format_exc()))
+                continue  # nope
+
+            logfunc('{} [{}] artifact completed'.format(plugin.name, plugin.module_name))
+            logfunc('')
+
+        categories_searched += 1
+        GuiWindow.SetProgressBar(categories_searched * ratio)
+    log.close()
+
+    logfunc('')
+    logfunc('Processes completed.')
+    end = process_time()
+    end_wall = perf_counter()
+    run_time_secs =  end - start
+    run_time_HMS = strftime('%H:%M:%S', gmtime(run_time_secs))
+    logfunc("Processing time = {}".format(run_time_HMS))
+    run_time_secs =  end_wall - start_wall
+    run_time_HMS = strftime('%H:%M:%S', gmtime(run_time_secs))
+    logfunc("Processing time (wall)= {}".format(run_time_HMS))
+
+    logfunc('')
+    logfunc('Report generation started.')
+    # remove the \\?\ prefix we added to input and output paths, so it does not reflect in report
+    if is_platform_windows(): 
+        if out_params.report_folder_base.startswith('\\\\?\\'):
+            out_params.report_folder_base = out_params.report_folder_base[4:]
+        if input_path.startswith('\\\\?\\'):
+            input_path = input_path[4:]
+    
         
-        categories_searched = 0
-    
-        # Search for the files per the arguments
-        for plugin in plugins:
-                artifact_pretty_name = plugin.name
-                if isinstance(plugin.search, list) or isinstance(plugin.search, tuple):
-                        search_regexes = plugin.search
-                else:
-                        search_regexes = [plugin.search]
-                files_found = []
-                for artifact_search_regex in search_regexes:
-                        found = seeker.search(artifact_search_regex)
-                        if not found:
-                                log.write(f'No files found for {plugin.name} -> {artifact_search_regex}<br><br>')
-                        else:
-                                for pathh in found:
-                                        if pathh.startswith('\\\\?\\'):
-                                                pathh = pathh[4:]
-                                        log.write(f'Files for {artifact_search_regex} located at {pathh}<br><br>')
-                                files_found.extend(found)
-                if files_found:
-                        logfunc('{} [{}] artifact started'.format(plugin.name, plugin.module_name))
-                        category_folder = os.path.join(out_params.report_folder_base, plugin.category)
-                        if not os.path.exists(category_folder):
-                                try:
-                                        os.mkdir(category_folder)
-                                except (FileExistsError, FileNotFoundError) as ex:
-                                        logfunc('Error creating {} report directory at path {}'.format(plugin.name, category_folder))
-                                        logfunc('Error was {}'.format(str(ex)))
-                                        continue  # cannot do work
-                        try:
-                                plugin.method(files_found, category_folder, seeker, wrap_text, time_offset)
-                        except Exception as ex:
-                                logfunc('Reading {} artifact had errors!'.format(plugin.name))
-                                logfunc('Error was {}'.format(str(ex)))
-                                logfunc('Exception Traceback: {}'.format(traceback.format_exc()))
-                                continue  # nope
-                    
-                        logfunc('{} [{}] artifact completed'.format(plugin.name, plugin.module_name))
-                        logfunc('')
-                    
-                categories_searched += 1
-                GuiWindow.SetProgressBar(categories_searched * ratio)
-        log.close()
-    
-        logfunc('')
-        logfunc('Processes completed.')
-        end = process_time()
-        end_wall = perf_counter()
-        run_time_secs =  end - start
-        run_time_HMS = strftime('%H:%M:%S', gmtime(run_time_secs))
-        logfunc("Processing time = {}".format(run_time_HMS))
-        run_time_secs =  end_wall - start_wall
-        run_time_HMS = strftime('%H:%M:%S', gmtime(run_time_secs))
-        logfunc("Processing time (wall)= {}".format(run_time_HMS))
-    
-        logfunc('')
-        logfunc('Report generation started.')
-        # remove the \\?\ prefix we added to input and output paths, so it does not reflect in report
-        if is_platform_windows(): 
-                if out_params.report_folder_base.startswith('\\\\?\\'):
-                        out_params.report_folder_base = out_params.report_folder_base[4:]
-                if input_path.startswith('\\\\?\\'):
-                        input_path = input_path[4:]
-                    
-                    
-        report.generate_report(out_params.report_folder_base, run_time_secs, run_time_HMS, extracttype, input_path, casedata)
-        logfunc('Report generation Completed.')
-        logfunc('')
-        logfunc(f'Report location: {out_params.report_folder_base}')
-        return True
+    report.generate_report(out_params.report_folder_base, run_time_secs, run_time_HMS, extracttype, input_path, casedata)
+    logfunc('Report generation Completed.')
+    logfunc('')
+    logfunc(f'Report location: {out_params.report_folder_base}')
+    return True
 
 if __name__ == '__main__':
-        main()
+    main()
     
