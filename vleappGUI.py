@@ -1,13 +1,12 @@
 import json
-import pathlib
 import typing
 import vleapp
 import PySimpleGUI as sg
 import webbrowser
 import plugin_loader
+
 from scripts.ilapfuncs import *
 from scripts.version_info import vleapp_version
-from time import process_time, gmtime, strftime
 from scripts.search_files import *
 
 MODULE_START_INDEX = 1000
@@ -53,7 +52,7 @@ def ValidateInput(values, window):
 
 # initialize CheckBox control with module name   
 def CheckList(mtxt, lkey, mdstring, disable=False):
-    if mdstring == 'photosMetadata' or mdstring == 'journalStrings' or mdstring == 'walStrings': #items in the if are modules that take a long time to run. Deselects them by default.
+    if mdstring == 'walStrings': #items in the if are modules that take a long time to run. Deselects them by default.
         dstate = False
     else:
         dstate = True
@@ -68,7 +67,7 @@ def pickModules():
 
     module_end_index = MODULE_START_INDEX     # arbitrary number to not interfere with other controls
     for plugin in sorted(loader.plugins, key=lambda p: p.category.upper()):
-        disabled = plugin.module_name == 'usagestatsVersion'
+        disabled = False  # Name of the module needed to be executed first  i.e: plugin.module_name == 'usagestatsVersion'
         mlist.append(CheckList(f'{plugin.category} [{plugin.name} - {plugin.module_name}.py]', module_end_index, plugin.name, disabled))
         module_end_index = module_end_index + 1
         
@@ -102,11 +101,11 @@ layout = [  [sg.Text('Vehicle Logs, Events, And Protobuf Parser', font=("Helveti
              sg.Button('Load Profile', key='LOAD PROFILE'), sg.Button('Save Profile', key='SAVE PROFILE'),
              # sg.FileBrowse(
              #     button_text='Load Profile', key='LOADPROFILE', enable_events=True, target='LOADPROFILE',
-             #     file_types=(('ALEAPP Profile (*.alprofile)', '*.alprofile'), ('All Files', '*'))),
+             #     file_types=(('VLEAPP Profile (*.vlprofile)', '*.vlprofile'), ('All Files', '*'))),
              # sg.FileSaveAs(
              #     button_text='Save Profile', key='SAVEPROFILE', enable_events=True, target='SAVEPROFILE',
-             #     file_types=(('ALEAPP Profile (*.alprofile)', '*.alprofile'), ('All Files', '*')),
-             #     default_extension='.alprofile')
+             #     file_types=(('VLEAPP Profile (*.vlprofile)', '*.vlprofile'), ('All Files', '*')),
+             #     default_extension='.vlprofile')
             sg.Text('  |', font=("Helvetica", 14)),
             sg.Button('Load Case Data', key='LOAD CASE DATA'),
             sg.Text('  |', font=("Helvetica", 14)),
@@ -120,6 +119,7 @@ layout = [  [sg.Text('Vehicle Logs, Events, And Protobuf Parser', font=("Helveti
 # Create the Window
 window = sg.Window(f'VLEAPP version {vleapp_version}', layout)
 GuiWindow.progress_bar_handle = window['PROGRESSBAR']
+profile_filename = None
 
 # Event Loop to process "events" and get the "values" of the inputs
 while True:
@@ -134,12 +134,13 @@ while True:
     if event == "DESELECT ALL":  
          # none modules
         for x in range(MODULE_START_INDEX, module_end_index):
-            window[x].Update(False if window[x].metadata != 'usagestatsVersion' else True)  # usagestatsVersion.py is REQUIRED
+            # window[x].Update(False if window[x].metadata != 'usagestatsVersion' else True)  # usagestatsVersion.py is REQUIRED
+            window[x].Update(False)  # No module is required nor need to be executed first at the moment
     if event == "SAVE PROFILE":
         destination_path = sg.popup_get_file(
             "Save a profile", save_as=True,
-            file_types=(('VLEAPP Profile (*.alprofile)', '*.alprofile'),),
-            default_extension='.alprofile', no_window=True)
+            file_types=(('VLEAPP Profile (*.vlprofile)', '*.vlprofile'),),
+            default_extension='.vlprofile', no_window=True)
 
         if destination_path:
             ticked = []
@@ -154,8 +155,8 @@ while True:
     if event == "LOAD PROFILE":
         destination_path = sg.popup_get_file(
             "Load a profile", save_as=False,
-            file_types=(('VLEAPP Profile (*.alprofile)', '*.alprofile'), ('All Files', '*')),
-            default_extension='.alprofile', no_window=True)
+            file_types=(('VLEAPP Profile (*.vlprofile)', '*.vlprofile'), ('All Files', '*')),
+            default_extension='.vlprofile', no_window=True)
 
         if destination_path and os.path.exists(destination_path):
             profile_load_error = None
@@ -171,7 +172,7 @@ while True:
                         profile_load_error = "File was not a valid profile file: incorrect LEAPP or version"
                     else:
                         ticked = set(profile.get("plugins", []))
-                        ticked.add("usagestatsVersion")  # always
+                        # ticked.add("usagestatsVersion")  # always
                         for x in range(MODULE_START_INDEX, module_end_index):
                             if window[x].metadata in ticked:
                                 window[x].update(True)
@@ -184,12 +185,13 @@ while True:
                 sg.popup(profile_load_error)
             else:
                 sg.popup(f"Loaded profile: {destination_path}")
+                profile_filename = destination_path
     
     if event == 'LOAD CASE DATA':
         destination_path = sg.popup_get_file(
             "Load a case data", save_as=False,
-            file_types=(('VLEAPP Profile (*.alprofile)', '*.alprofile'), ('All Files', '*')),
-            default_extension='.alprofile', no_window=True)
+            file_types=(('VLEAPP Profile (*.vlprofile)', '*.vlprofile'), ('All Files', '*')),
+            default_extension='.vlprofile', no_window=True)
         
         if destination_path and os.path.exists(destination_path):
             profile_load_error = None
@@ -233,7 +235,7 @@ while True:
             for x in range(MODULE_START_INDEX, module_end_index):
                 if window.FindElement(x).Get():
                     key = window[x].metadata
-                    if key in loader and key != 'usagestatsVersion':
+                    if key in loader:
                         search_list.append(loader[key])
                     s_items = s_items + 1 # for progress bar
                 
@@ -256,7 +258,7 @@ while True:
                 casedata = {}
             
             crunch_successful = vleapp.crunch_artifacts(
-                search_list, extracttype, input_path, out_params, len(loader)/s_items, wrap_text, loader, casedata, time_offset)
+                search_list, extracttype, input_path, out_params, len(loader)/s_items, wrap_text, loader, casedata, time_offset, profile_filename)
             if crunch_successful:
                 report_path = os.path.join(out_params.report_folder_base, 'index.html')
                 
