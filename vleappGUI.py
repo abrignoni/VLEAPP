@@ -462,9 +462,14 @@ ttk.Separator(button_frame, orient='vertical').grid(row=0, column=4, padx=10, st
 case_data_button = ttk.Button(button_frame, text='Case Data', command=case_data)
 case_data_button.grid(row=0, column=5, padx=5)
 ttk.Separator(button_frame, orient='vertical').grid(row=0, column=6, padx=10, sticky='ns')
-ttk.Label(
-    button_frame, text='Timezone Offset\n(Not Implemented): '
-    ).grid(row=0, column=7)
+if is_platform_macos():
+    ttk.Label(
+        button_frame, text='Timezone Offset\n(Not Implemented): '
+        ).grid(row=0, column=7)
+else:
+    ttk.Label(
+        button_frame, text='Timezone Offset (Not Implemented): '
+        ).grid(row=0, column=7)
 timezone_offset = ttk.Combobox(
     button_frame, textvariable=timezone_set, values=tzvalues, height=20, state='readonly')
 timezone_offset.master.option_add( '*TCombobox*Listbox.background', theme_inputcolor)
