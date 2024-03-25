@@ -7,8 +7,7 @@ protobuf==3.10.0
 PyCryptodome
 PyMuPDF
 PyPDF2
-PySimpleGUI
+pytz
 simplekml
 xmltodict
 xlrd==1.2.0
-
