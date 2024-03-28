@@ -556,6 +556,7 @@ icon_mappings = \
     },
     'MEDIA LIBRARY': 'play-circle',
     'MEDIA METADATA': 'file-plus',
+    'MEDIA SERVICE': 'phone',
     'MEDICAL ID': 'thermometer',
     'MEGA': 'message-circle',
     'METAMASK': {
