@@ -8,8 +8,8 @@ from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, logdevinfo, kmlgen, timeline, is_platform_windows
 
 #Compatability Data
-vehicles = ['Ford Mustang','F-150']
-platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUCT','SyncGen3_v2_b', 'SYNCGen3.0_1.0.15139_PRODUCT']
+vehicles = ['RAM 1500']
+platforms = []
  
 def timeorder(line):
     month = line.split('/', 3)[0]
@@ -84,9 +84,12 @@ def get_pasDeGeoTarGz(files_found, report_folder, seeker, wrap_text, time_offset
                                         data_list_apinfo.append((timestamp, extractedbssid, ssid, signalstrenght, basename))
                                 
                                 if 'nv_navigation/main/CI->SI'  and '] currentRoad' in line:
-                                    timestamp = timeorder(line)
-                                    currentroad = line.split('panaAPI notice -                               ] [')[1].split('] currentRoad')[0]
-                                    data_list_curroad.append((timestamp, currentroad, basename))
+                                    try:
+                                        timestamp = timeorder(line)
+                                        currentroad = line.split('panaAPI notice -                               ] [')[1].split('] currentRoad')[0]
+                                        data_list_curroad.append((timestamp, currentroad, basename))
+                                    except:
+                                        logfunc(f'Error on current road: {line}')
                                 
                                 #Done
                                 if '[SAL_SWITCH_DISPLAY] Received speed:' in line:
@@ -136,11 +139,9 @@ def get_pasDeGeoTarGz(files_found, report_folder, seeker, wrap_text, time_offset
                                     lineparts = line.strip().split(':')
                                     data_list_odometer.append((timestampLink, lineparts[-1].strip(), basename))
                                 
-                                if '"vin" :' in line: 
-                                    #print(timestampLink)
-                                    #print(line)
-                                    lineparts = line.strip().split(':')
-                                    vin = lineparts[-1].strip().replace('"','')
+                                if '"vin":' in line:
+                                    vind = (line.split('vin')[1].split(',')[0])
+                                    vin = (vind.split('"')[2])
                                     if vin not in vinlist:
                                         vinlist.append(vin)
                                         
@@ -154,9 +155,21 @@ def get_pasDeGeoTarGz(files_found, report_folder, seeker, wrap_text, time_offset
                                     linepartsma = line.strip().split(':')
                                     make = linepartsma[-1].strip().replace('"','')
                                 
-                                if '"model"' in line:
-                                    linepartsmo = line.strip().split(':')
-                                    model = linepartsmo[-1].strip().replace('"','')
+                                if 'Model_Id::' in line:
+                                    model = (line.split('Model_Id::')[1].split(' ')[0])
+                                    number = (line.split('Model_Id::')[1].split(' ')[1])
+                                    model = f'{model} {number}'
+                                
+                                if '=Vehicle Model Year = ' in line:
+                                    yearc = line.split('=Vehicle Model Year = ')[1]
+    
+                                    
+    try:
+        if yearc:
+            logdevinfo(f'Model Year from pas_debug in tar.gz: {yearc}')
+    except:
+        pass
+    
     try:
         if make:
             logdevinfo(f'Make from pas_debug: {make}')
@@ -165,13 +178,13 @@ def get_pasDeGeoTarGz(files_found, report_folder, seeker, wrap_text, time_offset
     
     try:
         if model:
-            logdevinfo(f'Model from pas_debug: {model}')
+            logdevinfo(f'Model from pas_debug in tar.gz: {model}')
     except:
         pass
         
     if len(vinlist) > 0:
         for item in vinlist:
-            logdevinfo(f"VIN from pas_debug: {item}")
+            logdevinfo(f"VIN from pas_debug in tar.gz: {item}")
     
     if len(platformversion) > 0:
         for item in platformversion:
