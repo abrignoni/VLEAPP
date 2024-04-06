@@ -540,6 +540,11 @@ icon_mappings = \
         'APPLE MAPS SEARCH HISTORY': 'search',
         'default': 'map-pin',
     },
+    'LOGPARSER': {
+        'GPS LOCATIONS FROM LOGS': 'map-pin',
+        'USER': 'user',
+        '_mode': 'search',
+    },
     'MAP-MY-WALK': {
         'ACTIVITIES': 'map',
         'USER': 'user',
@@ -619,6 +624,17 @@ icon_mappings = \
     'PAS_DEBUG': {
         'SEND GPS CAN DATA': 'map-pin',
         'DEV LOC RESULTS': 'map-pin',
+        'ROAD SPEED LIMITS': 'target',
+        'ACCESS POINT LIST': 'wifi',
+        'VEHICLE SPEED': 'trending-up',
+        'TRANSMISSION STATUS': 'corner-up-right',
+        'OUTSIDE TEMPERATURE': 'thermometer',
+        'ODOMETER': 'plus-circle',
+        'default': 'archive',
+    },
+    'PAS_DEBUGTARGZ': {
+        'GPS LOCATIONS': 'map-pin',
+        'CURRENT ROAD': 'map',
         'ROAD SPEED LIMITS': 'target',
         'ACCESS POINT LIST': 'wifi',
         'VEHICLE SPEED': 'trending-up',
@@ -1133,4 +1149,5 @@ def mark_item_active(data, itemname):
     else:
         ret = data[0: pos] + " active" + data[pos:]
         return ret
+    
     
