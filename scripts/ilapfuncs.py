@@ -1,12 +1,12 @@
 # common standard imports
 import codecs
 import csv
-import datetime
 import os
 import re
 import shutil
 import sqlite3
 import sys
+from datetime import *
 from functools import lru_cache
 from pathlib import Path
 
@@ -30,7 +30,7 @@ class OutputParameters:
     screen_output_file_path = ''
 
     def __init__(self, output_folder):
-        now = datetime.datetime.now()
+        now = datetime.now()
         currenttime = str(now.strftime('%Y-%m-%d_%A_%H%M%S'))
         self.report_folder_base = os.path.join(output_folder,
                                                'VLEAPP_Reports_' + currenttime)  # vleapp , vleappGUI, vleap_artifacts, report.py
@@ -43,21 +43,76 @@ class OutputParameters:
         os.makedirs(os.path.join(self.report_folder_base, 'Script Logs'))
         os.makedirs(self.temp_folder)
 
+def convert_local_to_utc(local_timestamp_str):
+    # Parse the timestamp string with timezone offset, ex. 2023-10-27 18:18:29-0400
+    local_timestamp = datetime.strptime(local_timestamp_str, "%Y-%m-%d %H:%M:%S%z")
+    
+    # Convert to UTC timestamp
+    utc_timestamp = local_timestamp.astimezone(timezone.utc)
+    
+    # Return the UTC timestamp
+    return utc_timestamp
+
+def convert_time_obj_to_utc(ts):
+    timestamp = ts.replace(tzinfo=timezone.utc)
+    return timestamp
+
+def convert_utc_human_to_timezone(utc_time, time_offset): 
+    #fetch the timezone information
+    timezone = pytz.timezone(time_offset)
+    
+    #convert utc to timezone
+    timezone_time = utc_time.astimezone(timezone)
+    
+    #return the converted value
+    return timezone_time
+
+def convert_ts_int_to_timezone(time, time_offset):
+    #convert ts_int_to_utc_human
+    utc_time = convert_ts_int_to_utc(time)
+
+    #fetch the timezone information
+    timezone = pytz.timezone(time_offset)
+    
+    #convert utc to timezone
+    timezone_time = utc_time.astimezone(timezone)
+    
+    #return the converted value
+    return timezone_time
+
+def timestampsconv(webkittime):
+    unix_timestamp = webkittime + 978307200
+    finaltime = datetime.fromtimestamp(unix_timestamp, tz=timezone.utc)
+    return(finaltime)
+
+def convert_ts_human_to_utc(ts): #This is for timestamp in human form
+    if '.' in ts:
+        ts = ts.split('.')[0]
+        
+    dt = datetime.strptime(ts, '%Y-%m-%d %H:%M:%S') #Make it a datetime object
+    timestamp = dt.replace(tzinfo=timezone.utc) #Make it UTC
+    return timestamp
+
+def convert_ts_int_to_utc(ts): #This int timestamp to human format & utc
+    timestamp = datetime.fromtimestamp(ts, tz=timezone.utc)
+    return timestamp
+
+def get_birthdate(date):
+    ns_date = date + 978307200
+    utc_date = datetime.utcfromtimestamp(ns_date)
+    return utc_date.strftime('%d %B %Y') if utc_date.year != 1604 else utc_date.strftime('%d %B')
 
 def is_platform_linux():
     '''Returns True if running on Linux'''
     return sys.platform == 'linux'
 
-
 def is_platform_macos():
     '''Returns True if running on macOS'''
     return sys.platform == 'darwin'
 
-
 def is_platform_windows():
     '''Returns True if running on Windows'''
     return sys.platform == 'win32'
-
 
 def sanitize_file_path(filename, replacement_char='_'):
     '''
@@ -104,7 +159,6 @@ def open_sqlite_db_readonly(path):
             path = "%5C%5C%3F%5C" + path
     return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
 
-
 def does_column_exist_in_db(db, table_name, col_name):
     '''Checks if a specific col exists'''
     col_name = col_name.lower()
@@ -133,7 +187,6 @@ def does_table_exist(db, table_name):
         logfunc(f"Query error, query={query} Error={str(ex)}")
     return False
 
-
 class GuiWindow:
     '''This only exists to hold window handle if script is run from GUI'''
     window_handle = None  # static variable
@@ -143,7 +196,6 @@ class GuiWindow:
         if GuiWindow.window_handle:
             progress_bar = GuiWindow.window_handle.nametowidget('!progressbar')
             progress_bar.config(value=n)
-
 
 def logfunc(message=""):
     def redirect_logs(string):
@@ -172,7 +224,6 @@ def logdevinfo(message=""):
     datainsert = (ordes, kas, vas, sources,)
     cursor.execute('INSERT INTO devinf (ord, ka, va, source)  VALUES(?,?,?,?)', datainsert)
     db.commit() """
-
 
 def html2csv(reportfolderbase):
     # List of items that take too long to convert or that shouldn't be converted
@@ -215,7 +266,6 @@ def html2csv(reportfolderbase):
                             writer = csv.writer(csvfile, quotechar='"', quoting=csv.QUOTE_ALL)
                             writer.writerows(output_rows)
 
-
 def tsv(report_folder, data_headers, data_list, tsvname, source_file=None):
     report_folder = report_folder.rstrip('/')
     report_folder = report_folder.rstrip('\\')
@@ -252,7 +302,6 @@ def tsv(report_folder, data_headers, data_list, tsvname, source_file=None):
                     row_data = list(i)
                     row_data.append(source_file)
                     tsv_writer.writerow(tuple(row_data))
-
 
 def timeline(report_folder, tlactivity, data_list, data_headers):
     report_folder = report_folder.rstrip('/')
@@ -333,7 +382,6 @@ def kmlgen(report_folder, kmlactivity, data_list, data_headers):
     db.close()
     kml.save(os.path.join(kml_report_folder, f'{kmlactivity}.kml'))
 
-
 """
 Copyright 2021, CCL Forensics
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -352,7 +400,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
 
 def utf8_in_extended_ascii(input_string, *, raise_on_unexpected=False):
     """Returns a tuple of bool (whether mis-encoded utf-8 is present) and str (the converted string)"""
@@ -470,7 +517,6 @@ def media_to_html(media_path, files_found, report_folder):
             thumb = f'<a href="{source}" target="_blank"> Link to {filename} file</>'
     return thumb
 
-
 def usergen(report_folder, data_list_usernames):
     report_folder = report_folder.rstrip('/')
     report_folder = report_folder.rstrip('\\')
@@ -508,7 +554,6 @@ def usergen(report_folder, data_list_usernames):
         a += 1
     db.commit()
     db.close()
-
 
 def ipgen(report_folder, data_list_ipaddress):
     report_folder = report_folder.rstrip('/')
@@ -548,18 +593,15 @@ def ipgen(report_folder, data_list_ipaddress):
     db.commit()
     db.close()
 
-
 def _count_generator(reader):
     b = reader(1024 * 1024)
     while b:
         yield b
         b = reader(1024 * 1024)
 
-
 def _get_line_count(file):
     with open(file, 'rb') as fp:
         return sum(buffer.count(b'\n') for buffer in _count_generator(fp.raw.read))
-
 
 def gather_hashes_in_file(file_found: str, regex: Pattern):
     target_hashes = {}
