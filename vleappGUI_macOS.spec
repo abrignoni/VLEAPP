@@ -48,7 +48,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='vleappGUI.app',
-    icon='../icon.icns',
+    icon=None,
     bundle_identifier='4n6.brigs.VLEAPP',
-    version='2.1.0',
+    version='2.1.1',
 )
