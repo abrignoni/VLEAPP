@@ -1,4 +1,4 @@
-vleapp_version = '2.1.1'
+vleapp_version = '2.1.2'
 
 # Contributors List
 # Format = [ Name, Blog-url, Twitter-handle, Github-url]
