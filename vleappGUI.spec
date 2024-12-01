@@ -31,4 +31,5 @@ exe = EXE(pyz,
 		  hide_console='hide-early',
 		  disable_windowed_traceback=False,
           upx_exclude=[],
+          version='vleapp-file_version_info.txt',
           runtime_tmpdir=None )
