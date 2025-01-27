@@ -5,6 +5,7 @@ import json
 import vleapp
 import webbrowser
 
+from PIL import Image, ImageTk
 from tkinter import ttk, filedialog as tk_filedialog, messagebox as tk_msgbox
 from scripts.version_info import vleapp_version
 from scripts.search_files import *
@@ -147,6 +148,10 @@ def open_report(report_path):
     '''Open report and Quit after processing completed'''
     webbrowser.open_new_tab('file://' + report_path)
     main_window.quit()
+
+
+def open_website(url):
+    webbrowser.open_new_tab(url)
 
 
 def process(casedata):
@@ -339,10 +344,10 @@ def case_data():
 ## Main window creation
 main_window = tk.Tk()
 window_width = 902
-window_height = 625
+window_height = 620
 
 ## Variables
-icon = os.path.join(os.path.dirname(__file__), 'scripts', 'icon.png')
+icon = os.path.join(os.path.dirname(__file__), 'assets', 'icon.png')
 loader: typing.Optional[plugin_loader.PluginLoader] = None
 mlist = {}
 profile_filename = None
@@ -408,17 +413,16 @@ style.configure('TProgressbar', thickness=4, background='DarkGreen')
 ## Main Window Layout
 ### Top part of the window
 title_frame = ttk.Frame(main_window)
-title_frame.grid(padx=14, pady=6, sticky='w')
-title_label = ttk.Label(
-    title_frame, 
-    text='Vehicle Logs, Events, And Protobuf Parser', 
-    font=('Helvetica 22'))
-title_label.pack(pady=4)
-github_label = ttk.Label(
-    title_frame, 
-    text='https://github.com/abrignoni/VLEAPP', 
-    font=('Helvetica 14'))
-github_label.pack(anchor='w')
+title_frame.grid(padx=14, pady=4, sticky='w')
+title_frame.grid(padx=14, pady=4, sticky='we')
+title_frame.grid_columnconfigure(0, weight=1)
+ileapp_logo = ImageTk.PhotoImage(file="assets/VLEAPP_logo.png")
+ileapp_logo_label = ttk.Label(title_frame, image=ileapp_logo)
+ileapp_logo_label.grid(row=0, column=0, sticky='w')
+leapps_logo = ImageTk.PhotoImage(Image.open("assets/leapps_v_logo.png").resize((110, 51)))
+leapps_logo_label = ttk.Label(title_frame, image=leapps_logo, cursor="target")
+leapps_logo_label.grid(row=0, column=1, sticky='w')
+leapps_logo_label.bind("<Button-1>", lambda e: open_website("https://leapps.org"))
 
 ### Input output selection
 input_frame = ttk.LabelFrame(
@@ -446,10 +450,9 @@ modules_frame = ttk.Frame(main_window, name='f_modules')
 modules_frame.grid(padx=14, pady=4, sticky='we')
 modules_frame.grid_columnconfigure(0, weight=1)
 
-#### Buttons & Timezone
+#### Buttons
 button_frame = ttk.Frame(modules_frame)
 button_frame.grid(row=0, column=0, pady=4, sticky='we')
-
 all_button = ttk.Button(button_frame, text='Select All', command=select_all)
 all_button.grid(row=0, column=0, padx=5)
 none_button = ttk.Button(button_frame, text='Deselect All', command=deselect_all)
@@ -461,21 +464,6 @@ save_button.grid(row=0, column=3, padx=5)
 ttk.Separator(button_frame, orient='vertical').grid(row=0, column=4, padx=10, sticky='ns')
 case_data_button = ttk.Button(button_frame, text='Case Data', command=case_data)
 case_data_button.grid(row=0, column=5, padx=5)
-ttk.Separator(button_frame, orient='vertical').grid(row=0, column=6, padx=10, sticky='ns')
-if is_platform_macos():
-    ttk.Label(
-        button_frame, text='Timezone Offset\n(Not Implemented): '
-        ).grid(row=0, column=7)
-else:
-    ttk.Label(
-        button_frame, text='Timezone Offset (Not Implemented): '
-        ).grid(row=0, column=7)
-timezone_offset = ttk.Combobox(
-    button_frame, textvariable=timezone_set, values=tzvalues, height=20, state='readonly')
-timezone_offset.master.option_add( '*TCombobox*Listbox.background', theme_inputcolor)
-timezone_offset.master.option_add( '*TCombobox*Listbox.foreground', theme_fgcolor)
-timezone_offset.master.option_add( '*TCombobox*Listbox.selectBackground', theme_button)
-timezone_offset.grid(row=0, column=8)
 
 #### List of modules
 mlist_frame = ttk.LabelFrame(modules_frame, text=' Available Modules: ', name='f_list')
