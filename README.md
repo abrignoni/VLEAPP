@@ -1,6 +1,6 @@
-# VLEAPP
+![VLEAPP](https://github.com/abrignoni/VLEAPP/blob/main/assets/VLEAPP_logo.png)
 
-Vehicle Logs Events And Protobuf Parser
+# Vehicle Logs Events And Protobuf Parser
 
 If you want to contribute hit me up on twitter: https://twitter.com/AlexisBrignoni   
 
