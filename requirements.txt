@@ -3,6 +3,7 @@ blackboxprotobuf
 ijson
 openpyxl
 packaging==20.1
+pillow
 protobuf==3.10.0
 PyCryptodome
 PyMuPDF
