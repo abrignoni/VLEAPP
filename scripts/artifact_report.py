@@ -128,6 +128,24 @@ class ArtifactHtmlReport:
         if table_responsive:
             self.report_file.write("</div>")
 
+    def add_trips_map(self, map_html):
+        """
+        Add an interactive map section to the report.
+        
+        Parameters:
+            map_html (str): The HTML string for the map to be embedded in the report.
+        """
+        self.report_file.write(f"""
+        <div class="map-container">
+            {map_html}
+        </div>
+        <style>
+            .map-container {{
+                margin: 20px 0;
+            }}
+        </style>
+        """)
+
     def add_section_heading(self, heading, size='h2'):
         heading = html.escape(heading)
         data = '<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">' \
