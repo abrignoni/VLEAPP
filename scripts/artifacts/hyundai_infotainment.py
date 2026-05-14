@@ -8,7 +8,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
 vehicles = ['Hyundai Sonata']
 platforms = ['Carplay']
 
-def get_infotainmentData(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_infotainmentData(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, 'r') as f:

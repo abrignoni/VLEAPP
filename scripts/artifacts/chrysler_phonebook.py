@@ -26,7 +26,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, ope
 vehicles = ['FCA','Grand Cherokee']
 platforms = ['']
 
-def get_phone_book_devices(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_phone_book_devices(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         devAddr = []

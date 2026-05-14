@@ -27,7 +27,7 @@ vehicles = ['Ford']
 platforms = ['']
 
 ## Get connected Bluetooth Devices
-def get_fav_places(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_fav_places(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r", encoding='cp437') as f:

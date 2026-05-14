@@ -27,7 +27,7 @@ platforms = ['']
       
 
 ## Get connected Bluetooth Devices
-def get_info(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_info(files_found, report_folder, seeker, wrap_text):
     vinlist = []
     data_list = []
     model = []

@@ -24,7 +24,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
 vehicles = ['Ford','Bronco Raptor', 'F-150', 'F-250']
 platforms = ['']
 
-def get_Model(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_Model(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r", encoding='cp437') as f:

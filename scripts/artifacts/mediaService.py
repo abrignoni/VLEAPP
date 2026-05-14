@@ -8,7 +8,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, ope
 vehicles = ['Ford']
 platforms = ['SYNC3.1','SYNCGen3']
 
-def get_mediaService(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_mediaService(files_found, report_folder, seeker, wrap_text):
     for file_found in files_found:
         file_found = str(file_found)
         

@@ -26,7 +26,7 @@ vehicles = ['Ford']
 platforms = ['']
 
 ## Get connected Bluetooth Devices
-def get_ford_gps_speed_data(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_ford_gps_speed_data(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r", encoding="cp437") as f:

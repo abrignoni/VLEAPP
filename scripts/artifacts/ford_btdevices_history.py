@@ -37,7 +37,7 @@ def get_time(line):
     
 
 ## Get connected Bluetooth Devices
-def get_bt_device_hist(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_bt_device_hist(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r") as f:

@@ -25,7 +25,7 @@ from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
 vehicles = ['FCA','Grand Cherokee']
 platforms = ['']
 
-def get_location_logs(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_location_logs(files_found, report_folder, seeker, wrap_text):
     data_list = []
     for file_found in files_found:
         with open(file_found, "r", encoding='cp437') as f:

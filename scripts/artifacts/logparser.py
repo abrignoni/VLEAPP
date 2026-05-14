@@ -21,7 +21,7 @@ def timeorder(line):
     timestamp = f'{year}-{month}-{day} {time}'
     return timestamp
 
-def get_logparser(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_logparser(files_found, report_folder, seeker, wrap_text):
     data_list = []
     
     for file_found in files_found:

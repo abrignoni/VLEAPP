@@ -11,9 +11,9 @@ page_header = \
         <!-- Dark mode -->
         <link rel="stylesheet" href="_elements/dark-mode.css">
         <!-- Font Awesome -->
-        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.11.2/css/all.css">
+        <link rel="stylesheet" href="_elements/all.css">
         <!-- Google Fonts Roboto -->
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
+        <link rel="stylesheet" href="_elements/Roboto.css">
         <!-- Bootstrap core CSS -->
         <link rel="stylesheet" href="_elements/MDB-Free_4.13.0/css/bootstrap.min.css">
         <!-- Material Design Bootstrap - TOGGLE THIS FOR ALTERNATE DESIGN!-->
@@ -125,7 +125,8 @@ body_main_header = \
 body_main_data_title = \
 """
                 <div class="justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="display-5">{0}</h1>
+                    <img src="_elements/VLEAPP_banner.png" alt="VLEAPP banner">
+                    <h3 class="display-5">{0}</h1>
                     <h6 class="animated fadeIn mb-3">{1}</h6>
                 </div>
 """
@@ -143,7 +144,7 @@ body_infinite_loading_bar = \
 """
 # body_main_data is a placeholder, replace content with real data
 body_main_data = \
-"""
+r"""
                 <h5>All dates and times are in UTC unless stated otherwise.</h5>
                 <div class="alert alert-warning" role="alert">
                     All dates and times are in UTC unless noted otherwise!
@@ -201,7 +202,7 @@ thank_you_note = \
                     <div class="card bg-white mb-3" style="max-width: 500px; margin:auto">
                         <div class="row no-gutters">
                             <center><div class="col-md-4">
-                                <img src="_elements/logo.jpg" class="card-img" alt="DFIR">
+                                <img src="_elements/logo.png" class="card-img" alt="VLEAPP Logo">
                             </div>
                             <div class="col-md-8">
                             <div class="card-body">

@@ -36,7 +36,7 @@ def timeorder(line):
     timestamp = f'{year}-{month}-{day} {time}'
     return timestamp
 
-def get_TarGz(files_found, report_folder, seeker, wrap_text, time_offset):
+def get_TarGz(files_found, report_folder, seeker, wrap_text):
     vinlist = []
     timestamp_loc = ""
     timestamp = ""
