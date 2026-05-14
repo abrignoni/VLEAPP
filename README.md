@@ -156,3 +156,5 @@ def get_cool_data1(files_found, report_folder, seeker, wrap_text):
 ## Acknowledgements
 
 This tool is the result of a collaborative effort of many people in the DFIR community.
+
+VLEAPP logo courtesy of Derek Eiri.
