@@ -207,6 +207,8 @@ def process(casedata):
             selected_modules, extracttype, input_path, out_params, wrap_text, loader,
             casedata, profile_filename)
 
+        lava_finalize_output(out_params.report_folder_base)
+
         if crunch_successful:
             report_path = os.path.join(out_params.report_folder_base, 'index.html')
             if report_path.startswith('\\\\?\\'):  # windows
