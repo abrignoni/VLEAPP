@@ -2,6 +2,7 @@ import json
 import argparse
 import io
 import os.path
+import pathlib
 import typing
 import scripts.report as report
 import traceback
@@ -132,11 +133,11 @@ def create_casedata(path):
 
 def main():
     parser = argparse.ArgumentParser(description='VLEAPP: Vehicle Logs, Events, and Protobuf Parser.')
-    parser.add_argument('-t', choices=['fs', 'tar', 'zip', 'gz'], required=False, action="store",
+    parser.add_argument('-t', choices=['fs', 'tar', 'zip', 'gz', 'file'], required=False, action="store",
                         help=("Specify the input type. "
                               "'fs' for a folder containing extracted files with normal paths and names, "
-                              "'tar', 'zip', or 'gz' for compressed packages containing files with normal names. "
-                              ))
+                              "'tar', 'zip', or 'gz' for compressed packages containing files with normal names, "
+                              "'file' for a single file input."))
     parser.add_argument('-o', '--output_path', required=False, action="store",
                         help='Path to base output folder (this must exist)')
     parser.add_argument('-i', '--input_path', required=False, action="store", help='Path to input file/folder')
@@ -151,11 +152,7 @@ def main():
                         help=("Generate a text file list of artifact paths. "
                               "This argument is meant to be used alone, without any other arguments."))
     parser.add_argument('--custom_output_folder', required=False, action="store", help="Custom name for the output folder")
-
-    loader = plugin_loader.PluginLoader()
-    available_plugins = list(loader.plugins)
-    profile_filename = None
-    casedata = {}
+    parser.add_argument('--custom_artifacts_path', required=False, action="store", help="Additional path to load artifacts from (e.g., scripts/alternate_artifacts)")
 
     # Check if no arguments were provided
     if len(sys.argv) == 1:
@@ -164,12 +161,14 @@ def main():
 
     args = parser.parse_args()
 
-    plugins = []
-
-    for plugin in available_plugins:
-        plugins.append(plugin)
-
-    selected_plugins = plugins.copy()
+    loader_paths = [plugin_loader.PLUGINPATH]
+    if args.custom_artifacts_path:
+        loader_paths.append(pathlib.Path(args.custom_artifacts_path))
+    loader = plugin_loader.PluginLoader(plugin_paths=loader_paths)
+    available_plugins = sorted(loader.plugins, key=lambda p: p.category)
+    selected_plugins = available_plugins.copy()
+    profile_filename = None
+    casedata = {}
 
     try:
         validate_args(args)
@@ -179,15 +178,17 @@ def main():
     if args.artifact_paths:
         print('Artifact path list generation started.')
         print('')
-        with open('path_list.txt', 'a') as paths:
-            for plugin in loader.plugins:
-                if isinstance(plugin.search, tuple):
-                    for x in plugin.search:
-                        paths.write(x + '\n')
-                        print(x)
-                else:  # TODO check that this is actually a string?
-                    paths.write(plugin.search + '\n')
-                    print(plugin.search)
+        path_list = set()
+        for plugin in loader.plugins:
+            if isinstance(plugin.search, tuple):
+                for x in plugin.search:
+                    path_list.add(x)
+            elif isinstance(plugin.search, str):
+                path_list.add(plugin.search)
+        with open('path_list.txt', 'w') as paths:
+            for path in sorted(path_list):
+                paths.write(f'{path}\n')
+                print(path)
         print('')
         print('Artifact path list generation completed')
         return
@@ -206,7 +207,7 @@ def main():
                 create_choice = input('Please enter your choice: ').lower()
                 print()
                 if create_choice == '1':
-                    create_profile(plugins, args.create_profile_casedata)
+                    create_profile(available_plugins, args.create_profile_casedata)
                     create_choice = ''
                 elif create_choice == '2':
                     create_casedata(args.create_profile_casedata)
@@ -264,7 +265,7 @@ def main():
                     return
                 else:
                     profile_plugins = set(profile.get("plugins", []))
-                    selected_plugins = [selected_plugin for selected_plugin in plugins 
+                    selected_plugins = [selected_plugin for selected_plugin in available_plugins
                                         if selected_plugin.name in profile_plugins]
             else:
                 profile_load_error = "File was not a valid profile file: invalid format"
@@ -284,11 +285,13 @@ def main():
         if output_path[1] == ':': output_path = '\\\\?\\' + output_path.replace('/', '\\')
 
     out_params = OutputParameters(output_path, custom_output_folder)
-    initialize_lava(input_path, out_params.report_folder_base, extracttype)
+    Context.set_output_params(out_params)
+
+    initialize_lava(input_path, out_params.output_folder_base, extracttype)
 
     crunch_artifacts(selected_plugins, extracttype, input_path, out_params, wrap_text, loader, casedata, profile_filename)
 
-    lava_finalize_output(out_params.report_folder_base)
+    lava_finalize_output(out_params.output_folder_base)
 
 def crunch_artifacts(
         plugins: typing.Sequence[plugin_loader.PluginSpec], extracttype, input_path, out_params, wrap_text,
@@ -309,6 +312,9 @@ def crunch_artifacts(
     try:
         if extracttype == 'fs':
             seeker = FileSeekerDir(input_path, out_params.data_folder)
+
+        elif extracttype == 'file':
+            seeker = FileSeekerFile(input_path, out_params.data_folder)
 
         elif extracttype in ('tar', 'gz'):
             seeker = FileSeekerTar(input_path, out_params.data_folder)
@@ -335,37 +341,59 @@ def crunch_artifacts(
     logfunc(f'File/Directory selected: {input_path}')
     logfunc('\n--------------------------------------------------------------------------------------')
 
-    log = open(os.path.join(out_params.report_folder_base, 'Script Logs', 'ProcessedFilesLog.html'), 'w+', encoding='utf8')
+    log = open(os.path.join(out_params.output_folder_base, '_HTML', '_Script_Logs', 'ProcessedFilesLog.html'), 'w+', encoding='utf8')
     log.write(f'Extraction/Path selected: {input_path}<br><br>')
-    
-    parsed_modules = 0
 
     # Search for the files per the arguments
-    for plugin in plugins:
+    parsed_modules = 0
+    lava_only = False
+    artifact_search_pattern_id = 0
+    file_path_ids = set()
+
+    for plugin_number, plugin in enumerate(plugins, start=1):
         logfunc()
-        logfunc('{} [{}] artifact started'.format(plugin.name, plugin.module_name))
+        logfunc('[{}/{}] {} [{}] artifact started'.format(plugin_number, len(plugins),
+                                                              plugin.name, plugin.module_name))
+        output_types = plugin.artifact_info.get('output_types', '')
         if isinstance(plugin.search, list) or isinstance(plugin.search, tuple):
+            search_regexes = plugin.search
+        elif plugin.search is None:
             search_regexes = plugin.search
         else:
             search_regexes = [plugin.search]
-        parsed_modules += 1
-        GuiWindow.SetProgressBar(parsed_modules, len(plugins))
         files_found = []
-        log.write(f'<b>For {plugin.name} module</b>')
-        for artifact_search_regex in search_regexes:
-            found = seeker.search(artifact_search_regex)
-            if not found:
-                log.write(f'<ul><li>No file found for regex <i>{artifact_search_regex}</i></li></ul>')
-            else:
-                log.write(f'<ul><li>{len(found)} {"files" if len(found) > 1 else "file"} for regex <i>{artifact_search_regex}</i> located at:')
-                for pathh in found:
-                    if pathh.startswith('\\\\?\\'):
-                        pathh = pathh[4:]
-                    log.write(f'<ul><li>{pathh}</li></ul>')
-                log.write(f'</li></ul>')
-                files_found.extend(found)
+        log.write(f'<b>For {plugin.name} artifact</b>')
+        if search_regexes is None:
+            log.write(f'<ul><li>No search regexes provided for {plugin.name} artifact.')
+            log.write("<ul><li><i>'_lava_artifacts.db'</i> used as source file.</li></ul></li></ul>")
+            files_found = [os.path.join(out_params.output_folder_base, '_lava_artifacts.db')]
+        else:
+            for artifact_search_regex in search_regexes:
+                artifact_search_pattern_id += 1
+                lava_insert_sqlite_artifact_search_pattern(
+                    artifact_search_pattern_id, plugin.module_name, plugin.name, artifact_search_regex)
+                pattern_already_searched = artifact_search_regex in seeker.searched
+                found = seeker.search(artifact_search_regex)
+                if not found:
+                    log.write(f'<ul><li>No file found for regex <i>{artifact_search_regex}</i></li></ul>')
+                else:
+                    log.write(f'<ul><li>{len(found)} {"files" if len(found) > 1 else "file"} for regex <i>{artifact_search_regex}</i> located at:')
+                    for pathh in found:
+                        if pathh.startswith('\\\\?\\'):
+                            pathh = pathh[4:]
+                        log.write(f'<ul><li>{pathh}</li></ul>')
+                        if seeker.file_infos.get(pathh):
+                            file_path_id = id(seeker.file_infos.get(pathh))
+                            if not pattern_already_searched and file_path_id not in file_path_ids:
+                                lava_insert_sqlite_file_path(file_path_id, seeker.file_infos.get(pathh).source_path)
+                                file_path_ids.add(file_path_id)
+                            lava_insert_sqlite_artifact_link_pattern_to_file(artifact_search_pattern_id, file_path_id)
+                    log.write(f'</li></ul>')
+                    files_found.extend(found)
         if files_found:
-            category_folder = os.path.join(out_params.report_folder_base, '_HTML', plugin.category)
+            if not lava_only and 'lava_only' in output_types:
+                lava_only = True
+            category_folder = os.path.join(out_params.output_folder_base, '_HTML', plugin.category)
             if not os.path.exists(category_folder):
                 try:
                     os.makedirs(category_folder)
@@ -383,8 +411,14 @@ def crunch_artifacts(
         else:
             logfunc(f"No file found")
         logfunc('{} [{}] artifact completed'.format(plugin.name, plugin.module_name))
+        parsed_modules += 1
+        GuiWindow.SetProgressBar(parsed_modules, len(plugins))
+        log.flush()
     log.close()
 
+    write_device_info()
+    if lava_only:
+        write_lava_only_log()
     logfunc('')
     logfunc('Processes completed.')
     end = process_time()
@@ -399,16 +433,16 @@ def crunch_artifacts(
     logfunc('')
     logfunc('Report generation started.')
     # remove the \\?\ prefix we added to input and output paths, so it does not reflect in report
-    if is_platform_windows(): 
-        if out_params.report_folder_base.startswith('\\\\?\\'):
-            out_params.report_folder_base = out_params.report_folder_base[4:]
+    if is_platform_windows():
+        if out_params.output_folder_base.startswith('\\\\?\\'):
+            out_params.output_folder_base = out_params.output_folder_base[4:]
         if input_path.startswith('\\\\?\\'):
             input_path = input_path[4:]
-    
-    report.generate_report(out_params.report_folder_base, run_time_secs, run_time_HMS, extracttype, input_path, casedata, profile_filename, icons)
+
+    report.generate_report(out_params.output_folder_base, run_time_secs, run_time_HMS, extracttype, input_path, casedata, profile_filename, icons, lava_only)
     logfunc('Report generation Completed.')
     logfunc('')
-    logfunc(f'Report location: {out_params.report_folder_base}')
+    logfunc(f'Report location: {out_params.output_folder_base}')
 
     return True
 

@@ -16,6 +16,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote
 import scripts.artifact_report as artifact_report
+from scripts.context import Context
 
 
 _console_write = sys.stdout.write
@@ -28,7 +29,6 @@ from scripts.filetype import guess_mime, guess_extension
 from functools import wraps
 
 # LEAPP version unique imports
-import json
 from typing import Pattern
 from scripts.lavafuncs import lava_process_artifact, lava_insert_sqlite_data, lava_get_media_item, \
     lava_insert_sqlite_media_item, lava_insert_sqlite_media_references, lava_get_media_references, \
@@ -38,6 +38,8 @@ os.path.basename = lru_cache(maxsize=None)(os.path.basename)
 
 identifiers = {}
 icons = {}
+lava_only_artifacts = {}
+
 
 class OutputParameters:
     '''Defines the parameters that are common for '''
@@ -52,15 +54,21 @@ class OutputParameters:
             folder_name = custom_folder_name
         else:
             folder_name = 'VLEAPP_Reports_' + currenttime
-        self.report_folder_base = os.path.join(output_folder, folder_name)
-        self.data_folder = os.path.join(self.report_folder_base, 'data')
+        self.output_folder_base = os.path.join(output_folder, folder_name)
+        self.data_folder = os.path.join(self.output_folder_base, 'data')
+        self.media_folder = os.path.join(self.output_folder_base, 'media')
+        self.html_media_folder = os.path.join(self.output_folder_base, '_HTML', 'media')
         OutputParameters.screen_output_file_path = os.path.join(
-            self.report_folder_base, 'Script Logs', 'Screen Output.html')
+            self.output_folder_base, '_HTML', '_Script_Logs', 'Screen_Output.html')
         OutputParameters.screen_output_file_path_devinfo = os.path.join(
-            self.report_folder_base, 'Script Logs', 'DeviceInfo.html')
+            self.output_folder_base, '_HTML', '_Script_Logs', 'DeviceInfo.html')
+        OutputParameters.screen_output_file_path_lava_only = os.path.join(
+            self.output_folder_base, '_HTML', '_Script_Logs', 'Lava_only_artifacts_log.html')
 
-        os.makedirs(os.path.join(self.report_folder_base, 'Script Logs'))
+        os.makedirs(os.path.join(self.output_folder_base, '_HTML', '_Script_Logs'))
         os.makedirs(self.data_folder)
+        os.makedirs(self.media_folder, exist_ok=True)
+        os.makedirs(self.html_media_folder, exist_ok=True)
         
 class GuiWindow:
     '''This only exists to hold window handle if script is run from GUI'''
@@ -69,7 +77,7 @@ class GuiWindow:
     @staticmethod
     def SetProgressBar(n, total):
         if GuiWindow.window_handle:
-            progress_bar = GuiWindow.window_handle.nametowidget('!progressbar')
+            progress_bar = GuiWindow.window_handle.nametowidget('progress_bar_frame.progress_bar')
             progress_bar.config(value=n)
 
 class MediaItem():
@@ -81,7 +89,8 @@ class MediaItem():
         self.metadata = ""
         self.created_at = 0
         self.updated_at = 0
-    
+        self.is_embedded = 0
+
     def set_values(self, media_info):
         self.id = media_info[0]
         self.source_path = media_info[1]
@@ -90,6 +99,7 @@ class MediaItem():
         self.metadata = media_info[4]
         self.created_at = media_info[5]
         self.updated_at = media_info[6]
+        self.is_embedded = media_info[7]
 
 class MediaReferences():
     def __init__(self, id):
@@ -98,7 +108,7 @@ class MediaReferences():
         self.module_name = ""
         self.artifact_name = ""
         self.name = ""
-    
+
     def set_values(self, media_ref_info):
         self.id = media_ref_info[0]
         self.media_item_id = media_ref_info[1]
@@ -118,119 +128,224 @@ def logfunc(message=""):
         log_text = GuiWindow.window_handle.nametowidget('logs_frame.log_text')
         sys.stdout.write = redirect_logs
 
-    with open(OutputParameters.screen_output_file_path, 'a', encoding='utf8') as a:
-        print(message)
-        a.write(message + '<br>' + OutputParameters.nl)
+    if OutputParameters.screen_output_file_path:
+        with open(OutputParameters.screen_output_file_path, 'a', encoding='utf8') as a:
+            a.write(message + '<br>' + OutputParameters.nl)
+    print(message)
 
 
 def strip_tuple_from_headers(data_headers):
     return [header[0] if isinstance(header, tuple) else header for header in data_headers]
 
-def get_media_header_position(data_headers):
-    return [i for i, header in enumerate(data_headers) if isinstance(header, tuple) and header[1] == 'media']
+def get_media_header_info(data_headers):
+    media_header_info = {}
+    for index, header in enumerate(data_headers):
+        if isinstance(header, tuple) and header[1] == 'media':
+            style = header[2] if len(header) == 3 else ''
+            media_header_info[index] = style
+    return media_header_info
 
 def check_output_types(type, output_types):
     if type in output_types or type == output_types or 'all' in output_types or 'all' == output_types:
         return True
     elif type != 'kml' and ('standard' in output_types or 'standard' == output_types):
         return True
+    elif type == 'lava' and ('lava_only' in output_types or 'lava_only' == output_types):
+        return True
     else:
         return False
 
-def get_media_references_id(media_id, artifact_info, name):
-    artifact_name = artifact_info.function
+def get_media_references_id(media_id, artifact_name, name):
+    '''
+    Get the media references ID.
+    Args:
+        media_id: The ID of the media.
+        artifact_name: The name of the artifact.
+        name: The name of the media (optional).
+    Returns:
+        The media references ID.
+    '''
     return hashlib.sha1(f"{media_id}-{artifact_name}-{name}".encode()).hexdigest()
 
-def set_media_references(media_ref_id, media_id, artifact_info, name):
-    module_name = Path(artifact_info.filename).stem
-    artifact_name = artifact_info.function
+def set_media_references(media_ref_id, media_id, module_name, artifact_name, name):
+    '''
+    Set the media references in the LAVA database.
+    Args:
+        media_ref_id: The ID of the media references.
+        media_id: The ID of the media.
+        module_name: The name of the module.
+        artifact_name: The name of the artifact.
+        name: The name of the media (optional).
+    '''
     media_references = MediaReferences(media_ref_id)
     media_references.set_values((
         media_ref_id, media_id, module_name, artifact_name, name
     ))
     lava_insert_sqlite_media_references(media_references)
 
-def check_in_media(seeker, file_path, artifact_info, name="", already_extracted=False, converted_file_path=False):
-    if already_extracted:
-        file_info_key = file_path
-    else:
-        file_info_key = seeker.search(file_path, return_on_first_hit=True)
-    file_info = seeker.file_infos.get(file_info_key) if file_info_key else None
-    if file_info:
-        if converted_file_path:
-            extraction_path = Path(converted_file_path)
+def _check_in_media(media_id, source_path, is_embedded, name, media_data=None, converted_file_path=None, force_type=None,
+                    force_extension=None, force_creation_date=None, force_modification_date=None):
+    '''
+    Check in media.
+    Args:
+        media_id: The ID of the media.
+        source_path: The source path of the media file.
+        is_embedded: Whether the media is embedded.
+        name: The name of the media (optional).
+        media_data: The media data (optional).
+        converted_file_path: The converted file path (optional).
+        force_type: The MIME type of the media (optional).
+        force_extension: The extension of the media (optional).
+        force_creation_date: The creation date of the media (optional).
+        force_modification_date: The modification date of the media (optional).
+    Returns:
+        The media reference ID or None.
+    '''
+    output_params = Context.get_output_params()
+    seeker = Context.get_seeker()
+
+    media_ref_id = get_media_references_id(media_id, Context.get_artifact_name(), name)
+    if lava_get_media_references(media_ref_id):
+        return media_ref_id # Reference already exists, we're done.
+
+    # If media item doesn't exist, create it.
+    if not lava_get_media_item(media_id):
+        media_item = MediaItem(media_id)
+
+        if force_type:
+            media_item.mimetype = force_type
         else:
-            extraction_path = Path(file_info_key)
-        if extraction_path.is_file():
-            media_id = hashlib.sha1(f"{extraction_path}".encode()).hexdigest()
-            lava_media_item = lava_get_media_item(media_id)
-            if lava_media_item:
-                return media_id
-            else:
-                media_item = MediaItem(media_id)
-                media_item.source_path = file_info.source_path
-                media_item.extraction_path = extraction_path
-                media_item.mimetype = guess_mime(extraction_path)
-                media_item.metadata = "not implemented yet"
+            media_item.mimetype = guess_mime(media_data)
+
+        if force_extension:
+            suffix = force_extension
+        elif name and len(name.split('.')[-1]) < 5:
+            suffix = name.split('.')[-1]
+        elif not is_embedded and len(source_path.split('.')[-1]) < 5:
+            suffix = source_path.split('.')[-1]
+        else:
+            suffix = f".{guess_extension(media_data)}"
+        if suffix and not suffix.startswith('.'):
+            suffix = f".{suffix}"
+
+        extraction_path = Context.get_source_file_path(source_path)
+        file_info = seeker.file_infos.get(extraction_path)
+        if file_info:
+            media_item.source_path = file_info.source_path
+        else:
+            media_item.source_path = source_path
+
+        if is_embedded:
+            media_item.created_at = force_creation_date if force_creation_date else 0
+            media_item.updated_at = force_modification_date if force_modification_date else 0
+        else:
+            if not extraction_path:
+                return None
+
+            file_to_copy = Path(converted_file_path) if converted_file_path else Path(extraction_path)
+            if not file_to_copy.is_file():
+                return None
+
+            if force_creation_date:
+                media_item.created_at = force_creation_date
+            elif file_info:
                 media_item.created_at = file_info.creation_date
+            else:
+                media_item.created_at = 0
+
+            if force_modification_date:
+                media_item.updated_at = force_modification_date
+            elif file_info:
                 media_item.updated_at = file_info.modification_date
-                lava_insert_sqlite_media_item(media_item)
-                media_ref_id = get_media_references_id(media_id, artifact_info, name)
-                set_media_references(media_ref_id, media_id, artifact_info, name)
-            return media_id
+            else:
+                media_item.updated_at = 0
+
+        # 1. Create the canonical media file
+        canonical_media_path = Path(output_params.media_folder).joinpath(media_id).with_suffix(suffix)
+        if is_embedded:
+            canonical_media_path.write_bytes(media_data)
         else:
-            logfunc(f"{extraction_path} was not found")
-            return None            
-    else:
+            try:
+                canonical_media_path.hardlink_to(file_to_copy)
+            except OSError:
+                shutil.copy2(file_to_copy, canonical_media_path)
+
+        # 2. Create the HTML media file link/copy
+        html_media_path = Path(output_params.html_media_folder).joinpath(media_id).with_suffix(suffix)
+        if not html_media_path.exists():
+            try:
+                html_media_path.hardlink_to(canonical_media_path)
+            except OSError:
+                shutil.copy2(canonical_media_path, html_media_path)
+
+        media_item.extraction_path = f"media/{media_id}{suffix}"
+        media_item.metadata = "not parsed yet"
+        media_item.is_embedded = 1 if is_embedded else 0
+        lava_insert_sqlite_media_item(media_item)
+
+    # Always set the reference
+    set_media_references(media_ref_id, media_id, Context.get_module_name(), Context.get_artifact_name(), name)
+    return media_ref_id
+
+def check_in_media(file_path, name="", converted_file_path=False, force_type=None, force_extension=None,
+                   force_creation_date=None, force_modification_date=None):
+    '''
+    Check in media.
+    Args:
+        file_path: The file path of the media file.
+        name: The name of the media (optional).
+        converted_file_path: The converted file path (optional).
+        force_type: The MIME type of the media (optional).
+        force_extension: The extension of the media (optional).
+        force_creation_date: The creation date of the media (optional).
+        force_modification_date: The modification date of the media (optional).
+    Returns:
+        The media reference ID or None.
+    '''
+    extraction_path = Context.get_source_file_path(file_path)
+    if not extraction_path:
         logfunc(f'No matching file found for "{file_path}"')
         return None
 
-def check_in_embedded_media(seeker, source_file, data, artifact_info, name="", media_updated_at=0):
-    file_info = seeker.file_infos.get(source_file)
-    if data and file_info:
-        media_id = hashlib.sha1(data).hexdigest()
-        media_ref_id = get_media_references_id(media_id, artifact_info, name)
-        lava_media_ref = lava_get_media_references(media_ref_id)
-        if lava_media_ref:
-            return media_ref_id
-        lava_media_item = lava_get_media_item(media_id)
-        if not lava_media_item:
-            media_item = MediaItem(media_id)
-            media_item.mimetype = guess_mime(data)
-            media_item.source_path = file_info.source_path
-            media_item.metadata = "not implemented yet"
-            media_item.created_at = 0
-            media_item.updated_at = 0
-            target_folder_name = f"{Path(source_file).stem}_embedded_media"
-            target_path = Path(source_file).parent.joinpath(target_folder_name)
-            media_extension = guess_extension(data)
-            media_item.extraction_path = Path(target_path).joinpath(f"{media_id}.{media_extension}")
-            try:
-                target_path.mkdir(parents=True, exist_ok=True)
-                with open(media_item.extraction_path, "wb") as file:
-                    file.write(data)
-            except Exception as ex:
-                logfunc(f'Could not copy embedded media into {target_path} ' + str(ex))
-            lava_insert_sqlite_media_item(media_item)
-        set_media_references(media_ref_id, media_id, artifact_info, name)
-        return media_ref_id
-    else:
+    file_info = Context.get_seeker().file_infos.get(extraction_path)
+    if file_info:
+        media_id = hashlib.sha1(f"{file_info.source_path}".encode()).hexdigest()
+        with open(extraction_path, "rb") as f:
+            file_data = f.read()
+        return _check_in_media(media_id, file_path, False, name, media_data=file_data, converted_file_path=converted_file_path,
+                               force_type=force_type, force_extension=force_extension,
+                               force_creation_date=force_creation_date, force_modification_date=force_modification_date)
+    return None
+
+def check_in_embedded_media(source_file, data, name="", force_type=None, force_extension=None,
+                            force_creation_date=None, force_modification_date=None):
+    '''
+    Check in embedded media.
+    Args:
+        source_file: The source file path of the embedded media data.
+        data: The bytes of the embedded media data.
+        name: The name of the media (optional).
+        force_type: The MIME type of the media (optional).
+        force_extension: The extension of the media (optional).
+        force_creation_date: The creation date of the media (optional).
+        force_modification_date: The modification date of the media (optional).
+    Returns:
+        The media reference ID or None.
+    '''
+    if not data:
         return None
+    media_id = hashlib.sha1(data).hexdigest()
+    return _check_in_media(media_id, source_file, True, name, media_data=data, force_type=force_type,
+                           force_extension=force_extension, force_creation_date=force_creation_date,
+                           force_modification_date=force_modification_date)
 
 def html_media_tag(media_path, mimetype, style, title=''):
     def relative_paths(source):
-        splitter = '\\' if is_platform_windows() else '/'
-        first_split = source.split(splitter)
-        for x in first_split:
-            if 'data' in x:
-                index = first_split.index(x)
-                last_split = source.split(first_split[index - 1])
-                return '..' + last_split[1].replace('\\', '/')
-            elif '_HTML' in x:
-                index = first_split.index(x)
-                last_split = source.split(first_split[index])
-                return '.' + last_split[1].replace('\\', '/')
-        return source
+        # HTML report is in <report_folder>/_HTML/<artifact_name>.html
+        # Media will be linked from <report_folder>/_HTML/media/<media_id>.<ext>
+        # source path is the canonical path: ./media/<media_id>.<ext>
+        filename = Path(source).name
+        return f"media/{filename}"
 
     filename = Path(media_path).name
     media_path = quote(relative_paths(media_path))
@@ -248,39 +363,67 @@ def html_media_tag(media_path, mimetype, style, title=''):
         thumb = f'<a href="{media_path}" target="_blank"> Link to {filename} file</>'
     return thumb
 
-def get_data_list_with_media(media_header_idx, data_list, media_style):
+def get_data_list_with_media(media_header_info, data_list):
     ''' 
-    For columns with media item:
-      - Generate a new data list with HTML code
-      - Remove them in a new data list for TSV, KML and Timeline exports  
+    For columns with media item, generate:
+      - A data list with HTML code for HTML output
+      - A data list with extraction path of media items for TSV, KML and Timeline exports
     '''
     html_data_list = []
     txt_data_list = []
+
+    # Get the correct output paths from the context
+    output_params = Context.get_output_params()
+
     for data in data_list:
-        html_data = list(data)
-        media_style_idx = 0
-        for idx in media_header_idx:
-            if html_data[idx]:
-                try:
-                    style = media_style[media_style_idx] if isinstance(media_style, tuple) else media_style
-                except:
-                    style = media_style
-                media_ref_id = html_data[idx]
-                html_code = ''
-                if isinstance(media_ref_id, list):
-                    for item in media_ref_id:
-                        media_item = lava_get_full_media_info(item)
-                        html_code += html_media_tag(media_item[6], media_item[7], style, media_item[4])
-                else:
-                    media_item = lava_get_full_media_info(media_ref_id)
-                    html_code = html_media_tag(media_item[6], media_item[7], style, media_item[4])
-                html_data[idx] = html_code
+        html_row = list(data)
+        txt_row = list(data)
+
+        for idx, style in media_header_info.items():
+            media_ref_id_cell = html_row[idx]
+            if not media_ref_id_cell:
+                html_row[idx] = ''
+                txt_row[idx] = ''
+                continue
+
+            html_code = ''
+            path_list = []
+
+            # Handle both single items and lists of items uniformly
+            media_ref_ids = media_ref_id_cell if isinstance(media_ref_id_cell, list) else [media_ref_id_cell]
+
+            for ref_id in media_ref_ids:
+                media_item = lava_get_full_media_info(ref_id)
+                if not (media_item and media_item['extraction_path']):
+                    continue
+
+                # Construct the full, absolute path to the canonical media file
+                canonical_path = os.path.join(output_params.output_folder_base, media_item['extraction_path'])
+
+                # Construct the full, absolute path for the HTML link destination
+                html_path = os.path.join(output_params.html_media_folder, Path(canonical_path).name)
+
+                # Create the link/copy for the HTML report if it doesn't exist
+                if os.path.exists(canonical_path) and not os.path.exists(html_path):
+                    try:
+                        os.link(canonical_path, html_path)
+                    except OSError:
+                        shutil.copy2(canonical_path, html_path)
+
+                # Generate the HTML tag and add the path for the text report
+                html_code += html_media_tag(media_item['extraction_path'], media_item['type'], style, media_item['name'])
+                path_list.append(media_item['extraction_path'])
+
+            # Assign the generated values to the rows
+            html_row[idx] = html_code
+            if isinstance(media_ref_id_cell, list):
+                txt_row[idx] = ' | '.join(path_list)
             else:
-                html_data[idx] = ''
-            media_style_idx += 1
-        html_data_list.append(tuple(html_data))
-        txt_data = [i for media_idx, i in enumerate(data) if media_idx not in media_header_idx]
-        txt_data_list.append(tuple(txt_data))
+                txt_row[idx] = path_list[0] if path_list else ''
+
+        html_data_list.append(tuple(html_row))
+        txt_data_list.append(tuple(txt_row))
+
     return html_data_list, txt_data_list
 
 def artifact_processor(func):
@@ -288,42 +431,54 @@ def artifact_processor(func):
     def wrapper(files_found, report_folder, seeker, wrap_text):
         module_name = func.__module__.split('.')[-1]
         func_name = func.__name__
+        module_file_path = inspect.getfile(func)
 
-        func_object = func.__globals__.get(func_name, {})
-        artifact_info = func_object.artifact_info #get('artifact_info', {})
+        all_artifacts_info = func.__globals__.get('__artifacts_v2__', {})
+        artifact_info = all_artifacts_info.get(func_name, {})
 
         artifact_name = artifact_info.get('name', func_name)
         category = artifact_info.get('category', '')
         description = artifact_info.get('description', '')
         icon = artifact_info.get('artifact_icon', '')
         html_columns = artifact_info.get('html_columns', [])
-        media_style = artifact_info.get('media_style', '')
 
         output_types = artifact_info.get('output_types', ['html', 'tsv', 'timeline', 'lava', 'kml'])
+        is_lava_only = 'lava_only' in output_types
 
-        data_headers, data_list, source_path = func(files_found, report_folder, seeker, wrap_text)
-        
+        Context.clear()
+        Context.set_report_folder(report_folder)
+        Context.set_seeker(seeker)
+        Context.set_files_found(files_found)
+        Context.set_artifact_info(artifact_info)
+        Context.set_module_name(module_name)
+        Context.set_module_file_path(module_file_path)
+        Context.set_artifact_name(artifact_name)
+
+        sig = inspect.signature(func)
+        if len(sig.parameters) == 1:
+            data_headers, data_list, source_path = func(Context)
+        else:
+            data_headers, data_list, source_path = func(files_found, report_folder, seeker, wrap_text)
+
         if not source_path:
-            logfunc(f"No file found")
+            logfunc("No source_path provided")
 
-        elif len(data_list):
+        if len(data_list):
             if isinstance(data_list, tuple):
                 data_list, html_data_list = data_list
             else:
                 html_data_list = data_list
-            logfunc(f"Found {len(data_list)} {'records' if len(data_list)>1 else 'record'} for {artifact_name}")
+            logfunc(f"Found {len(data_list):,} {'records' if len(data_list)>1 else 'record'} for {artifact_name}")
             icons.setdefault(category, {artifact_name: icon}).update({artifact_name: icon})
 
             # Strip tuples from headers for HTML, TSV, and timeline
             stripped_headers = strip_tuple_from_headers(data_headers)
 
             # Check if headers contains a 'media' type
-            media_header_idx = get_media_header_position(data_headers)
-            if media_header_idx:
-                html_columns.extend([data_headers[idx][0] for idx in media_header_idx])
-                html_data_list, txt_data_list = get_data_list_with_media(media_header_idx, data_list, media_style)
-
-            txt_headers = [i for media_idx, i in enumerate(stripped_headers) if media_idx not in media_header_idx] if media_header_idx else stripped_headers
+            media_header_info = get_media_header_info(data_headers)
+            if media_header_info:
+                html_columns.extend([data_headers[idx][0] for idx in media_header_info])
+                html_data_list, txt_data_list = get_data_list_with_media(media_header_info, data_list)
 
             if check_output_types('html', output_types):
                 report = artifact_report.ArtifactHtmlReport(artifact_name)
@@ -333,22 +488,34 @@ def artifact_processor(func):
                 report.end_artifact_report()
 
             if check_output_types('tsv', output_types):
-                tsv(report_folder, txt_headers, txt_data_list if media_header_idx else data_list, artifact_name)
-            
+                tsv(report_folder, stripped_headers, txt_data_list if media_header_info else data_list, artifact_name)
+
             if check_output_types('timeline', output_types):
-                timeline(report_folder, artifact_name, txt_data_list if media_header_idx else data_list, txt_headers)
+                timeline(report_folder, artifact_name, txt_data_list if media_header_info else data_list, stripped_headers)
 
             if check_output_types('lava', output_types):
-                table_name, object_columns, column_map = lava_process_artifact(category, module_name, artifact_name, data_headers, len(data_list), data_views=artifact_info.get("data_views"))
+                table_name, object_columns, column_map = lava_process_artifact(category,
+                                                                               module_name,
+                                                                               artifact_name,
+                                                                               data_headers,
+                                                                               len(data_list),
+                                                                               func_name=func_name,
+                                                                               data_views=artifact_info.get("data_views"),
+                                                                               artifact_icon=icon,
+                                                                               source_path=source_path)
+                if is_lava_only:
+                    lava_only_info(category, artifact_name, table_name, len(data_list))
                 lava_insert_sqlite_data(table_name, data_list, object_columns, data_headers, column_map)
 
             if check_output_types('kml', output_types):
-                kmlgen(report_folder, artifact_name, txt_data_list if media_header_idx else data_list, txt_headers)
+                kmlgen(report_folder, artifact_name, txt_data_list if media_header_info else data_list, stripped_headers)
 
         else:
             if output_types != 'none':
-                logfunc(f"No {artifact_name} data available")
-        
+                logfunc(f"No data found for {artifact_name}")
+                if is_lava_only:
+                    lava_only_info(category, artifact_name, artifact_name, 0)
+
         return data_headers, data_list, source_path
     return wrapper
 
@@ -402,10 +569,9 @@ def get_file_path(files_found, filename, skip=False):
     """Returns the path of the searched filename if exists or returns None"""
     try:
         for file_found in files_found:
-            if skip:
-                if skip in file_found:
-                    continue
-            if file_found.endswith(filename):
+            if skip and skip in file_found:
+                continue
+            if Path(file_found).match(filename):
                 return file_found
     except Exception as e:
         logfunc(f"Error: {str(e)}")
@@ -423,6 +589,12 @@ def get_txt_file_content(file_path):
     except Exception as e:
         logfunc(f"Unexpected error reading file {file_path}: {str(e)}")
     return []
+
+def get_plist_content(data):
+    raise NotImplementedError
+
+def get_plist_file_content(file_path):
+    raise NotImplementedError
 
 def get_sqlite_db_path(path):
     if is_platform_windows():
@@ -464,6 +636,7 @@ def attach_sqlite_db_readonly(path, db_name):
 def get_sqlite_db_records(path, query, attach_query=None):
     db = open_sqlite_db_readonly(path)
     if db:
+        db.row_factory = sqlite3.Row  # For fetching columns by name
         try:
             cursor = db.cursor()
             if attach_query:
@@ -471,13 +644,31 @@ def get_sqlite_db_records(path, query, attach_query=None):
             cursor.execute(query)
             records = cursor.fetchall()
             return records
-        except sqlite3.OperationalError as e:
-            logfunc(f"Error with {path}:")
-            logfunc(f" - {str(e)}")
-        except sqlite3.ProgrammingError as e:
+        except sqlite3.DatabaseError as e:
             logfunc(f"Error with {path}:")
             logfunc(f" - {str(e)}")
     return []
+
+def get_sqlite_multiple_db_records(path_list, query, data_headers):
+    multiple_source_files = len(path_list) > 1
+    source_path = ""
+    data_list = []
+    if multiple_source_files:
+        data_headers = list(data_headers)
+        data_headers.append('Source Path')
+        data_headers = tuple(data_headers)
+        source_path = 'file path in the report below'
+    elif path_list:
+        source_path = path_list[0]
+    for file in path_list:
+        db_records = get_sqlite_db_records(file, query)
+        for record in db_records:
+            if multiple_source_files:
+                modifiable_record = list(record)
+                modifiable_record.append(file)
+                record = tuple(modifiable_record)
+            data_list.append(record)
+    return data_headers, data_list, source_path
 
 def does_column_exist_in_db(path, table_name, col_name):
     '''Checks if a specific col exists'''
@@ -510,7 +701,7 @@ def does_table_exist_in_db(path, table_name):
             logfunc(f"Query error, query={query} Error={str(ex)}")
     return False
 
-def does_view_exist(path, table_name):
+def does_view_exist_in_db(path, table_name):
     '''Checks if a table with specified name exists in an sqlite db'''
     db = open_sqlite_db_readonly(path)
     if db:
@@ -786,60 +977,155 @@ def write_device_info():
             b.write('<ul>' + OutputParameters.nl)
             for label, data in values.items():
                 if isinstance(data, list):
-                    # Handle multiple values
                     b.write('<li><b>' + label + ':</b><ul>' + OutputParameters.nl)
                     for item in data:
                         b.write(f'<li>{item["value"]} <span title="{item["source_file"]}" style="cursor:help"><i>(Source: {item["artifact"]})</i></span></li>' + OutputParameters.nl)
                     b.write('</ul></li>' + OutputParameters.nl)
                 else:
-                    # Handle single value
                     b.write(f'<li><b>{label}:</b> {data["value"]} <span title="{data["source_file"]}" style="cursor:help"><i>(Source: {data["artifact"]})</i></span></li>' + OutputParameters.nl)
             b.write('</ul>' + OutputParameters.nl)
 
 def device_info(category, label, value, source_file=""):
     """
-    Stores device information in the identifiers dictionary
+    Stores device information in the identifiers dictionary.
     Args:
         category (str): The category of the information (e.g., "Device Info", "User Info")
         label (str): The label/description to use as the key
         value (str): The actual value to store
     """
-    # Get the calling module's name more robustly
     try:
         frame = inspect.stack()[1]
         func_name = frame.function
-    except:
+    except Exception:
         func_name = 'unknown'
-    
+
     values = identifiers.get(category, {})
-    
-    # Create value object with both the value and source module
     value_obj = {
         'value': value,
         'source_file': source_file,
         'artifact': func_name
     }
-    
+
     if label in values:
-        # If the label exists, check if it's already a list
         if isinstance(values[label], list):
             values[label].append(value_obj)
         else:
-            # Convert existing single value to list with both values
             values[label] = [values[label], value_obj]
     else:
-        # New label, store single value
         values[label] = value_obj
-        
+
     identifiers[category] = values
 
+
+def write_lava_only_log():
+    """Crates the lava_only_artifacts log file"""
+    with open(OutputParameters.screen_output_file_path_lava_only, 'w', encoding='utf8') as lava_log:
+        lava_log.write(
+            """
+                <p class="note alert-info mb-4">
+                The artifacts listed below are likely to return too much data to be viewed \
+                in a Web browser, so they have been stored in the <i>'_lava_artifacts.db'</i> \
+                SQLite database.<br>
+                They are not available from the side bar of the HTML report, but they can \
+                currently be viewed with any SQLite database viewer until we release <b>LAVA</b> \
+                (LEAPP Artifact Viewer App).<br></p>
+            """
+        )
+        for category, artifacts in lava_only_artifacts.items():
+            lava_log.write('<b>--- ' + category.upper() + ' ---</b><br>' + OutputParameters.nl)
+            lava_log.write('<ul>' + OutputParameters.nl)
+            for artifact in artifacts:
+                lava_log.write('<li><b>' + artifact['artifact_name'] + '</b>' + OutputParameters.nl)
+                if artifact['table_name']:
+                    if artifact['records']:
+                        lava_log.write(f'<ul><li>- Table name: <i>{artifact["table_name"]}</i></li>' + OutputParameters.nl)
+                        lava_log.write(f'<li>- Number of records: <i>{artifact["records"]}</i></li>' + OutputParameters.nl)
+                    else:
+                        lava_log.write('<ul><li>- No data found</li>' + OutputParameters.nl)
+                else:
+                    lava_log.write('<ul><li>- No file found</li>' + OutputParameters.nl)
+                lava_log.write('</ul></li>' + OutputParameters.nl)
+            lava_log.write('</ul>' + OutputParameters.nl)
+
+def lava_only_info(category, artifact_name, table_name, records):
+    """
+    Stores artifact information in the lava_only_artifacts dictionary
+    Args:
+        category (str): The category of the artifact collected from artifact_info block
+        artifact_name (str): The name of the artifact collected from artifact_info block
+        table_name (str): The name of the table in the _lava_artifacts.db SQLite database
+        records (int): The number of records returned by the artifact
+    """
+
+    artifacts = lava_only_artifacts.get(category, [])
+
+    artifacts.append({
+        'artifact_name': artifact_name,
+        'table_name': table_name,
+        'records': records
+    })
+
+    lava_only_artifacts[category] = artifacts
+
+### New timestamp conversion functions
+def convert_unix_ts_in_seconds(ts):
+    digits = int(math.log10(ts if ts > 0 else -ts))+1
+    if digits > 10:
+        extra_digits = digits - 10
+        ts = ts // 10**extra_digits
+    return int(ts)
+
+def convert_unix_ts_to_utc(ts):
+    if ts:
+        try:
+            ts = float(ts)
+        except (ValueError, TypeError, OSError, OverflowError):
+            return ts
+        ts = convert_unix_ts_in_seconds(ts)
+        return datetime.fromtimestamp(ts, tz=timezone.utc)
+    else:
+        return ts
+
+def convert_unix_ts_to_str(ts):
+    if ts:
+        ts = convert_unix_ts_in_seconds(ts)
+        return datetime.fromtimestamp(ts, UTC).strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        return ts
+
+def convert_human_ts_to_utc(ts):  #This is for timestamp in human form
+    if ts:
+        if '.' in ts:
+            ts = ts.split('.')[0]
+        dt = datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')  #Make it a datetime object
+        return dt.replace(tzinfo=timezone.utc)  #Make it UTC
+    else:
+        return ts
+
+def convert_cocoa_core_data_ts_to_utc(cocoa_core_data_ts):
+    if cocoa_core_data_ts:
+        unix_timestamp = cocoa_core_data_ts + 978307200
+        return convert_unix_ts_to_utc(unix_timestamp)
+    else:
+        return cocoa_core_data_ts
+
+def convert_log_ts_to_utc(str_dt):
+    if str_dt:
+        try:
+            return datetime.strptime(str_dt, '%b %d %Y %H:%M:%S').replace(tzinfo=timezone.utc)
+        except:
+            return str_dt
+    else:
+        return str_dt
+
+### Legacy timestamp conversion functions
 def convert_local_to_utc(local_timestamp_str):
     # Parse the timestamp string with timezone offset, ex. 2023-10-27 18:18:29-0400
     local_timestamp = datetime.strptime(local_timestamp_str, "%Y-%m-%d %H:%M:%S%z")
-    
+
     # Convert to UTC timestamp
     utc_timestamp = local_timestamp.astimezone(timezone.utc)
-    
+
     # Return the UTC timestamp
     return utc_timestamp
 
@@ -847,7 +1133,7 @@ def convert_time_obj_to_utc(ts):
     timestamp = ts.replace(tzinfo=timezone.utc)
     return timestamp
 
-def convert_utc_human_to_timezone(utc_time, time_offset): 
+def convert_utc_human_to_timezone(utc_time, time_offset):
     #fetch the timezone information
     timezone = pytz.timezone(time_offset)
     
@@ -870,15 +1156,15 @@ def convert_ts_int_to_timezone(time, time_offset):
     #return the converted value
     return timezone_time
 
-def timestampsconv(webkittime):
+def webkit_timestampsconv(webkittime):
     unix_timestamp = webkittime + 978307200
     finaltime = datetime.fromtimestamp(unix_timestamp, tz=timezone.utc)
-    return(finaltime)
+    return finaltime
 
 def convert_ts_human_to_utc(ts): #This is for timestamp in human form
     if '.' in ts:
         ts = ts.split('.')[0]
-        
+
     dt = datetime.strptime(ts, '%Y-%m-%d %H:%M:%S') #Make it a datetime object
     timestamp = dt.replace(tzinfo=timezone.utc) #Make it UTC
     return timestamp
@@ -887,10 +1173,86 @@ def convert_ts_int_to_utc(ts): #This int timestamp to human format & utc
     timestamp = datetime.fromtimestamp(ts, tz=timezone.utc)
     return timestamp
 
+def convert_unix_ts_to_timezone(ts, timezone_offset):
+    if ts:
+        digits = int(math.log10(ts))+1
+        if digits > 10:
+            extra_digits = digits - 10
+            ts = ts // 10**extra_digits
+        return convert_ts_int_to_timezone(ts, timezone_offset)
+    else:
+        return ts
+
+def convert_ts_human_to_timezone_offset(ts, timezone_offset):
+    return convert_utc_human_to_timezone(convert_ts_human_to_utc(ts), timezone_offset) if ts else ts
+
+def convert_plist_date_to_timezone_offset(plist_date, timezone_offset):
+    if plist_date:
+        str_date = '%04d-%02d-%02dT%02d:%02d:%02dZ' % (
+            plist_date.year, plist_date.month, plist_date.day,
+            plist_date.hour, plist_date.minute, plist_date.second
+            )
+        iso_date = datetime.fromisoformat(str_date).strftime("%Y-%m-%d %H:%M:%S")
+        return convert_ts_human_to_timezone_offset(iso_date, timezone_offset)
+    else:
+        return plist_date
+
+def convert_plist_date_to_utc(plist_date):
+    if plist_date:
+        str_date = '%04d-%02d-%02dT%02d:%02d:%02dZ' % (
+            plist_date.year, plist_date.month, plist_date.day,
+            plist_date.hour, plist_date.minute, plist_date.second
+            )
+        return datetime.fromisoformat(str_date)
+    else:
+        return plist_date
+
 def get_birthdate(date):
-    ns_date = date + 978307200
-    utc_date = datetime.utcfromtimestamp(ns_date)
+    cocoa_epoch = datetime(2001, 1, 1, tzinfo=timezone.utc) # Create our own epoch to avoid gmtime() errors in fromtimestamp().
+    utc_date = cocoa_epoch + timedelta(seconds=date)
     return utc_date.strftime('%d %B %Y') if utc_date.year != 1604 else utc_date.strftime('%d %B')
+
+def get_birthdate_from_unix_ts(date):
+    utc_date = convert_unix_ts_to_utc(date)
+    return utc_date.strftime('%d %B %Y') if utc_date.year != 1604 else utc_date.strftime('%d %B')
+
+def convert_bytes_to_unit(size):
+    if size:
+        for unit in ['bytes', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return f"{size:3.1f} {unit}"
+            size /= 1024.0
+        return size
+    else:
+        return size
+
+''' Returns string of printable characters. Replacing non-printable characters
+with '.', or CHR(46)
+'''
+def strings_raw(data):
+    return "".join([chr(byte) if byte >= 0x20 and byte < 0x7F else chr(46) for byte in data])
+
+''' Returns string of printable characters. Works similar to the Linux
+`string` function.
+'''
+def strings(data):
+    cleansed = "".join([chr(byte) if byte >= 0x20 and byte < 0x7F else chr(0) for byte in data])
+    return filter(lambda string: len(string) >= 4, cleansed.split(chr(0)))
+
+''' Retuns HTML table of the hexdump of the passed in data.
+'''
+def generate_hexdump(data, char_per_row = 5):
+    raise NotImplementedError
+
+'''
+searching for thumbnails, copy it to report folder and return tag  to insert in html
+'''
+def generate_thumbnail(imDirectory, imFilename, seeker, report_folder):
+    raise NotImplementedError
+
+
+def get_resolution_for_model_id(model_id: str):
+    raise NotImplementedError
 
 def html2csv(reportfolderbase):
     # List of items that take too long to convert or that shouldn't be converted
@@ -933,10 +1295,11 @@ def html2csv(reportfolderbase):
                             writer = csv.writer(csvfile, quotechar='"', quoting=csv.QUOTE_ALL)
                             writer.writerows(output_rows)
 
+
 def usergen(report_folder, data_list_usernames):
     report_folder = report_folder.rstrip('/')
     report_folder = report_folder.rstrip('\\')
-    report_folder_base, tail = os.path.split(report_folder)
+    report_folder_base = os.path.dirname(os.path.dirname(report_folder))
     udb_report_folder = os.path.join(report_folder_base, '_Usernames DB')
 
     if os.path.isdir(udb_report_folder):
@@ -974,7 +1337,7 @@ def usergen(report_folder, data_list_usernames):
 def ipgen(report_folder, data_list_ipaddress):
     report_folder = report_folder.rstrip('/')
     report_folder = report_folder.rstrip('\\')
-    report_folder_base, tail = os.path.split(report_folder)
+    report_folder_base = os.path.dirname(os.path.dirname(report_folder))
     udb_report_folder = os.path.join(report_folder_base, '_IPAddress DB')
 
     if os.path.isdir(udb_report_folder):
@@ -1026,7 +1389,8 @@ def gather_hashes_in_file(file_found: str, regex: Pattern):
     with open(file_found, 'r') as data:
         for i, x in enumerate(data):
             if i % factor == 0:
-                GuiWindow.SetProgressBar(int(i / factor))
+                pass
+                #GuiWindow.SetProgressBar(int(i / factor))
 
             result = regex.search(x)
             if not result:
