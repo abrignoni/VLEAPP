@@ -64,7 +64,7 @@ def get_search_mode_categories():
 search_set = get_search_mode_categories()
 
 
-def generate_report(reportfolderbase, time_in_secs, time_HMS, extraction_type, image_input_path, casedata, profile_filename, icons):
+def generate_report(reportfolderbase, time_in_secs, time_HMS, extraction_type, image_input_path, casedata, profile_filename, icons, lava_only):
     control = None
     side_heading = \
         """
@@ -136,7 +136,7 @@ def generate_report(reportfolderbase, time_in_secs, time_HMS, extraction_type, i
                 pass # Perhaps it was not empty!
 
     # Create index.html's page content
-    create_index_html(reportfolderbase, time_in_secs, time_HMS, extraction_type, image_input_path, nav_list_data, casedata, profile_filename)
+    create_index_html(reportfolderbase, time_in_secs, time_HMS, extraction_type, image_input_path, nav_list_data, casedata, profile_filename, lava_only)
     elements_folder = os.path.join(reportfolderbase, '_HTML', '_elements')
     __location__ = os.path.dirname(os.path.abspath(__file__))
 
@@ -159,7 +159,7 @@ def get_file_content(path):
     f.close()
     return data
 
-def create_index_html(reportfolderbase, time_in_secs, time_HMS, extraction_type, image_input_path, nav_list_data, casedata, profile_filename):
+def create_index_html(reportfolderbase, time_in_secs, time_HMS, extraction_type, image_input_path, nav_list_data, casedata, profile_filename, lava_only):
     '''Write out the index.html page to the report folder'''
     case_list = []
     content = '<br />'
@@ -189,20 +189,34 @@ def create_index_html(reportfolderbase, time_in_secs, time_HMS, extraction_type,
             All dates and times are in UTC unless noted otherwise!
             </p>
         """
+    if lava_only:
+        tab1_content += \
+            """
+                <p class="note note-warning mb-4">
+                One or more artifact modules returned data that was too large for the HTML report.
+                These artifacts were written to the <i>'_lava_artifacts.db'</i> SQLite database and
+                are listed on the <b>LAVA only artifacts</b> tab.
+                </p>
+            """
 
     # Get script run log (this will be tab2)
-    devinfo_files_path = os.path.join(reportfolderbase, 'Script Logs', 'DeviceInfo.html')
+    devinfo_files_path = os.path.join(reportfolderbase, '_HTML', '_Script_Logs', 'DeviceInfo.html')
     tab2_content = get_file_content(devinfo_files_path)
 
     # Get script run log (this will be tab3)
-    script_log_path = os.path.join(reportfolderbase, 'Script Logs', 'Screen Output.html')
+    script_log_path = os.path.join(reportfolderbase, '_HTML', '_Script_Logs', 'Screen_Output.html')
     tab3_content = get_file_content(script_log_path)
 
     # Get processed files list (this will be tab3)
-    processed_files_path = os.path.join(reportfolderbase, 'Script Logs', 'ProcessedFilesLog.html')
+    processed_files_path = os.path.join(reportfolderbase, '_HTML', '_Script_Logs', 'ProcessedFilesLog.html')
     tab4_content = get_file_content(processed_files_path)
 
-    content += tabs_code.format(tab1_content, tab2_content, tab3_content, tab4_content)
+    if lava_only:
+        lava_only_path = os.path.join(reportfolderbase, '_HTML', '_Script_Logs', 'Lava_only_artifacts_log.html')
+        tab5_content = get_file_content(lava_only_path)
+        content += tabs_code_with_lava.format(tab1_content, tab2_content, tab3_content, tab4_content, tab5_content)
+    else:
+        content += tabs_code.format(tab1_content, tab2_content, tab3_content, tab4_content)
 
     content += '</div>'  # CARD end
 
