@@ -1,64 +1,61 @@
 __artifacts_v2__ = {
     "PhoneBook_Devices": {
         "name": "PhoneBook Devices",
-        "description": "Scrapes the Phonebook data from Chrysler Vehicles",
-        "author": "@JaysonU25",  # Replace with the actual author's username or name
-        "version": "0.1",  # Version number
-        "date": "2024-10-09",  # Date of the latest version
+        "description": "Phonebook BT device list with connect/disconnect times from Chrysler "
+                       "vehicles (PhoneBookDeviceList bz2-compressed sqlite).",
+        "author": "@JaysonU25",
+        "version": "0.2",
+        "creation_date": "2024-11-20",
+        "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Chrysler Vehicles",
-        "notes": "",
-        "paths": ('*/*PhoneBookDeviceList.bz*'),
-        "function": "get_phone_book_devices"
+        "notes": "Last Connected / Last Disconnected interpreted as Unix epochs and normalized to "
+                 "UTC; non-numeric values kept as stored.",
+        "paths": ('*/*PhoneBookDeviceList.bz*',),
+        "output_types": "standard",
+        "artifact_icon": "phone",
+        "function": "get_phone_book_devices",
     }
 }
 
-import csv
-import os
-import re
 import bz2
 import sqlite3
+from datetime import datetime, timezone
 
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, open_sqlite_db_readonly
+from scripts.ilapfuncs import artifact_processor, convert_unix_ts_to_utc
 
-#Compatability Data
-vehicles = ['FCA','Grand Cherokee']
-platforms = ['']
 
-def get_phone_book_devices(files_found, report_folder, seeker, wrap_text):
+def _ts(value):
+    if value is None or value == '':
+        return ''
+    if isinstance(value, (int, float)):
+        return convert_unix_ts_to_utc(value)
+    text = str(value).strip()
+    if text.isdigit():
+        return convert_unix_ts_to_utc(int(text))
+    try:
+        dt = datetime.fromisoformat(text.replace('Z', '+00:00'))
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+    except ValueError:
+        return value
+
+
+@artifact_processor
+def get_phone_book_devices(context):
     data_list = []
-    for file_found in files_found:
-        devAddr = []
-        devFriendlyName = []
-        with bz2.BZ2File(file_found) as f:   
-            db = sqlite3.Connection(":memory:")
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        with bz2.BZ2File(file_found) as f:
+            db = sqlite3.connect(':memory:')
             db.deserialize(f.read())
             cursor = db.cursor()
-            cursor.execute('''
-            Select
-            DeviceAddress, LastConnected, LastDisconnected
-            From T_BTDevice
-            ''')
-            all_rows = cursor.fetchall()
-            
-            usageentries = len(all_rows)
-            data_list = []  
-            
-            if usageentries > 0:
-                for row in all_rows:
-                    data_list.append((row[0], row[1], row[2]))
- 
+            cursor.execute('SELECT DeviceAddress, LastConnected, LastDisconnected FROM T_BTDevice')
+            for row in cursor.fetchall():
+                data_list.append((row[0], _ts(row[1]), _ts(row[2])))
+            db.close()
 
-    if len(data_list) > 0: # Check to see if Data Found
-        report = ArtifactHtmlReport('PhoneBook Devices')
-        report.start_artifact_report(report_folder, f'PhoneBook Devices')
-        report.add_script()
-        data_headers = ("Device Mac Address", "Last Connected", "Last Disconnected")
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        tsvname = f'PhoneBook Devices'
-        tsv(report_folder, data_headers, data_list, tsvname)
-    else:
-        logfunc(f'No PhoneBook Devices found')
-
+    data_headers = ('Device Mac Address', ('Last Connected', 'datetime'),
+                    ('Last Disconnected', 'datetime'))
+    return data_headers, data_list, context.get_relative_path(source_path)
