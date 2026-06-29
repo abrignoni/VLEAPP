@@ -1,68 +1,44 @@
-import sqlite3
-import os
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import timeline, tsv, is_platform_windows, open_sqlite_db_readonly
-
-#Compatability Data
-vehicles = ['Chevrolet','Equinox']
-platforms = []
-
-def get_connDevices(files_found, report_folder, seeker, wrap_text):
-    
-    for file_found in files_found:
-        file_found = str(file_found)
-        
-        if file_found.endswith('devices.db'):
-            break
-            
-    db = open_sqlite_db_readonly(file_found)
-    cursor = db.cursor()
-    cursor.execute('''
-    SELECT
-    datetime(device_master.last_connected_time, 'unixepoch'),
-    device_master.name,
-    device_master.uuid, 
-    device_master.favorite,
-    device_master.visibility
-    
-    
-    FROM device_master
-    
-    order by device_master.last_connected_time ASC
-    ''')
-
-    all_rows = cursor.fetchall()
-    usageentries = len(all_rows)
-    data_list = []  
-    
-    if usageentries > 0:
-        for row in all_rows:
-            data_list.append((row[0], row[1], row[2], row[3], row[4]))
-
-        description = 'Connected Devices'
-        report = ArtifactHtmlReport('Connected Devices')
-        report.start_artifact_report(report_folder, 'Connected Devices', description)
-        report.add_script()
-        data_headers = ('Last Connected Time','Device Name', 'UUID', 'Is Favorite?', 'Is Visible?' )
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        
-        tsvname = 'Connected Devices'
-        tsv(report_folder, data_headers, data_list, tsvname)
-        
-        tlactivity = 'Connected Devices'
-        timeline(report_folder, tlactivity, data_list, data_headers)
-        
-    else:
-        logfunc('No device data available')
-    
-__artifacts__ = {
-        "Connected Devices'": (
-                "Connected Devices'",
-                ('*/devices.db*'),
-                get_connDevices)
+__artifacts_v2__ = {
+    "connDevices": {
+        "name": "Connected Devices",
+        "description": "Connected device history from a vehicle infotainment devices.db.",
+        "author": "gforce4n6",
+        "version": "0.2",
+        "creation_date": "2021-07-20",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Connected Devices",
+        "notes": "",
+        "paths": ('*/devices.db*',),
+        "output_types": "standard",
+        "artifact_icon": "smartphone",
+    }
 }
 
-        
-        
+from scripts.ilapfuncs import artifact_processor, convert_unix_ts_to_utc, open_sqlite_db_readonly
+
+
+@artifact_processor
+def connDevices(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        if not file_found.endswith('devices.db'):
+            continue
+        source_path = file_found
+        db = open_sqlite_db_readonly(file_found)
+        cursor = db.cursor()
+        cursor.execute('''
+            SELECT last_connected_time, name, uuid, favorite, visibility
+            FROM device_master
+            ORDER BY last_connected_time ASC
+        ''')
+        for row in cursor.fetchall():
+            timestamp = convert_unix_ts_to_utc(row[0]) if row[0] is not None else ''
+            data_list.append((timestamp, row[1], row[2], row[3], row[4]))
+        db.close()
+
+    data_headers = (('Last Connected Time', 'datetime'), 'Device Name', 'UUID', 'Is Favorite?',
+                    'Is Visible?')
+    return data_headers, data_list, context.get_relative_path(source_path)
