@@ -1,41 +1,37 @@
-import csv
-import os
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
-
-#Compatability Data
-vehicles = ['Hyundai Sonata']
-platforms = ['Carplay']
-
-def get_infotainmentData(files_found, report_folder, seeker, wrap_text):
-    data_list = []
-    for file_found in files_found:
-        with open(file_found, 'r') as f:
-            lines = f.readlines()
-            for line in lines:
-                if "]" in line or "[" in line:
-                    pass
-                else:
-                    splits = line.split("=")
-                    if len(splits) == 2:
-                        data_list.append((splits[0], splits[1]))
-    if len(data_list) > 0:
-        report = ArtifactHtmlReport('Infotainment Data')
-        report.start_artifact_report(report_folder, f'Infotainment Data')
-        report.add_script()
-        data_headers = ('ID','Value')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        tsvname = f'Infotainment Data'
-        tsv(report_folder, data_headers, data_list, tsvname)
-    else:
-        logfunc(f'No Infotainment Data found')
-
-
-__artifacts__ = {
-    "Accessory Data Hyundai": (
-        "Accessory Data Hyundai",
-        ('*/wifi/settings'),
-        get_infotainmentData),
+__artifacts_v2__ = {
+    "hyundaiInfotainment": {
+        "name": "Hyundai - Infotainment Data",
+        "description": "Infotainment/wifi settings (key=value) from a Hyundai wifi/settings file.",
+        "author": "Nixy Camacho",
+        "version": "0.2",
+        "creation_date": "2023-06-09",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Hyundai Vehicles",
+        "notes": "",
+        "paths": ('*/wifi/settings',),
+        "output_types": "standard",
+        "artifact_icon": "settings",
+    }
 }
+
+from scripts.ilapfuncs import artifact_processor
+
+
+@artifact_processor
+def hyundaiInfotainment(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        with open(file_found, 'r', encoding='utf-8', errors='backslashreplace') as f:
+            for line in f:
+                if "[" in line or "]" in line:
+                    continue
+                splits = line.split("=")
+                if len(splits) == 2:
+                    data_list.append((splits[0].strip(), splits[1].strip()))
+
+    data_headers = ('ID', 'Value')
+    return data_headers, data_list, context.get_relative_path(source_path)
