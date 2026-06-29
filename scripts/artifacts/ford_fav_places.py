@@ -1,77 +1,57 @@
 __artifacts_v2__ = {
     "Favorite_Places": {
         "name": "Favorite places",
-        "description": "Scrapes the the Places Storage data from Ford Vehicles",
-        "author": "@JaysonU25",  # Replace with the actual author's username or name
-        "version": "0.1",  # Version number
-        "date": "2024-11-06",  # Date of the latest version
+        "description": "Saved/recent navigation places (label, address, coordinates) from Ford "
+                       "places storage.",
+        "author": "@JaysonU25",
+        "version": "0.2",
+        "creation_date": "2024-11-20",
+        "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "",
+        "notes": "Latitude/Longitude are exposed for the KML map.",
         "paths": ('*/recents_storage', '*/favorites_storage'),
-        "function": "get_fav_places"
+        "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'],
+        "artifact_icon": "map-pin",
+        "function": "get_fav_places",
     }
 }
 
+from scripts.ilapfuncs import artifact_processor
 
-import csv
-import os
-import re
-import datetime
 
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
-
-#Compatability Data
-vehicles = ['Ford']
-platforms = ['']
-
-## Get connected Bluetooth Devices
-def get_fav_places(files_found, report_folder, seeker, wrap_text):
+@artifact_processor
+def get_fav_places(context):
     data_list = []
-    for file_found in files_found:
-        with open(file_found, "r", encoding='cp437') as f:
-            address = label = latitude = longitude = id = '' # Initialize Variables
-            for line in f:  # Search line for certain keywords
-                if line == "":
-                    continue
-                splits1 = ''
-                splits2 = ''
-                if "places {" in line and id != "":
-                    label = "None" if label == "" else label
-                    address = "None" if address == "" else address
-                    if (id, label, address, latitude, longitude) not in data_list and id != '' and latitude != "" and longitude != "":
-                        data_list.append((id, label, address, latitude, longitude)) # Add new found data to datalist
-                        address = label = latitude = longitude = id = '' 
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        with open(file_found, 'r', encoding='cp437') as f:
+            place_id = label = address = latitude = longitude = ''
+            for line in f:
+                if "places {" in line and place_id != "":
+                    label = label or "None"
+                    address = address or "None"
+                    row = (place_id, label, address, latitude, longitude)
+                    if place_id and latitude and longitude and row not in data_list:
+                        data_list.append(row)
+                    place_id = label = address = latitude = longitude = ''
                 if "id: " in line:
-                    splits1 = line.split("id: \"")
-                    id = splits1[1].strip()[:-1]
+                    place_id = line.split('id: "')[1].strip()[:-1]
                 if "label:" in line:
-                    splits1 = line.split("label: \"")
-                    label = splits1[1].strip()[:-1]
+                    label = line.split('label: "')[1].strip()[:-1]
                 if "lat: " in line:
-                    splits1 = line.split("lat: ")
-                    latitude = splits1[1].strip()
+                    latitude = line.split("lat: ")[1].strip()
                 if "lon: " in line:
-                    splits1 = line.split("lon: ")
-                    longitude = splits1[1].strip()
-                if "formatted_address: \"" in line:
-                    splits1 = line.split("formatted_address: \"")
-                    address = splits1[1].strip()[:-1]
-            label = "None" if label == "" else label
-            address = "None" if address == "" else address
-            if (id, label, address, latitude, longitude) not in data_list and id != '' and latitude != "" and longitude != "":
-                data_list.append((id, label, address, latitude, longitude)) # Add new found data to datalist
-                address = label = latitude = longitude = id = ''
-                                    
-    if len(data_list) > 0: # Check to see if Data was found
-        report = ArtifactHtmlReport('Favorite Places')
-        report.start_artifact_report(report_folder, f'Favorite Places')
-        report.add_script()
-        data_headers = ('ID', 'Label', "Address", "Latitude", "Longitude")
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        tsvname = f'Favorite Places'
-        tsv(report_folder, data_headers, data_list, tsvname)
-    else:
-        logfunc(f'No Favorite Places found')
+                    longitude = line.split("lon: ")[1].strip()
+                if 'formatted_address: "' in line:
+                    address = line.split('formatted_address: "')[1].strip()[:-1]
+            label = label or "None"
+            address = address or "None"
+            row = (place_id, label, address, latitude, longitude)
+            if place_id and latitude and longitude and row not in data_list:
+                data_list.append(row)
+
+    data_headers = ('ID', 'Label', 'Address', 'Latitude', 'Longitude')
+    return data_headers, data_list, context.get_relative_path(source_path)

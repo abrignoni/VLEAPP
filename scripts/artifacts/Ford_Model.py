@@ -1,50 +1,43 @@
 __artifacts_v2__ = {
     "Ford_Model": {
         "name": "Vehicle Model",
-        "description": "Scrapes the model info from Ford Vehicles",
-        "author": "@JaysonU25",  # Replace with the actual author's username or name
-        "version": "0.1",  # Version number
-        "date": "2024-11-04",  # Date of the latest version
+        "description": "Vehicle/head-unit model from a Ford bluetooth_v1.ddb.",
+        "author": "@JaysonU25",
+        "version": "0.2",
+        "creation_date": "2024-11-20",
+        "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "",
-        "paths": ('*/bluetooth_v1.ddb'),
-        "function": "get_Model"
+        "notes": "Original only wrote the model to the device-info log; it is now also surfaced as a "
+                 "table.",
+        "paths": ('*/bluetooth_v1.ddb',),
+        "output_types": "standard",
+        "artifact_icon": "truck",
+        "function": "get_Model",
     }
 }
-import csv
-import os
-import re
-import datetime
 
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
+from scripts.ilapfuncs import artifact_processor, logdevinfo
 
-#Compatability Data
-vehicles = ['Ford','Bronco Raptor', 'F-150', 'F-250']
-platforms = ['']
 
-def get_Model(files_found, report_folder, seeker, wrap_text):
+@artifact_processor
+def get_Model(context):
     data_list = []
-    for file_found in files_found:
-        with open(file_found, "r", encoding='cp437') as f:
-            model = '' # Initialize Variable
-            for line in f:  # Search line for certain keywords
-                if line == "":
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        with open(file_found, 'r', encoding='cp437') as f:
+            for line in f:
+                if "device_name" not in line:
                     continue
-                splits1 = ''
-                splits2 = ''
-                if "device_name" in line:
-                    line = next(f)
-                    splits1 = line.split("<Value>")
-                    splits2 = splits1[1].split("<")
-                    model = splits2[0].strip()
-                    
-                # Add found item to data list                
-                if (model not in data_list) and model != '':
-                    data_list.append(model) # Add new found data to datalist
-    if len(data_list) > 0: # Check to see if data found
-        for item in data_list:
-            logdevinfo(f"Model from Bluetooth_v1.ddb: {item}")
-    else:
-        logfunc(f'No Vehicle Model found')
+                value_line = next(f, '')
+                if "<Value>" not in value_line:
+                    continue
+                model = value_line.split("<Value>")[1].split("<")[0].strip()
+                if model and (model,) not in data_list:
+                    data_list.append((model,))
+                    logdevinfo(f"Model from Bluetooth_v1.ddb: {model}")
+
+    data_headers = ('Vehicle Model',)
+    return data_headers, data_list, context.get_relative_path(source_path)
