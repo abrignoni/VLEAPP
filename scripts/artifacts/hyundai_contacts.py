@@ -1,79 +1,39 @@
-import csv
-import os
-import sqlite3
-import re
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, open_sqlite_db_readonly
-
-#Compatability Data
-vehicles = ['Hyundai Sonata']
-platforms = ['Carplay']
-
-def get_contacts(files_found, report_folder, seeker, wrap_text):
-    data_list = []
-    for file_found in files_found:
-        db = open_sqlite_db_readonly(file_found)
-        db_name = os.path.splittext(file_found)
-        cursor = db.cursor()
-                    
-        cursor.execute("SELECT _id from bluetooth_contacts")
-        ids = cursor.fetchall()
-
-        cursor.execute("SELECT given_name from bluetooth_contacts")
-        given_names = cursor.fetchall()
-
-        cursor.execute("SELECT family_name from bluetooth_contacts")
-        family_names = cursor.fetchall()
-
-        cursor.execute("SELECT phone_number from bluetooth_contacts")
-        phone_number = cursor.fetchall()
-
-        ti = []
-        tg = []
-        tf = []
-        tn = []
-
-        i = 0
-        for id in ids:
-            id = str(id)
-            id = re.sub(r'\W+', '', id)
-            ti.append(id)
-
-        for given in given_names:
-            given = str(given)
-            given = re.sub(r'\W+', '', given)
-            tg.append(given)
-        for family in family_names:
-            family = str(family)
-            family = re.sub(r'\W+', '', family)
-            tf.append(family)
-        for number in phone_number:
-            number = str(number)
-            number = re.sub(r'\W+', '', number)
-            tn.append(number)
-        
-        for id in ids:
-            data_list.append((ti[i], tg[i], tf[i], tn[i]))
-            i += 1
-        if db_name[1] == 'db':
-            break
-                    
-    if len(data_list) > 0:
-        report = ArtifactHtmlReport('Contact Data')
-        report.start_artifact_report(report_folder, f'Contact Data')
-        report.add_script()
-        data_headers = ('ID','given_name', 'family_name', 'phone_number')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        tsvname = f'Contact Data'
-        tsv(report_folder, data_headers, data_list, tsvname)
-    else:
-        logfunc(f'No Contact Data found')
-
-__artifacts__ = {
-    "contacts": (
-        "contacts",
-        ('*/bluetooth/DB_BMS/MC_*.db*'),
-        get_contacts),
+__artifacts_v2__ = {
+    "hyundaiContacts": {
+        "name": "Hyundai - Contacts",
+        "description": "Bluetooth contacts from a Hyundai infotainment MC_*.db.",
+        "author": "Nixy Camacho",
+        "version": "0.2",
+        "creation_date": "2023-06-09",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Hyundai Vehicles",
+        "notes": "Rewritten as a single query (the original ran separate SELECTs and crashed on "
+                 "os.path.splittext).",
+        "paths": ('*/bluetooth/DB_BMS/MC_*.db*',),
+        "output_types": "standard",
+        "artifact_icon": "user",
+    }
 }
+
+from scripts.ilapfuncs import artifact_processor, open_sqlite_db_readonly
+
+
+@artifact_processor
+def hyundaiContacts(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        if not file_found.endswith('.db'):
+            continue
+        source_path = file_found
+        db = open_sqlite_db_readonly(file_found)
+        cursor = db.cursor()
+        cursor.execute('SELECT _id, given_name, family_name, phone_number FROM bluetooth_contacts')
+        for row in cursor.fetchall():
+            data_list.append((row[0], row[1], row[2], row[3]))
+        db.close()
+
+    data_headers = ('ID', 'given_name', 'family_name', ('phone_number', 'phonenumber'))
+    return data_headers, data_list, context.get_relative_path(source_path)

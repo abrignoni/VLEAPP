@@ -1,61 +1,48 @@
-import csv
-import os
+__artifacts_v2__ = {
+    "hyundaiDevices": {
+        "name": "Hyundai - Bluetooth Devices",
+        "description": "Bluetooth device MAC addresses and friendly names from a Hyundai "
+                       "wireless_dev_list.dat.",
+        "author": "Nixy Camacho",
+        "version": "0.2",
+        "creation_date": "2023-06-09",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Hyundai Vehicles",
+        "notes": "",
+        "paths": ('*/wireless_dev_list.dat',),
+        "output_types": "standard",
+        "artifact_icon": "bluetooth",
+    }
+}
+
 import re
 
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
+from scripts.ilapfuncs import artifact_processor
 
-#Compatability Data
-vehicles = ['Hyundai Sonata']
-platforms = ['Carplay']
+_ADDR_RE = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:"
+                      r"[A-Za-z0-9]+", re.IGNORECASE)
 
-def get_devices(files_found, report_folder, seeker, wrap_text):
+
+@artifact_processor
+def hyundaiDevices(context):
     data_list = []
-    for file_found in files_found:
-        devAddr = []
-        devFriendlyName = []
-        with open(file_found, 'r') as f:
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        dev_addr, dev_name = [], []
+        with open(file_found, 'r', encoding='latin-1') as f:
             for line in f:
-                line_str = str(line)
-                line_str_2 = line_str # Copy of line 
+                text_only = _ADDR_RE.sub('~~~', line).split('~~~')
+                if len(text_only) == 1:
+                    name = text_only[0].strip().strip('\x00').strip('\x01').strip('\x02')
+                    if name and name not in dev_name:
+                        dev_name.append(name)
+                addrs = _ADDR_RE.findall(line)
+                if len(addrs) == 1 and addrs[0] not in dev_addr:
+                    dev_addr.append(addrs[0])
+        data_list.extend(zip(dev_addr, dev_name))
 
-                #Pattern to find addresses
-                addrPattern = re.compile(r"[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+:[A-Za-z0-9]+", re.IGNORECASE)
-
-                #Given pattern, remove from copy of line to find only text
-                line_str_2 = re.sub(addrPattern, '~~~', line_str_2)
-                devFriendlyName_temp = line_str_2.split('~~~')
-                if len(devFriendlyName_temp) == 1: # don't add garbage values to name list
-                    #logfunc("Bytes of devFriendlyName_temp[0]: \n\t" + str(devFriendlyName_temp))
-                    devFriendlyName_temp[0] = str(devFriendlyName_temp[0]).strip().strip('\x00').strip('\x01').strip('\x02')
-                    if devFriendlyName_temp[0] not in devFriendlyName:
-                        devFriendlyName.append(devFriendlyName_temp[0]) # add to name list
-                        #logfunc("devFriendlyName_temp: " + devFriendlyName_temp[0])
-
-                #Get addresses from pattern in given line
-                result = re.findall(addrPattern, line_str)
-                if len(result) == 1:
-                    if result[0] not in devAddr:
-                        devAddr.append(result[0])
-                        #logfunc("Address result: " + str(result[0]))
-
-                data_list = tuple(zip(devAddr, devFriendlyName))
-
-    if len(data_list) > 0:
-        report = ArtifactHtmlReport('Bluetooth Devices')
-        report.start_artifact_report(report_folder, f'Bluetooth Devices')
-        report.add_script()
-        data_headers = ('Bluetooth MAC Address','Device Friendly Name')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        tsvname = f'Bluetooth Devices'
-        tsv(report_folder, data_headers, data_list, tsvname)
-    else:
-        logfunc(f'No Bluetooth Devices found')
-
-__artifacts__ = {
-    "connected devices": (
-        "connected devices",
-        ('*/wireless_dev_list.dat'),
-        get_devices),
-}
+    data_headers = ('Bluetooth MAC Address', 'Device Friendly Name')
+    return data_headers, data_list, context.get_relative_path(source_path)

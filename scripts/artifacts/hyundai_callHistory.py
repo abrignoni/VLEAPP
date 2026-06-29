@@ -1,122 +1,63 @@
-import csv
-import os
-import sqlite3
-import re
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, open_sqlite_db_readonly
-
-#Compatability Data
-vehicles = ['Hyundai Sonata']
-platforms = ['Carplay']
-
-def get_callHistory(files_found, report_folder, seeker, wrap_text):
-    data_list = []
-    for file_found in files_found:
-        db = open_sqlite_db_readonly(file_found)
-        db_name = os.path.splittext(file_found)
-        cursor = db.cursor()
-        
-
-        cursor.execute("SELECT _id from bluetooth_callhistory")
-        ids = cursor.fetchall()
-
-        cursor.execute("SELECT given_name from bluetooth_callhistory")
-        givens = cursor.fetchall()
-
-        cursor.execute("SELECT family_name from bluetooth_callhistory")
-        familys = cursor.fetchall()
-
-        cursor.execute("SELECT phone_number from bluetooth_callhistory")
-        phone_numbers = cursor.fetchall()
-
-        cursor.execute("SELECT calltype from bluetooth_callhistory")
-        callTypes = cursor.fetchall()
-
-
-        cursor.execute("SELECT date from bluetooth_callhistory")
-        dates = cursor.fetchall()
-
-        cursor.execute("SELECT date_sort from bluetooth_callhistory")
-        date_sorts = cursor.fetchall()
-
-        cursor.execute("SELECT duration from bluetooth_callhistory")
-        durations = cursor.fetchall()
-
-        cursor.execute("SELECT numberType from bluetooth_callhistory")
-        numberTypes = cursor.fetchall()
-        i = 0
-
-        ti = []
-        tg = []
-        tf = []
-        tn = []
-        tc = []
-        td = []
-        tds = []
-        tdu = []
-        tnt = []
-        
-        for id in ids:
-            id = str(id)
-            id = re.sub(r'\W+', '', id)
-            ti.append(id)
-        for given in givens:
-            given = str(given)
-            given = re.sub(r'\W+', '', given)
-            tg.append(given)
-        for family in familys:
-            family = str(family)
-            family = re.sub(r'\W+', '', family)
-            tf.append(family)
-        for number in phone_numbers:
-            number = str(number)
-            number = re.sub(r'\W+', '', number)
-            tn.append(number)
-        for ct in callTypes:
-            ct = str(ct)
-            ct = re.sub(r'\W+', '', ct)
-            tc.append(ct)
-        for date in dates:
-            date = str(date)
-            date = re.sub(r'\W+', '', date)
-            td.append(date)
-        for ds in date_sorts:
-            ds = str(ds)
-            ds = re.sub(r'\W+', '', ds)
-            tds.append(ds)
-        for duration in durations:
-            duration = str(duration)
-            duration = re.sub(r'\W', '', duration)
-            tdu.append(duration)
-        for nt in numberTypes:
-            nt = str(nt)
-            nt = re.sub(r'\W', '', nt)
-            tnt.append(nt)
-        if db_name[1] == 'db':
-            break
-
-
-    #append array for each column to data_list, push data_list to report
-        for id in ids:
-            data_list.append((ti[i], tg[i], tf[i], tn[i], tc[i], td[i], tds[i], tdu[i], tnt[i]))
-            i += 1
-    if len(data_list) > 0:
-        report = ArtifactHtmlReport('Call History')
-        report.start_artifact_report(report_folder, f'Call History')
-        report.add_script()
-        data_headers = ('id','given_name', 'family_name', 'phone_number', 'calltype', 'date', 'date_sort', 'duration', 'numberType')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        tsvname = f'Call History'
-        tsv(report_folder, data_headers, data_list, tsvname)
-    else:
-        logfunc(f'No Call History found')
-
-
-__artifacts__ = {
-    "call history": (
-        "call history",
-        ('*/bluetooth/DB_BMS/CH_*.db*'),
-        get_callHistory),
+__artifacts_v2__ = {
+    "hyundaiCallHistory": {
+        "name": "Hyundai - Call History",
+        "description": "Bluetooth call history from a Hyundai infotainment CH_*.db.",
+        "author": "Nixy Camacho",
+        "version": "0.2",
+        "creation_date": "2023-06-09",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Hyundai Vehicles",
+        "notes": "Rewritten as a single query (the original ran nine separate SELECTs and crashed on "
+                 "os.path.splittext). date / date_sort are interpreted as Unix epochs and "
+                 "normalized to UTC.",
+        "paths": ('*/bluetooth/DB_BMS/CH_*.db*',),
+        "output_types": "standard",
+        "artifact_icon": "phone-call",
+    }
 }
+
+from datetime import datetime, timezone
+
+from scripts.ilapfuncs import artifact_processor, convert_unix_ts_to_utc, open_sqlite_db_readonly
+
+
+def _ts(value):
+    if value is None or value == '':
+        return ''
+    if isinstance(value, (int, float)):
+        return convert_unix_ts_to_utc(value)
+    text = str(value).strip()
+    if text.isdigit():
+        return convert_unix_ts_to_utc(int(text))
+    try:
+        dt = datetime.fromisoformat(text.replace('Z', '+00:00'))
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+    except ValueError:
+        return value
+
+
+@artifact_processor
+def hyundaiCallHistory(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        if not file_found.endswith('.db'):
+            continue
+        source_path = file_found
+        db = open_sqlite_db_readonly(file_found)
+        cursor = db.cursor()
+        cursor.execute('''
+            SELECT _id, given_name, family_name, phone_number, calltype, date, date_sort,
+                   duration, numberType
+            FROM bluetooth_callhistory
+        ''')
+        for row in cursor.fetchall():
+            data_list.append((row[0], row[1], row[2], row[3], row[4], _ts(row[5]), _ts(row[6]),
+                              row[7], row[8]))
+        db.close()
+
+    data_headers = ('id', 'given_name', 'family_name', ('phone_number', 'phonenumber'), 'calltype',
+                    ('date', 'datetime'), ('date_sort', 'datetime'), 'duration', 'numberType')
+    return data_headers, data_list, context.get_relative_path(source_path)
