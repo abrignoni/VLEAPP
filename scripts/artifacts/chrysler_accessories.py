@@ -1,48 +1,36 @@
-import csv
-import os
-import re
-import datetime
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
-
-#Compatability Data
-vehicles = ['FCA','Jeep Cherokee']
-platforms = ['Carplay']
-
-
-
-## Get Accessory data
-def get_accessorydata(files_found, report_folder, seeker, wrap_text):
-    data_list = []
-    for file_found in files_found:
-            with open(file_found, "r") as f:
-                        for line in f:
-                            names = line.split("::")
-                            data_list.append((names[0],names[1]))
-                            #[A-Za-z]+::[A-Za-z]+   -  regex for the accessory_data.txt file
-
-    if len(data_list) > 0:
-        report = ArtifactHtmlReport('Accessory Data')
-        report.start_artifact_report(report_folder, f'Accessory Data')
-        report.add_script()
-        data_headers = ('Name','Value')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        
-        tsvname = f'Accessory Data'
-        tsv(report_folder, data_headers, data_list, tsvname)
-    else:
-        logfunc(f'No Accessory Data Found')
-
-
-
-        
-
-
-__artifacts__ = {
-       "Accessory Data Chrysler": (
-         "Accessory Data Chrysler",
-         ('*/media/accessory_data.txt'),
-         get_accessorydata)
+__artifacts_v2__ = {
+    "chryslerAccessories": {
+        "name": "Chrysler - Accessory Data",
+        "description": "Accessory data (name::value pairs) from a Chrysler media/accessory_data.txt.",
+        "author": "Joe Dinsmoor",
+        "version": "0.2",
+        "creation_date": "2023-06-08",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Chrysler Vehicles",
+        "notes": "",
+        "paths": ('*/media/accessory_data.txt',),
+        "output_types": "standard",
+        "artifact_icon": "sliders",
+    }
 }
+
+from scripts.ilapfuncs import artifact_processor
+
+
+@artifact_processor
+def chryslerAccessories(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        with open(file_found, encoding='utf-8', errors='backslashreplace') as f:
+            for line in f:
+                names = line.split("::")
+                if len(names) < 2:
+                    continue
+                data_list.append((names[0].strip(), names[1].strip()))
+
+    data_headers = ('Name', 'Value')
+    return data_headers, data_list, context.get_relative_path(source_path)

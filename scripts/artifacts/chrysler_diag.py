@@ -1,50 +1,37 @@
-import csv
-import os
-import re
-import datetime
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
-
-#Compatability Data
-vehicles = ['FCA','Jeep Cherokee']
-platforms = ['Carplay']
-
-def get_diagnosticdata(files_found, report_folder, seeker, wrap_text):
-    data_list = []
-    for file_found in files_found:
-        with open(file_found, "r") as f:
-            id = ''
-            val = ''
-            count = 0
-            for line in f:
-                splits = ''
-                #Search for key values in the diagnostic logs
-                if count%2==0:
-                    id = line
-                else:
-                    val = line
-                    if (id not in data_list):
-                        data_list.append((id, val))  
-                count += 1           
-    if len(data_list) > 0:
-        #Send new data to report generator
-        report = ArtifactHtmlReport('Diagnostic Data')
-        report.start_artifact_report(report_folder, f'Diagnostic Data')
-        report.add_script()
-        data_headers = ('Key','Value')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-    
-        tsvname = f'Vehicle Info'
-        tsv(report_folder, data_headers, data_list, tsvname)
-    else:
-        logfunc(f'No Diagnostic Data')
-
-
-__artifacts__ = {
-        "diagnostic_data": (
-        "diagnostic_data",
-        ('*/persistence/nonvol_*.ps'),
-        get_diagnosticdata)
+__artifacts_v2__ = {
+    "chryslerDiagnostics": {
+        "name": "Chrysler - Diagnostic Data",
+        "description": "Diagnostic key/value data from a Chrysler persistence/nonvol_*.ps log.",
+        "author": "Joe Dinsmoor",
+        "version": "0.2",
+        "creation_date": "2023-06-02",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Chrysler Vehicles",
+        "notes": "Lines are read as alternating key / value pairs, as in the original.",
+        "paths": ('*/persistence/nonvol_*.ps',),
+        "output_types": "standard",
+        "artifact_icon": "activity",
+    }
 }
+
+from scripts.ilapfuncs import artifact_processor
+
+
+@artifact_processor
+def chryslerDiagnostics(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        with open(file_found, encoding='utf-8', errors='backslashreplace') as f:
+            key = ''
+            for count, line in enumerate(f):
+                if count % 2 == 0:
+                    key = line.strip()
+                else:
+                    data_list.append((key, line.strip()))
+
+    data_headers = ('Key', 'Value')
+    return data_headers, data_list, context.get_relative_path(source_path)
