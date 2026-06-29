@@ -1,61 +1,41 @@
-import sqlite3
-import os
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import timeline, logfunc, tsv, is_platform_windows, open_sqlite_db_readonly
-
-#Compatability Data
-vehicles = ['Alfa Romeo','Giulia']
-platforms = []
-
-def get_sdarsInfo(files_found, report_folder, seeker, wrap_text):
-    
-    for file_found in files_found:
-        file_found = str(file_found)
-        
-        if file_found.endswith('agenda.sqlite'):
-            break
-            
-    db = open_sqlite_db_readonly(file_found)
-    cursor = db.cursor()
-    cursor.execute('''
-    Select
-    siriusdata.value_name,
-    siriusdata.value_description,
-    siriusdata.value_string
-    from siriusdata
-
-    ''')
-
-    all_rows = cursor.fetchall()
-    usageentries = len(all_rows)
-    data_list = []  
-    
-    if usageentries > 0:
-        for row in all_rows:
-            data_list.append((row[0], row[1], row[2]))
-
-        description = 'Sirius Data'
-        report = ArtifactHtmlReport('Alfa Romeo Sirius Settings')
-        report.start_artifact_report(report_folder, 'Sirius Settings', description)
-        report.add_script()
-        data_headers = ('Name', 'Description', 'Value')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        
-        tsvname = 'AlfaRomeo_SiriusSettings'
-        tsv(report_folder, data_headers, data_list, tsvname)
-        
-    else:
-        logfunc('No Satellite Digital Audio Radio Service data available')
-    
-
-
-__artifacts__ = {
-        "Alfa Romeo Sirius Data": (
-                "Alfa Romeo Sirius Data",
-                ('*/sdars_db.sqlite*'),
-                get_sdarsInfo)
+__artifacts_v2__ = {
+    "alfaRomeoSirius": {
+        "name": "Alfa Romeo - Sirius Settings",
+        "description": "SiriusXM (SDARS) settings/values from an Alfa Romeo sdars_db.sqlite.",
+        "author": "gforce4n6",
+        "version": "0.2",
+        "creation_date": "2023-06-16",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Alfa Romeo Vehicles",
+        "notes": "",
+        "paths": ('*/sdars_db.sqlite*',),
+        "output_types": "standard",
+        "artifact_icon": "radio",
+    }
 }
-        
-        
+
+from scripts.ilapfuncs import artifact_processor, open_sqlite_db_readonly
+
+
+@artifact_processor
+def alfaRomeoSirius(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        if not file_found.endswith('sdars_db.sqlite'):
+            continue
+        source_path = file_found
+        db = open_sqlite_db_readonly(file_found)
+        cursor = db.cursor()
+        cursor.execute('''
+            SELECT siriusdata.value_name, siriusdata.value_description, siriusdata.value_string
+            FROM siriusdata
+        ''')
+        for row in cursor.fetchall():
+            data_list.append((row[0], row[1], row[2]))
+        db.close()
+
+    data_headers = ('Name', 'Description', 'Value')
+    return data_headers, data_list, context.get_relative_path(source_path)
