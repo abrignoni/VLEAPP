@@ -1,62 +1,60 @@
-import sqlite3
-import os
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import timeline, logfunc, tsv, is_platform_windows, open_sqlite_db_readonly
-
-#Compatability Data
-vehicles = ['Alfa Romeo','Giulia']
-platforms = []
-
-def get_btSyncInfo(files_found, report_folder, seeker, wrap_text):
-    
-    for file_found in files_found:
-        file_found = str(file_found)
-        
-        if file_found.endswith('agenda.sqlite'):
-            break
-            
-    db = open_sqlite_db_readonly(file_found)
-    cursor = db.cursor()
-    cursor.execute('''
-    Select
-    BT_DEVICE.LAST_SYNC,
-    BT_DEVICE.BD_ADDRESS
-    From BT_Device
-    order by BT_DEVICE.LAST_SYNC ASC
-    ''')
-
-    all_rows = cursor.fetchall()
-    usageentries = len(all_rows)
-    data_list = []  
-    
-    if usageentries > 0:
-        for row in all_rows:
-            data_list.append((row[0], row[1]))
-
-        description = 'Bluetooth Last Sync'
-        report = ArtifactHtmlReport('Bluetooth Last Sync')
-        report.start_artifact_report(report_folder, 'BT Last Sync', description)
-        report.add_script()
-        data_headers = ('Last Sync Date', 'BT Address')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        
-        tsvname = 'BT_LastSync'
-        tsv(report_folder, data_headers, data_list, tsvname)
-        
-        tlactivity = 'BT_LastSync'
-        timeline(report_folder, tlactivity, data_list, data_headers)
-    else:
-        logfunc('No bluetooth sync data available')
-    
-
-
-__artifacts__ = {
-        "Alfa Romeo Bluetooth": (
-                "Alfa Romeo Bluetooth",
-                ('*/agenda.sqlite*'),
-                get_btSyncInfo)
+__artifacts_v2__ = {
+    "alfaRomeoBtSync": {
+        "name": "Alfa Romeo - Bluetooth Last Sync",
+        "description": "Bluetooth device last-sync times from an Alfa Romeo agenda.sqlite.",
+        "author": "gforce4n6",
+        "version": "0.2",
+        "creation_date": "2023-06-16",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Alfa Romeo Vehicles",
+        "notes": "Last Sync Date is interpreted as a Unix epoch (auto-detected seconds/ms) and "
+                 "normalized to UTC; non-numeric values are kept as stored.",
+        "paths": ('*/agenda.sqlite*',),
+        "output_types": "standard",
+        "artifact_icon": "bluetooth",
+    }
 }
-        
-        
+
+from datetime import datetime, timezone
+
+from scripts.ilapfuncs import artifact_processor, convert_unix_ts_to_utc, open_sqlite_db_readonly
+
+
+def _ts(value):
+    if value is None or value == '':
+        return ''
+    if isinstance(value, (int, float)):
+        return convert_unix_ts_to_utc(value)
+    text = str(value).strip()
+    if text.isdigit():
+        return convert_unix_ts_to_utc(int(text))
+    try:
+        dt = datetime.fromisoformat(text.replace('Z', '+00:00'))
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+    except ValueError:
+        return value
+
+
+@artifact_processor
+def alfaRomeoBtSync(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        if not file_found.endswith('agenda.sqlite'):
+            continue
+        source_path = file_found
+        db = open_sqlite_db_readonly(file_found)
+        cursor = db.cursor()
+        cursor.execute('''
+            SELECT BT_DEVICE.LAST_SYNC, BT_DEVICE.BD_ADDRESS
+            FROM BT_Device
+            ORDER BY BT_DEVICE.LAST_SYNC ASC
+        ''')
+        for row in cursor.fetchall():
+            data_list.append((_ts(row[0]), row[1]))
+        db.close()
+
+    data_headers = (('Last Sync Date', 'datetime'), 'BT Address')
+    return data_headers, data_list, context.get_relative_path(source_path)

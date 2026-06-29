@@ -1,70 +1,45 @@
-import sqlite3
-import os
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import timeline, logfunc, tsv, is_platform_windows, open_sqlite_db_readonly
-
-#Compatability Data
-vehicles = ['Alfa Romeo','Giulia']
-platforms = []
-
-#This artifact parses contact information from the
-#The test data we had was limited, so additional information may be added if more test data is gathered.
-
-def get_Contacts(files_found, report_folder, seeker, wrap_text):
-    
-    for file_found in files_found:
-        file_found = str(file_found)
-        
-        if file_found.endswith('agenda.sqlite'):
-            break
-            
-    db = open_sqlite_db_readonly(file_found)
-    cursor = db.cursor()
-    cursor.execute('''
-    Select
-    ContactCard.FIRSTNAME,
-    ContactCard.SURNAME,
-    PhoneNumber.NUMBER,
-    BT_Device.BD_ADDRESS
-    from ContactCard
-    left join BT_Device
-    on ContactCard.BT_DEVICE_ID =  BT_Device.ID
-    left join PhoneNumber
-    on ContactCard.ID = PhoneNumber.CONTACT_ID
-    ''')
-
-    all_rows = cursor.fetchall()
-    usageentries = len(all_rows)
-    data_list = []  
-    
-    if usageentries > 0:
-        for row in all_rows:
-            data_list.append((row[0], row[1], row[2], row[3]))
-
-        description = 'Alfa Romeo Contacts'
-        report = ArtifactHtmlReport('Alfa Romeo Contacts')
-        report.start_artifact_report(report_folder, 'Contacts', description)
-        report.add_script()
-        data_headers = ('First Name', 'Last Name', 'Phone Number', 'BT Address')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        
-        tsvname = 'Alfa_Romeo_Contacts'
-        tsv(report_folder, data_headers, data_list, tsvname)
-        
-        #tlactivity = 'Alfa_Romeo_Contacts'
-        #timeline(report_folder, tlactivity, data_list, data_headers)
-    else:
-        logfunc('No contact data available')
-    
-
-
-__artifacts__ = {
-        "Alfa Romeo Contacts": (
-                "Alfa Romeo Contacts",
-                ('*/agenda.sqlite*'),
-                get_Contacts)
+__artifacts_v2__ = {
+    "alfaRomeoContacts": {
+        "name": "Alfa Romeo - Contacts",
+        "description": "Contacts (with phone numbers and paired BT device) from an Alfa Romeo "
+                       "agenda.sqlite.",
+        "author": "gforce4n6",
+        "version": "0.2",
+        "creation_date": "2023-06-16",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Alfa Romeo Vehicles",
+        "notes": "",
+        "paths": ('*/agenda.sqlite*',),
+        "output_types": "standard",
+        "artifact_icon": "user",
+    }
 }
-        
-        
+
+from scripts.ilapfuncs import artifact_processor, open_sqlite_db_readonly
+
+
+@artifact_processor
+def alfaRomeoContacts(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        if not file_found.endswith('agenda.sqlite'):
+            continue
+        source_path = file_found
+        db = open_sqlite_db_readonly(file_found)
+        cursor = db.cursor()
+        cursor.execute('''
+            SELECT ContactCard.FIRSTNAME, ContactCard.SURNAME, PhoneNumber.NUMBER,
+                   BT_Device.BD_ADDRESS
+            FROM ContactCard
+            LEFT JOIN BT_Device ON ContactCard.BT_DEVICE_ID = BT_Device.ID
+            LEFT JOIN PhoneNumber ON ContactCard.ID = PhoneNumber.CONTACT_ID
+        ''')
+        for row in cursor.fetchall():
+            data_list.append((row[0], row[1], row[2], row[3]))
+        db.close()
+
+    data_headers = ('First Name', 'Last Name', ('Phone Number', 'phonenumber'), 'BT Address')
+    return data_headers, data_list, context.get_relative_path(source_path)
