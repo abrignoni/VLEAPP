@@ -1,123 +1,104 @@
-import os
-import gzip
-import datetime
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, kmlgen, logdevinfo, is_platform_windows, timeline
-
-#Compatability Data
-vehicles = ['Kia Sorrento 2018',]
-platforms = ['Unknown',]
-
-def timestampcalc(timevalue):
-    timestamp = (datetime.datetime.fromtimestamp(int(timevalue)/1000).strftime('%Y-%m-%d %H:%M:%S'))
-    return timestamp
-
-def get_systemappwtf(files_found, report_folder, seeker, wrap_text):
-    data_list_gps = []
-    data_list = []
-    
-    for file_found in files_found:
-        file_found = str(file_found)
-        
-        filename = os.path.basename(file_found)
-        location = os.path.dirname(file_found)
-        
-        if file_found.endswith('.gz'):
-            with gzip.open(file_found, 'rb') as f_in:
-                file = f_in.readlines()
-        else:
-            with open(file_found, 'r', errors='backslashreplace') as f:
-                file = f.readlines()
-                
-        for x in file:
-            if isinstance(x, bytes):
-                x = x.decode()
-                
-            if 'V/GpsLocationProvider' and 'reportLocation' in x:
-                fecha = ' '.join(x.split(' ',2)[:2])
-                limitedlineone = (x.split('reportLocation')[1])
-                gpslatlong = limitedlineone.split('timestamp: ')[0]
-                gpslong = gpslatlong.split('long: ')[1]
-                middle = gpslatlong.split('long: ')[0]
-                gpslat = middle.split('lat: ')[1]
-                timestamp = limitedlineone.split('timestamp: ')[1]
-                timestampfinal = timestampcalc(timestamp)
-                
-                data_list_gps.append((timestampfinal, fecha, gpslat, gpslong, file_found, x))
-                
-            if '[BTCallTracker] ' and 'number=' in x:
-                fecha = ' '.join(x.split(' ',2)[:2])
-                if 'GET_CURRENT_CALLS  'in x:
-                    currentcalls = x.split('GET_CURRENT_CALLS  ')[1]
-                    
-                    numberone = (currentcalls.split(',', 11))[8]
-                    number = (numberone.split('=')[1])
-                    
-                    status = (currentcalls.split(',', 11))[1]
-                    
-                    data_list.append((fecha,number,' ',status,file_found,x))
-                
-                if '[BTCallTracker] poll: conn' and ']=null,' in x:
-                    datacall = x.split(',number=')[1]
-                    number = datacall.split(',')[0]
-                    
-                    datacall = x.split(',toa=')[0]
-                    state = datacall.split(',')[-1]
-                    
-                    data_list.append((fecha,number,' ',state,file_found,x))
-                    
-                elif '[BTCallTracker] poll: conn' in x:
-                    #logfunc(str(x))
-                    datacall = x.split('addr: ')[1]
-                    number = datacall.split(' ',1)[0]
-                    
-                    incoming = (datacall.split(' ',5)[2])
-                    state = (datacall.split(' ',5)[4])
-                    
-                    data_list.append((fecha,number,incoming,state,file_found,x))
-            
-                    
-            
-    if len(data_list_gps) > 0:
-        report = ArtifactHtmlReport('GPS Detail')
-        report.start_artifact_report(report_folder, f'GPS Detail')
-        report.add_script()
-        data_headers_gps = ('Timestamp','Date','Latitude','Longitude','Source','Source Line')
-        report.write_artifact_data_table(data_headers_gps, data_list_gps, location)
-        report.end_artifact_report()
-        
-        tsvname = f'GPS Detail'
-        tsv(report_folder, data_headers_gps, data_list_gps, tsvname)
-        
-        kmlactivity = 'GPS Detail'
-        kmlgen(report_folder, kmlactivity, data_list_gps, data_headers_gps)
-        
-        tlactivity = 'GPS Detail'
-        timeline(report_folder, tlactivity, data_list_gps, data_headers_gps)
-    
-    else:
-        logfunc(f'No GPS Detail data available')
-    
-    
-    if len(data_list) > 0:
-        report = ArtifactHtmlReport('BT Call Report')
-        report.start_artifact_report(report_folder, f'BT Call Report')
-        report.add_script()
-        data_headers = ('Date','Phone Number','Incoming','State','Source','Source Line')
-        report.write_artifact_data_table(data_headers, data_list, location)
-        report.end_artifact_report()
-        
-        tsvname = f'BT Call Report'
-        tsv(report_folder, data_headers, data_list, tsvname)
-
-    else:
-        logfunc(f'No BT Call Report data available')
-        
-    
-__artifacts__ = {
-        "BT Report": (
-                "BT Report",
-                ('*/system_app_wtf@*.txt.gz','*/tombstones/tombstone_*','*/system_app_crash@*.txt.gz','*/SYSTEM_TOMBSTONE@*.txt.gz'),
-                get_systemappwtf)
+__artifacts_v2__ = {
+    "systemappwtfGps": {
+        "name": "Kia - System App GPS Detail",
+        "description": "GPS fixes (GpsLocationProvider reportLocation) scraped from Kia "
+                       "system_app_wtf / tombstone logs.",
+        "author": "@AlexisBrignoni",
+        "version": "0.2",
+        "creation_date": "2023-03-27",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Kia Vehicles",
+        "notes": "Timestamp is the GpsLocationProvider millisecond epoch normalized to UTC; Date is "
+                 "the raw log line time. Latitude/Longitude exposed for the KML map.",
+        "paths": ('*/system_app_wtf@*.txt.gz', '*/tombstones/tombstone_*',
+                  '*/system_app_crash@*.txt.gz', '*/SYSTEM_TOMBSTONE@*.txt.gz'),
+        "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'],
+        "artifact_icon": "map-pin",
+    },
+    "systemappwtfBtCalls": {
+        "name": "Kia - System App BT Calls",
+        "description": "Bluetooth call tracker events scraped from Kia system_app_wtf / tombstone "
+                       "logs.",
+        "author": "@AlexisBrignoni",
+        "version": "0.2",
+        "creation_date": "2023-03-27",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Kia Vehicles",
+        "notes": "Date is the raw log line time.",
+        "paths": ('*/system_app_wtf@*.txt.gz', '*/tombstones/tombstone_*',
+                  '*/system_app_crash@*.txt.gz', '*/SYSTEM_TOMBSTONE@*.txt.gz'),
+        "output_types": "standard",
+        "artifact_icon": "phone-call",
+    },
 }
+
+import gzip
+
+from scripts.ilapfuncs import artifact_processor, convert_unix_ts_to_utc
+
+
+def _read_lines(file_found):
+    if file_found.endswith('.gz'):
+        with gzip.open(file_found, 'rb') as f:
+            return [line.decode(errors='backslashreplace') for line in f]
+    with open(file_found, 'r', encoding='utf-8', errors='backslashreplace') as f:
+        return f.readlines()
+
+
+def _parse(context):
+    gps, calls = [], []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        rel = context.get_relative_path(file_found)
+        for x in _read_lines(file_found):
+            fecha = ' '.join(x.split(' ', 2)[:2])
+            if 'V/GpsLocationProvider' in x and 'reportLocation' in x:
+                try:
+                    rest = x.split('reportLocation')[1]
+                    latlong = rest.split('timestamp: ')[0]
+                    gpslong = latlong.split('long: ')[1]
+                    gpslat = latlong.split('long: ')[0].split('lat: ')[1]
+                    ms = x.split('timestamp: ')[1].strip()
+                    gps.append((convert_unix_ts_to_utc(int(ms)), fecha, gpslat.strip(),
+                                gpslong.strip(), rel, x.strip()))
+                except (IndexError, ValueError):
+                    pass
+            if '[BTCallTracker]' in x and 'number=' in x:
+                try:
+                    if 'GET_CURRENT_CALLS  ' in x:
+                        current = x.split('GET_CURRENT_CALLS  ')[1]
+                        number = current.split(',', 11)[8].split('=')[1]
+                        status = current.split(',', 11)[1]
+                        calls.append((fecha, number, ' ', status, rel, x.strip()))
+                    if '[BTCallTracker] poll: conn' in x and ']=null,' in x:
+                        number = x.split(',number=')[1].split(',')[0]
+                        state = x.split(',toa=')[0].split(',')[-1]
+                        calls.append((fecha, number, ' ', state, rel, x.strip()))
+                    elif '[BTCallTracker] poll: conn' in x:
+                        datacall = x.split('addr: ')[1]
+                        number = datacall.split(' ', 1)[0]
+                        incoming = datacall.split(' ', 5)[2]
+                        state = datacall.split(' ', 5)[4]
+                        calls.append((fecha, number, incoming, state, rel, x.strip()))
+                except (IndexError, ValueError):
+                    pass
+    return gps, calls, source_path
+
+
+@artifact_processor
+def systemappwtfGps(context):
+    gps, _, source_path = _parse(context)
+    data_headers = (('Timestamp', 'datetime'), 'Date', 'Latitude', 'Longitude', 'Source',
+                    'Source Line')
+    return data_headers, gps, context.get_relative_path(source_path)
+
+
+@artifact_processor
+def systemappwtfBtCalls(context):
+    _, calls, source_path = _parse(context)
+    data_headers = ('Date', 'Phone Number', 'Incoming', 'State', 'Source', 'Source Line')
+    return data_headers, calls, context.get_relative_path(source_path)

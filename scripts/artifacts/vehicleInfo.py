@@ -1,59 +1,45 @@
-import csv
-import os
+__artifacts_v2__ = {
+    "vehicleInfo": {
+        "name": "Ford - Vehicle Info",
+        "description": "Vehicle info (name::value pairs: VIN, odometer, fuel level, etc.) from a "
+                       "Ford SYNC ppsp reconn/vehicle file.",
+        "author": "@AlexisBrignoni",
+        "version": "0.2",
+        "creation_date": "2021-07-06",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Ford Vehicles",
+        "notes": "",
+        "paths": ('*/ppsp/services/reconn/vehicle',),
+        "output_types": "standard",
+        "artifact_icon": "truck",
+    }
+}
 
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
+from scripts.ilapfuncs import artifact_processor, logdevinfo
 
-#Compatability Data
-vehicles = ['Ford Mustang','F-150']
-platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUCT','SyncGen3_v2_b', 'SYNCGen3.0_1.0.15139_PRODUCT']
+_DEVINFO = {'fuellevel': 'Fuel Level', 'ignitionstate': 'Ignition State', 'navigation': 'Navigation',
+            'odometer': 'Odometer', 'platform': 'Platform', 'vin': 'VIN from PPSP',
+            'vmcufpn': 'Firmware'}
 
-def get_vehicleInfo(files_found, report_folder, seeker, wrap_text):
+
+@artifact_processor
+def vehicleInfo(context):
     data_list = []
-    for file_found in files_found:
-        with open(file_found, "r") as f:
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        with open(file_found, 'r', encoding='utf-8', errors='backslashreplace') as f:
             for line in f:
                 splits = line.split('::')
-                totalvalues = len(splits)
-                if totalvalues > 1:
-                    key = splits[0].strip()
-                    value = splits[1].strip()
-                    if 'DE0' not in splits[0]:
-                        data_list.append((key, value))
-                        
-                        if  key == 'fuellevel' :
-                            logdevinfo(f"Fuel Level: {value}")
-                        if  key == 'ignitionstate' :
-                            logdevinfo(f"Ignition State: {value}")
-                        if  key == 'navigation' :
-                            logdevinfo(f"Navigation: {value}")
-                        if  key == 'odometer' :
-                            logdevinfo(f"Odometer: {value}")
-                        if  key == 'platform' :
-                            logdevinfo(f"Platform: {value}")
-                        if  key == 'vin' :
-                            logdevinfo(f"VIN from PPSP: {value}")
-                        if  key == 'vmcufpn' :
-                            logdevinfo(f"Firmware: {value}")
-            
-    if len(data_list) > 0:
-        report = ArtifactHtmlReport('Vehicle Info')
-        report.start_artifact_report(report_folder, f'Vehicle Info')
-        report.add_script()
-        data_headers = ('Key','Value')
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        
-        tsvname = f'Vehicle Info'
-        tsv(report_folder, data_headers, data_list, tsvname)
-        
-    else:
-        logfunc(f'No Vehicle Info available')
+                if len(splits) < 2 or 'DE0' in splits[0]:
+                    continue
+                key = splits[0].strip()
+                value = splits[1].strip()
+                data_list.append((key, value))
+                if key in _DEVINFO:
+                    logdevinfo(f"{_DEVINFO[key]}: {value}")
 
-
-__artifacts__ = {
-        "Vehicle Info": (
-                "Vehicle Info",
-                ('*/ppsp/services/reconn/vehicle'),
-                get_vehicleInfo)
-}
+    data_headers = ('Key', 'Value')
+    return data_headers, data_list, context.get_relative_path(source_path)
