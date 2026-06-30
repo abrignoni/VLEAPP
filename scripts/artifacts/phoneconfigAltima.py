@@ -1,61 +1,43 @@
-import os
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, kmlgen, logdevinfo, is_platform_windows
-
-#Compatability Data
-vehicles = ['Nissan Altima',]
-platforms = ['-',]
-
-def get_phoneconfigAltima(files_found, report_folder, seeker, wrap_text):
-    
-    for file_found in files_found:
-        file_found = str(file_found)
-        
-        data_list = []
-        start = None
-        
-        with open(file_found, 'r') as f:
-            for line in f.readlines():
-                if '[' in line:
-                    start = line.replace('[','')
-                    start = start.replace(']','')
-                    start = start.replace('_',' ')
-                    start = start.strip()
-                    
-                if '=' in line:
-                    splitted = line.split('=')
-                    key = splitted[0]
-                    value = splitted[1]
-                    if value == '\n':
-                        continue
-                    else:
-                        data_list.append((key, value))
-                        
-                if line == '\n':
-                    if start is None:
-                        continue
-                    else:
-                        if len(data_list) > 0:
-                            report = ArtifactHtmlReport(f'Phone Config {start}')
-                            report.start_artifact_report(report_folder, f'Phone Config {start}')
-                            report.add_script()
-                            data_headers = ('Key','Value')
-                            report.write_artifact_data_table(data_headers, data_list, file_found)
-                            report.end_artifact_report()
-                            
-                            tsvname = f'Phone Config {start}'
-                            tsv(report_folder, data_headers, data_list, tsvname)
-                            
-                        else:
-                            logfunc(f'No Phone Config {start} data available')
-                        
-                        data_list = []
-
-
-__artifacts__ = {
-        "phoneConfig": (
-                "Phone Config",
-                ('*/ffs/phone_config.dat'),
-                get_phoneconfigAltima)
+__artifacts_v2__ = {
+    "phoneConfigAltima": {
+        "name": "Nissan - Phone Config",
+        "description": "Phone configuration (INI-style key/value sections) from a Nissan Altima "
+                       "ffs/phone_config.dat.",
+        "author": "@AlexisBrignoni",
+        "version": "0.2",
+        "creation_date": "2023-02-13",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Nissan Vehicles",
+        "notes": "The original emitted one report per [section]; the sections are flattened into a "
+                 "single table with a Section column (a fixed LAVA table can't have a "
+                 "per-file-variable number of sub-reports).",
+        "paths": ('*/ffs/phone_config.dat',),
+        "output_types": "standard",
+        "artifact_icon": "settings",
+    }
 }
+
+from scripts.ilapfuncs import artifact_processor
+
+
+@artifact_processor
+def phoneConfigAltima(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        section = ''
+        with open(file_found, 'r', encoding='utf-8', errors='backslashreplace') as f:
+            for line in f:
+                if '[' in line:
+                    section = line.replace('[', '').replace(']', '').replace('_', ' ').strip()
+                elif '=' in line:
+                    key, _, value = line.partition('=')
+                    value = value.strip()
+                    if value:
+                        data_list.append((section, key.strip(), value))
+
+    data_headers = ('Section', 'Key', 'Value')
+    return data_headers, data_list, context.get_relative_path(source_path)

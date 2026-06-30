@@ -1,86 +1,58 @@
-import sqlite3
-import os
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import timeline, tsv, logfunc, is_platform_windows, open_sqlite_db_readonly
-
-#Compatability Data
-vehicles = ['Nissan Altima',]
-platforms = []
-
-def get_phonedbAltima(files_found, report_folder, seeker, wrap_text):
-    
-    for file_found in files_found:
-        file_found = str(file_found)
-        
-        if file_found.endswith('phone_db.db'):
-            break
-            
-    db = open_sqlite_db_readonly(file_found)
-    cursor = db.cursor()
-    cursor.execute('''
-        SELECT 
-        NAME 
-        FROM SQLITE_SCHEMA
-        WHERE NAME LIKE 'NUM_PHONEBOOK%'
-        order by name
-    ''')
-
-    all_rows = cursor.fetchall()
-    usageentries = len(all_rows)
-    
-    
-    if usageentries > 0:
-        for row in all_rows:
-            data_list = []
-            data_list_as_is = []
-            
-            tablename = (row[0])
-            tablenamenum = tablename.split('_')[2]
-            
-            cursor.execute(f''' 
-            SELECT
-            num_phonebook_{tablenamenum}.entry_id,
-            phonebook_{tablenamenum}.first_name,
-            phonebook_{tablenamenum}.last_name,
-            GROUP_CONCAT(num_phonebook_{tablenamenum}.number, '; ')
-            from num_phonebook_{tablenamenum}
-            join phonebook_{tablenamenum} where num_phonebook_{tablenamenum}.entry_id = phonebook_{tablenamenum}.entry_id
-            group by num_phonebook_{tablenamenum}.entry_id
-            ''')
-            
-            all_rows_inner = cursor.fetchall()
-            usageentries_inner = len(all_rows_inner)
-            
-            if usageentries_inner > 0:
-                for rows_inner in all_rows_inner:
-                    data_list.append((rows_inner[0], rows_inner[1], rows_inner[2], rows_inner[3].replace(';', '<br>')))
-                    data_list_as_is.append((rows_inner[0], rows_inner[1], rows_inner[2], rows_inner[3]))
-                    
-                description = 'Phone Book Contactrs'
-                report = ArtifactHtmlReport(f'Phone Book {tablenamenum} Contacts')
-                report.start_artifact_report(report_folder, f'Phone Book {tablenamenum} Contacts', description)
-                report.add_script()
-                data_headers = ('ID', 'First Name', 'Last Name', 'Phone Number/s')
-                report.write_artifact_data_table(data_headers, data_list, file_found, html_no_escape=['Phone Number/s'])
-                report.end_artifact_report()
-                
-                tsvname = f'Phone Book Information {tablenamenum}'
-                tsv(report_folder, data_headers, data_list_as_is, tsvname)
-                
-            else:
-                logfunc(f'No Phone Book {tablenamenum} Contacts data available')
-                
-    else:
-        logfunc('No Phone Book contacts data available')
-    
-
-
-__artifacts__ = {
-        "Phone Book": (
-                "Phone Book DB",
-                ('*/ffs/phone_db.db*'),
-                get_phonedbAltima)
+__artifacts_v2__ = {
+    "phoneBookAltima": {
+        "name": "Nissan - Phone Book Contacts",
+        "description": "Phonebook contacts (per paired device) from a Nissan Altima "
+                       "ffs/phone_db.db.",
+        "author": "@AlexisBrignoni",
+        "version": "0.2",
+        "creation_date": "2023-02-14",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Nissan Vehicles",
+        "notes": "The DB holds one phonebook per paired device (NUM_PHONEBOOK_<n>/phonebook_<n>); "
+                 "the original emitted one report per phonebook, here flattened into a single "
+                 "table with a Phone Book column. Phone Number/s is a '; '-joined list.",
+        "paths": ('*/ffs/phone_db.db*',),
+        "output_types": "standard",
+        "artifact_icon": "book",
+    }
 }
-        
-        
+
+import sqlite3
+
+from scripts.ilapfuncs import artifact_processor, open_sqlite_db_readonly
+
+
+@artifact_processor
+def phoneBookAltima(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        if not file_found.endswith('phone_db.db'):
+            continue
+        source_path = file_found
+        db = open_sqlite_db_readonly(file_found)
+        cursor = db.cursor()
+        cursor.execute("SELECT NAME FROM SQLITE_SCHEMA WHERE NAME LIKE 'NUM_PHONEBOOK%' "
+                       "ORDER BY name")
+        for (tablename,) in cursor.fetchall():
+            num = tablename.split('_')[2]
+            try:
+                cursor.execute(f'''
+                    SELECT num_phonebook_{num}.entry_id, phonebook_{num}.first_name,
+                           phonebook_{num}.last_name,
+                           GROUP_CONCAT(num_phonebook_{num}.number, '; ')
+                    FROM num_phonebook_{num}
+                    JOIN phonebook_{num}
+                      ON num_phonebook_{num}.entry_id = phonebook_{num}.entry_id
+                    GROUP BY num_phonebook_{num}.entry_id
+                ''')
+            except sqlite3.Error:
+                continue
+            for row in cursor.fetchall():
+                data_list.append((num, row[0], row[1], row[2], row[3]))
+        db.close()
+
+    data_headers = ('Phone Book', 'ID', 'First Name', 'Last Name', 'Phone Number/s')
+    return data_headers, data_list, context.get_relative_path(source_path)
