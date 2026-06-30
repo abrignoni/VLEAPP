@@ -1,292 +1,244 @@
-import csv
+__artifacts_v2__ = {
+    "pasDeGeoDevLoc": {
+        "name": "Ford - PAS Dev Loc Results",
+        "description": "Device location results (lat/long/alt/heading) from a Ford pas_debug.log.",
+        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Latitude/Longitude exposed for the KML map.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'], "artifact_icon": "map-pin",
+    },
+    "pasDeGeoSpeed": {
+        "name": "Ford - PAS Road Speed Limits",
+        "description": "Road speed limits from a Ford pas_debug.log.",
+        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "output_types": "standard", "artifact_icon": "alert-triangle",
+    },
+    "pasDeGeoApInfo": {
+        "name": "Ford - PAS Access Point List",
+        "description": "Wi-Fi access points (BSSID/SSID/signal) from a Ford pas_debug.log.",
+        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "output_types": "standard", "artifact_icon": "wifi",
+    },
+    "pasDeGeoVSpeed": {
+        "name": "Ford - PAS Vehicle Speed",
+        "description": "Vehicle speed readings from a Ford pas_debug.log.",
+        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "output_types": "standard", "artifact_icon": "navigation",
+    },
+    "pasDeGeoTransm": {
+        "name": "Ford - PAS Transmission Status",
+        "description": "Transmission status readings from a Ford pas_debug.log.",
+        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "output_types": "standard", "artifact_icon": "settings",
+    },
+    "pasDeGeoTemp": {
+        "name": "Ford - PAS Outside Temperature",
+        "description": "Outside air temperature readings from a Ford pas_debug.log.",
+        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "output_types": "standard", "artifact_icon": "thermometer",
+    },
+    "pasDeGeoOdometer": {
+        "name": "Ford - PAS Odometer",
+        "description": "Odometer readings from a Ford pas_debug.log.",
+        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "output_types": "standard", "artifact_icon": "activity",
+    },
+    "pasDeGeoVehicle": {
+        "name": "Ford - PAS Vehicle Info",
+        "description": "Vehicle identity (VIN/make/model/platform) from a Ford pas_debug.log.",
+        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Surfaces the make/model/VIN/platform the original only wrote to the device-info "
+                 "log.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "output_types": "standard", "artifact_icon": "truck",
+    },
+}
+
 import os
 import re
+from datetime import datetime, timezone
 
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, kmlgen, timeline, is_platform_windows
+from scripts.ilapfuncs import artifact_processor, logdevinfo
 
-#Compatability Data
-vehicles = ['Ford Mustang','F-150']
-platforms = ['SYNC3.2V2','SYNCGen3.0_3.0.18093_PRODUCT','SyncGen3_v2_b', 'SYNCGen3.0_1.0.15139_PRODUCT']
+_NUM = r"([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?"
+_RE = {k: re.compile(f"({label} {_NUM})") for k, label in (
+    ('lon1', 'Longitude = '), ('lat1', 'Latitude ='), ('alt1', 'Altitude ='),
+    ('lon2', 'Lon = '), ('lat2', 'Lat ='), ('alt2', 'Alt ='), ('head', 'Heading ='))}
+
 
 def timeorder(line):
-    month = line.split('/', 3)[0]
-    day = line.split('/', 3)[1]
-    yeartime = line.split('/', 3)[2]
-    year = yeartime.split(' ')[0]
-    time = yeartime.split(' ')[1]
-    timestamp = f'{year}-{month}-{day} {time}'
-    return timestamp
+    month, day, yeartime = line.split('/', 3)[0], line.split('/', 3)[1], line.split('/', 3)[2]
+    year, time = yeartime.split(' ')[0], yeartime.split(' ')[1]
+    return f'{year}-{month}-{day} {time}'
 
-def get_pasDeGeo(files_found, report_folder, seeker, wrap_text):
-    vinlist = []
-    platformversion = []
-    data_list_dev = []
-    data_list_speed = []
-    data_list_apinfo = []
-    data_list_vspeed = []
-    data_list_transm = []
-    data_list_outtemp = []
-    data_list_odometer = []
-    for file_found in files_found:
+
+def _ts(value):
+    value = (value or '').strip()
+    if not value:
+        return value
+    try:
+        return datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return value
+
+
+def _val(match):
+    return match[2] if match else ''
+
+
+def _parse(context):
+    sect = {k: [] for k in ('dev', 'speed', 'apinfo', 'vspeed', 'transm', 'outtemp', 'odometer',
+                            'vehicle')}
+    vins, platforms, make, model = [], [], '', ''
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
         basename = os.path.basename(file_found)
+        bssid, ts_link = '', ''
         with open(file_found, 'r', encoding='cp437') as f:
             for line in f:
-                if 'NAV_FRAMEWORK_IF' in line: #put a print here to get all GPS stuff related to nav    
-                    if 'dev_loc_results' in line:
-                        if 'ERROR  RPT!!!' in line:
-                            pass 
-                        elif 'Longitude =' in line:
-                            #print(line)
-                            timestamp = timeorder(line)
-                            devmatchObj1 = re.search(r"(Longitude =  ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj2 = re.search(r"(Latitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj7 = re.search(r"(Altitude = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            category = 'NAV_FRAMEWORK_IF'
-                            subcategory = 'dev_loc_results'
-                            #logfunc(line)
-                            data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
+                try:
+                    if 'NAV_FRAMEWORK_IF' in line and 'dev_loc_results' in line \
+                            and 'ERROR  RPT!!!' not in line:
+                        if 'Longitude =' in line:
+                            lat, lon, alt = _RE['lat1'].search(line), _RE['lon1'].search(line), \
+                                _RE['alt1'].search(line)
                         elif 'Lon =' in line:
-                            #print(line)
-                            timestamp = timeorder(line)
-                            devmatchObj1 = re.search(r"(Lon =  ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj2 = re.search(r"(Lat = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj7 = re.search(r"(Alt = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            devmatchObj8 = re.search(r"(Heading = ([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?)", line)
-                            category = 'NAV_FRAMEWORK_IF'
-                            subcategory = 'dev_loc_results'
-                            #logfunc(line)
-                            data_list_dev.append((timestamp, devmatchObj2[2], devmatchObj1[2], devmatchObj7[2], devmatchObj8[2], category, subcategory, basename))
-                
-                if 'Speed limit' in line:
-                    timestamp = timeorder(line)
-                    lineparts = line.split(',')
-                    streetname = lineparts[-2].split(':')[-1].replace('[', '').replace(']', '').strip()
-                    speedlimit = int(lineparts[-1].split(':')[-1].replace('[', '').replace(']', '').strip())
-                    if streetname:
-                        data_list_speed.append((timestamp, streetname, speedlimit, basename))
-                        
-                if 'WIFI_MID' in line:
-                    if 'Extracted BSSID' in line:
-                        timestamp = timeorder(line)
-                        lineparts = line.split('=')
-                        extractedbssid = lineparts[-1].strip()
-                    if 'SSID:' in line:
-                        lineparts = line.split(';')
-                        ssid = lineparts[0].split(':')[-1].strip()
-                        signalstrenght = lineparts[-1].split(',')[-1].split(':')[-1].strip()
-                        data_list_apinfo.append((timestamp, extractedbssid, ssid, signalstrenght, basename))
-                
-                if 'QT_HMI'	in  line:
-                    if 'VehicleSpeed' in line:
-                        timestamp = timeorder(line)
-                        lineparts = line.strip().split(' ')
-                        data_list_vspeed.append((timestamp, lineparts[-1].replace('"',''), basename))
-                
-                    if 'TransmissionStatus' in line: 
-                        timestamp = timeorder(line)
-                        lineparts = line.strip().split(' ')
-                        data_list_transm.append((timestamp, lineparts[-1].replace('"','').strip(), basename))
-                    
-                    if 'General_Temperature_Unit_INT' in line:
-                        timestamp = timeorder(line)
-                        lineparts = line.strip().split(' ')
-                        data_list_outtemp.append((timestamp,'Temp. Unit: '+ lineparts[-1].replace('"','').strip(), basename))
-                        
-                    if 'OutsideAirTemperature_E_FLT' in line:
-                        timestamp = timeorder(line)
-                        lineparts = line.strip().split(' ')
-                        data_list_outtemp.append((timestamp, lineparts[-1].replace('"','').strip(), basename ))
-                
-                if 'USBUPDT_MID' in line:
-                    if '=Line read is Version Number =' in line:
-                        lineparts = line.strip().split('=')
-                        ver = lineparts[-1].strip()
-                        if ver not in platformversion:
-                            platformversion.append(ver)
-                            
-                
-                if 'CAppLinkService' in line:
-                    timestampLink = timeorder(line)
-                    
-                if 'odometer' in line: 
-                    lineparts = line.strip().split(':')
-                    data_list_odometer.append((timestampLink, lineparts[-1].strip(), basename))
-                
-                if '"vin" :' in line: 
-                    #print(timestampLink)
-                    #print(line)
-                    lineparts = line.strip().split(':')
-                    vin = lineparts[-1].strip().replace('"','')
-                    if vin not in vinlist:
-                        vinlist.append(vin)
-                        
-                if 'VIN got from GGC' in line:
-                    lineparts = line.strip().split('=')
-                    vin = lineparts[-1].strip()
-                    if vin not in vinlist:
-                        vinlist.append(vin)
-                
-                if '"make"' in line:
-                    linepartsma = line.strip().split(':')
-                    make = linepartsma[-1].strip().replace('"','')
-                
-                if '"model"' in line:
-                    linepartsmo = line.strip().split(':')
-                    model = linepartsmo[-1].strip().replace('"','')
-    try:
-        if make:
-            logdevinfo(f'Make from pas_debug: {make}')
-    except:
-        pass
-    
-    try:
-        if model:
-            logdevinfo(f'Model from pas_debug: {model}')
-    except:
-        pass
-        
-    if len(vinlist) > 0:
-        for item in vinlist:
-            logdevinfo(f"VIN from pas_debug: {item}")
-    
-    if len(platformversion) > 0:
-        for item in platformversion:
-            logdevinfo(f"Platform from pas_debug: {item}")
-    
-    if len(data_list_dev) > 0:
-        report = ArtifactHtmlReport('Dev Loc Results')
-        report.start_artifact_report(report_folder, f'Dev Loc Results')
-        report.add_script()
-        data_headers_dev = ('Timestamp','Latitude','Longitude', 'Altitude Ft', 'Heading', 'Category', 'Subcategory', 'Log Filename')
-        pathname = os.path.dirname(file_found)
-        report.write_artifact_data_table(data_headers_dev, data_list_dev, pathname)
-        report.end_artifact_report()
-        
-        tsvname = f'Dev Loc Results'
-        tsv(report_folder, data_headers_dev , data_list_dev, tsvname)
-        
-        tlactivity = 'Dev Loc Results'
-        timeline(report_folder, tlactivity, data_list_dev, data_headers_dev)
-        
-        kmlactivity = 'Dev Loc Results'
-        kmlgen(report_folder, kmlactivity, data_list_dev, data_headers_dev)
-        
-    else:
-        logfunc(f'No Dev Loc Results available')
-        
-    if len(data_list_speed) > 0:
-        report = ArtifactHtmlReport('Road Speed Limits')
-        report.start_artifact_report(report_folder, f'Road Speed Limits')
-        report.add_script()
-        data_headers_speed = ('Timestamp','Road','Speed Limit', 'Log Filename')
-        pathname = os.path.dirname(file_found)
-        report.write_artifact_data_table(data_headers_speed, data_list_speed, pathname)
-        report.end_artifact_report()
-        
-        tsvname = f'Road Speed Limits'
-        tsv(report_folder, data_headers_speed , data_list_speed, tsvname)
-        
-        tlactivity = 'Road Speed Limits'
-        timeline(report_folder, tlactivity, data_list_speed, data_headers_speed)
-        
-    else:
-        logfunc(f'No Road Speed Limits available')
-    
-    if len(data_list_apinfo) > 0:
-        report = ArtifactHtmlReport('Access Point List')
-        report.start_artifact_report(report_folder, f'Access Point List')
-        report.add_script()
-        data_headers_apinfo = ('Timestamp','BSSID','SSID', 'Signal Strength', 'Log Filename')
-        pathname = os.path.dirname(file_found)
-        report.write_artifact_data_table(data_headers_apinfo, data_list_apinfo, pathname)
-        report.end_artifact_report()
-        
-        tsvname = f'Access Point List'
-        tsv(report_folder, data_headers_apinfo , data_list_apinfo, tsvname)
-        
-        tlactivity = 'Access Point List'
-        timeline(report_folder, tlactivity, data_list_apinfo, data_headers_apinfo)
-        
-    else:
-        logfunc(f'No Access Point List available')
-    
-    if len(data_list_vspeed) > 0:
-        report = ArtifactHtmlReport('Vehicle Speed')
-        report.start_artifact_report(report_folder, f'Vehicle Speed')
-        report.add_script()
-        data_headers_vspeed = ('Timestamp','Vehicle Speed','Log Filename')
-        pathname = os.path.dirname(file_found)
-        report.write_artifact_data_table(data_headers_vspeed, data_list_vspeed, pathname)
-        report.end_artifact_report()
-        
-        tsvname = f'Vehicle Speed'
-        tsv(report_folder, data_headers_vspeed , data_list_vspeed, tsvname)
-        
-        tlactivity = 'Vehicle Speed'
-        timeline(report_folder, tlactivity, data_list_vspeed, data_headers_vspeed)
-    else:
-        logfunc(f'No Vehicle Speed available')
-    
-    if len(data_list_transm) > 0:
-        report = ArtifactHtmlReport('Transmission Status')
-        report.start_artifact_report(report_folder, f'Transmission Status')
-        report.add_script()
-        data_headers_transm = ('Timestamp','Transmission Status','Log Filename')
-        pathname = os.path.dirname(file_found)
-        report.write_artifact_data_table(data_headers_transm, data_list_transm, pathname)
-        report.end_artifact_report()
-        
-        tsvname = f'Transmission Status'
-        tsv(report_folder, data_headers_transm , data_list_transm, tsvname)
-        
-        tlactivity = 'Transmission Status'
-        timeline(report_folder, tlactivity, data_list_transm, data_headers_transm)
-        
-    else:
-        logfunc(f'No Transmission Status available')
-        
-    if len(data_list_outtemp) > 0:
-        report = ArtifactHtmlReport('Outside Temperature')
-        report.start_artifact_report(report_folder, f'Outside Temperature')
-        report.add_script()
-        data_headers_outtemp = ('Timestamp','Temperature', 'Log Filename')
-        pathname = os.path.dirname(file_found)
-        report.write_artifact_data_table(data_headers_outtemp, data_list_outtemp, pathname)
-        report.end_artifact_report()
-        
-        tsvname = f'Outside Temperature'
-        tsv(report_folder, data_headers_outtemp , data_list_outtemp, tsvname)
-        
-        tlactivity = 'Outside Temperature'
-        timeline(report_folder, tlactivity, data_list_outtemp, data_headers_outtemp)
-        
-    else:
-        logfunc(f'No Outside Temperature available')
-        
-    if len(data_list_odometer) > 0:
-        report = ArtifactHtmlReport('Odometer')
-        report.start_artifact_report(report_folder, f'Odometer')
-        report.add_script()
-        data_headers_odometer = ('Timestamp','Odometer','Log Filename')
-        pathname = os.path.dirname(file_found)
-        report.write_artifact_data_table(data_headers_odometer, data_list_odometer, pathname)
-        report.end_artifact_report()
-        
-        tsvname = f'Odometer'
-        tsv(report_folder, data_headers_odometer , data_list_odometer, tsvname)
-        
-        tlactivity = 'Odometer'
-        timeline(report_folder, tlactivity, data_list_odometer, data_headers_odometer)
-        
-    else:
-        logfunc(f'No Odometer available')
+                            lat, lon, alt = _RE['lat2'].search(line), _RE['lon2'].search(line), \
+                                _RE['alt2'].search(line)
+                        else:
+                            lat = lon = alt = None
+                        if lat and lon:
+                            sect['dev'].append((_ts(timeorder(line)), _val(lat), _val(lon),
+                                                _val(alt), _val(_RE['head'].search(line)),
+                                                'NAV_FRAMEWORK_IF', 'dev_loc_results', basename))
+                    if 'Speed limit' in line:
+                        parts = line.split(',')
+                        street = parts[-2].split(':')[-1].replace('[', '').replace(']', '').strip()
+                        limit = parts[-1].split(':')[-1].replace('[', '').replace(']', '').strip()
+                        if street:
+                            sect['speed'].append((_ts(timeorder(line)), street, limit, basename))
+                    if 'WIFI_MID' in line:
+                        if 'Extracted BSSID' in line:
+                            bssid = line.split('=')[-1].strip()
+                        if 'SSID:' in line:
+                            parts = line.split(';')
+                            ssid = parts[0].split(':')[-1].strip()
+                            signal = parts[-1].split(',')[-1].split(':')[-1].strip()
+                            sect['apinfo'].append((_ts(timeorder(line)), bssid, ssid, signal,
+                                                   basename))
+                    if 'QT_HMI' in line:
+                        last = line.strip().split(' ')[-1].replace('"', '').strip()
+                        if 'VehicleSpeed' in line:
+                            sect['vspeed'].append((_ts(timeorder(line)), last, basename))
+                        if 'TransmissionStatus' in line:
+                            sect['transm'].append((_ts(timeorder(line)), last, basename))
+                        if 'General_Temperature_Unit_INT' in line:
+                            sect['outtemp'].append((_ts(timeorder(line)), f'Temp. Unit: {last}',
+                                                    basename))
+                        if 'OutsideAirTemperature_E_FLT' in line:
+                            sect['outtemp'].append((_ts(timeorder(line)), last, basename))
+                    if 'USBUPDT_MID' in line and '=Line read is Version Number =' in line:
+                        ver = line.strip().split('=')[-1].strip()
+                        if ver and ver not in platforms:
+                            platforms.append(ver)
+                    if 'CAppLinkService' in line:
+                        ts_link = _ts(timeorder(line))
+                    if 'odometer' in line:
+                        sect['odometer'].append((ts_link, line.strip().split(':')[-1].strip(),
+                                                 basename))
+                    if '"vin" :' in line:
+                        vin = line.strip().split(':')[-1].strip().replace('"', '')
+                        if vin and vin not in vins:
+                            vins.append(vin)
+                    if 'VIN got from GGC' in line:
+                        vin = line.strip().split('=')[-1].strip()
+                        if vin and vin not in vins:
+                            vins.append(vin)
+                    if '"make"' in line:
+                        make = line.strip().split(':')[-1].strip().replace('"', '')
+                    if '"model"' in line:
+                        model = line.strip().split(':')[-1].strip().replace('"', '')
+                except (IndexError, ValueError, TypeError):
+                    continue
+
+    if make:
+        sect['vehicle'].append(('Make', make))
+    if model:
+        sect['vehicle'].append(('Model', model))
+    for vin in vins:
+        sect['vehicle'].append(('VIN', vin))
+    for pver in platforms:
+        sect['vehicle'].append(('Platform Version', pver))
+    return sect, source_path
 
 
-__artifacts__ = {
-        "pas_Debug": (
-                "pas_Debug",
-                ('*/fordlogs/pas_debug.log*'),
-                get_pasDeGeo)
-}
+@artifact_processor
+def pasDeGeoDevLoc(context):
+    sect, source_path = _parse(context)
+    headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude', 'Altitude Ft', 'Heading',
+               'Category', 'Subcategory', 'Log Filename')
+    return headers, sect['dev'], context.get_relative_path(source_path)
+
+
+@artifact_processor
+def pasDeGeoSpeed(context):
+    sect, source_path = _parse(context)
+    headers = (('Timestamp', 'datetime'), 'Road', 'Speed Limit', 'Log Filename')
+    return headers, sect['speed'], context.get_relative_path(source_path)
+
+
+@artifact_processor
+def pasDeGeoApInfo(context):
+    sect, source_path = _parse(context)
+    headers = (('Timestamp', 'datetime'), 'BSSID', 'SSID', 'Signal Strength', 'Log Filename')
+    return headers, sect['apinfo'], context.get_relative_path(source_path)
+
+
+@artifact_processor
+def pasDeGeoVSpeed(context):
+    sect, source_path = _parse(context)
+    headers = (('Timestamp', 'datetime'), 'Vehicle Speed', 'Log Filename')
+    return headers, sect['vspeed'], context.get_relative_path(source_path)
+
+
+@artifact_processor
+def pasDeGeoTransm(context):
+    sect, source_path = _parse(context)
+    headers = (('Timestamp', 'datetime'), 'Transmission Status', 'Log Filename')
+    return headers, sect['transm'], context.get_relative_path(source_path)
+
+
+@artifact_processor
+def pasDeGeoTemp(context):
+    sect, source_path = _parse(context)
+    headers = (('Timestamp', 'datetime'), 'Temperature', 'Log Filename')
+    return headers, sect['outtemp'], context.get_relative_path(source_path)
+
+
+@artifact_processor
+def pasDeGeoOdometer(context):
+    sect, source_path = _parse(context)
+    headers = (('Timestamp', 'datetime'), 'Odometer', 'Log Filename')
+    return headers, sect['odometer'], context.get_relative_path(source_path)
+
+
+@artifact_processor
+def pasDeGeoVehicle(context):
+    sect, source_path = _parse(context)
+    for field, value in sect['vehicle']:
+        logdevinfo(f"{field} from pas_debug: {value}")
+    return ('Field', 'Value'), sect['vehicle'], context.get_relative_path(source_path)
