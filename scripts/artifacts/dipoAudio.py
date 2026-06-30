@@ -1,47 +1,38 @@
-import xml.etree.ElementTree as ET
-import os
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows
-
-#Compatability Data
-vehicles = ['Hyundai Santa Fe',]
-platforms = ['Android Automotive',]
-
-def get_dipoAudio(files_found, report_folder, seeker, wrap_text):
-    data_list = []
-    for file_found in files_found:
-
-        tree = ET.parse(file_found)
-        root = tree.getroot()
-        
-        for elem in root:
-            name = (elem.attrib['name'])
-            if name == 'pref_key_local_bt_address':
-                text = elem.text
-            else:
-                text = ''
-            data_list.append((name,text))
-            
-    if len(data_list) > 0:
-        report = ArtifactHtmlReport('Audio UUIDs')
-        report.start_artifact_report(report_folder, f'Audio UUIDs')
-        report.add_script()
-        data_headers = ('UUID','Extra Value')
-        #file_found = os.path.dirname(file_found)
-        report.write_artifact_data_table(data_headers, data_list, file_found)
-        report.end_artifact_report()
-        
-        tsvname = f'Audio UUIDs'
-        tsv(report_folder, data_headers, data_list, tsvname)
-        
-    else:
-        logfunc(f'No Audio UUIDs available')
-
-
-__artifacts__ = {
-        "dipoAudio": (
-                "Audio UUIDs",
-                ('*/com.daudio.app.dipo/shared_prefs/pref_dipo.xml'),
-                get_dipoAudio)
+__artifacts_v2__ = {
+    "dipoAudio": {
+        "name": "Hyundai - Dipo Audio UUIDs",
+        "description": "Audio app preference UUIDs (incl. local BT address) from a Hyundai Santa Fe "
+                       "com.daudio.app.dipo pref_dipo.xml.",
+        "author": "@AlexisBrignoni",
+        "version": "0.2",
+        "creation_date": "2023-02-08",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Hyundai Vehicles",
+        "notes": "",
+        "paths": ('*/com.daudio.app.dipo/shared_prefs/pref_dipo.xml',),
+        "output_types": "standard",
+        "artifact_icon": "music",
+    }
 }
+
+import xml.etree.ElementTree as ET
+
+from scripts.ilapfuncs import artifact_processor
+
+
+@artifact_processor
+def dipoAudio(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        source_path = file_found
+        root = ET.parse(file_found).getroot()
+        for elem in root:
+            name = elem.attrib.get('name', '')
+            text = elem.text if name == 'pref_key_local_bt_address' else ''
+            data_list.append((name, text))
+
+    data_headers = ('UUID', 'Extra Value')
+    return data_headers, data_list, context.get_relative_path(source_path)

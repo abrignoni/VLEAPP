@@ -1,77 +1,53 @@
-import sqlite3
-import os
-
-from scripts.artifact_report import ArtifactHtmlReport
-from scripts.ilapfuncs import logfunc, tsv, logdevinfo, is_platform_windows, open_sqlite_db_readonly
-
-#Compatability Data
-vehicles = ['Ford']
-platforms = ['SYNC3.1','SYNCGen3']
-
-def get_mediaService(files_found, report_folder, seeker, wrap_text):
-    for file_found in files_found:
-        file_found = str(file_found)
-        
-        if file_found.endswith('mediaservice_db'):
-            db = open_sqlite_db_readonly(file_found)
-            cursor = db.cursor()
-            cursor.execute('''
-            select
-            mediastores.btdeviceid as "BT Device ID",
-            mediastores.serial as "Serial",
-            mediastores.device_id as "Device ID",
-            mediastores.manufacturer as "Manufacturer",
-            mediastores.product as "Product",
-            mediastores.device_name as "Device Name",
-            mediastores.vendorid as "Vendor ID",
-            mediastores.productid as "Product ID",
-            Case mediastores.attached
-                when '0' then 'No'
-                when '1' then 'Yes'
-                ELSE 'Not Specified'
-            END as "Device Attached",
-            Case mediastores.active_onshutdown
-                when '0' then 'No'
-                when '1' then 'Yes'
-                ELSE 'Not Specified'
-            END as "Active On Shutdown?",
-            Case mediastores.remote
-                when '0' then 'No'
-                when '1' then 'Yes'
-                ELSE 'Not Specified'
-            END as "Is Remote?",
-            mediastores.fs_type as "FS Type"
-            from mediastores
-            order by mediastores.btdeviceid
-            ''')
-            
-            all_rows = cursor.fetchall()
-            usageentries = len(all_rows)
-            data_list = []  
-            
-            if usageentries > 0:
-                for row in all_rows:
-                    data_list.append((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11]))
-                
-                basefile = os.path.basename(file_found)
-                
-                description = 'Media Service Information'
-                report = ArtifactHtmlReport('Media Service Information')
-                report.start_artifact_report(report_folder, f'Media Service Information', description)
-                report.add_script()
-                data_headers = ('BT Device ID', 'Serial', 'Device ID', 'Manufacturer', 'Product', 'Device Name', 'Vendor ID', 'Product ID', 'Device Attached', 'Active on Shutdown', 'Is Remote', 'FS Type')
-                report.write_artifact_data_table(data_headers, data_list, file_found)
-                report.end_artifact_report()
-                
-                tsvname = f'{basefile} Media Service Information'
-                tsv(report_folder, data_headers, data_list, tsvname)
-            else:
-                logfunc('No Media Service Information data available')
-
-    
-__artifacts__ = {
-        "mediaservice": (
-                "Media Service",
-                ('*/mediaservice_db*'),
-                get_mediaService)
+__artifacts_v2__ = {
+    "mediaService": {
+        "name": "Ford - Media Service",
+        "description": "Connected media-store devices from a Ford SYNC mediaservice_db.",
+        "author": "gforce4n6",
+        "version": "0.2",
+        "creation_date": "2024-03-28",
+        "last_update_date": "2026-06-29",
+        "requirements": "none",
+        "category": "Ford Vehicles",
+        "notes": "",
+        "paths": ('*/mediaservice_db*',),
+        "output_types": "standard",
+        "artifact_icon": "hard-drive",
+    }
 }
+
+from scripts.ilapfuncs import artifact_processor, open_sqlite_db_readonly
+
+
+@artifact_processor
+def mediaService(context):
+    data_list = []
+    source_path = ''
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        if not file_found.endswith('mediaservice_db'):
+            continue
+        source_path = file_found
+        db = open_sqlite_db_readonly(file_found)
+        cursor = db.cursor()
+        cursor.execute('''
+            SELECT mediastores.btdeviceid, mediastores.serial, mediastores.device_id,
+                   mediastores.manufacturer, mediastores.product, mediastores.device_name,
+                   mediastores.vendorid, mediastores.productid,
+                   CASE mediastores.attached WHEN '0' THEN 'No' WHEN '1' THEN 'Yes'
+                        ELSE 'Not Specified' END,
+                   CASE mediastores.active_onshutdown WHEN '0' THEN 'No' WHEN '1' THEN 'Yes'
+                        ELSE 'Not Specified' END,
+                   CASE mediastores.remote WHEN '0' THEN 'No' WHEN '1' THEN 'Yes'
+                        ELSE 'Not Specified' END,
+                   mediastores.fs_type
+            FROM mediastores
+            ORDER BY mediastores.btdeviceid
+        ''')
+        for row in cursor.fetchall():
+            data_list.append(tuple(row))
+        db.close()
+
+    data_headers = ('BT Device ID', 'Serial', 'Device ID', 'Manufacturer', 'Product',
+                    'Device Name', 'Vendor ID', 'Product ID', 'Device Attached',
+                    'Active on Shutdown', 'Is Remote', 'FS Type')
+    return data_headers, data_list, context.get_relative_path(source_path)
