@@ -11,7 +11,7 @@ import shutil
 import sqlite3
 import sys
 
-from datetime import *
+from datetime import datetime, timezone, timedelta, UTC
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote
@@ -75,13 +75,13 @@ class GuiWindow:
     window_handle = None  # static variable
 
     @staticmethod
-    def SetProgressBar(n, total):
+    def SetProgressBar(n, total):  # pylint: disable=unused-argument
         if GuiWindow.window_handle:
             progress_bar = GuiWindow.window_handle.nametowidget('progress_bar_frame.progress_bar')
             progress_bar.config(value=n)
 
 class MediaItem():
-    def __init__(self, id):
+    def __init__(self, id):  # pylint: disable=redefined-builtin
         self.id = id
         self.source_path = ""
         self.extraction_path = ""
@@ -102,7 +102,7 @@ class MediaItem():
         self.is_embedded = media_info[7]
 
 class MediaReferences():
-    def __init__(self, id):
+    def __init__(self, id):  # pylint: disable=redefined-builtin
         self.id = id
         self.media_item_id = ""
         self.module_name = ""
@@ -120,7 +120,7 @@ class MediaReferences():
 def logfunc(message=""):
     def redirect_logs(string):
         _console_write(string)
-        log_text.insert('end', string)
+        log_text.insert('end', string)  # pylint: disable=used-before-assignment
         log_text.see('end')
         log_text.update()
 
@@ -145,7 +145,7 @@ def get_media_header_info(data_headers):
             media_header_info[index] = style
     return media_header_info
 
-def check_output_types(type, output_types):
+def check_output_types(type, output_types):  # pylint: disable=redefined-builtin
     if type in output_types or type == output_types or 'all' in output_types or 'all' == output_types:
         return True
     elif type != 'kml' and ('standard' in output_types or 'standard' == output_types):
@@ -462,6 +462,10 @@ def artifact_processor(func):
 
         if not source_path:
             logfunc("No source_path provided")
+        else:
+            # Report extraction-relative paths, never the examiner's local filesystem
+            source_path = '\n'.join(
+                Context.get_relative_path(p) for p in str(source_path).split('\n'))
 
         if len(data_list):
             if isinstance(data_list, tuple):
@@ -573,7 +577,7 @@ def get_file_path(files_found, filename, skip=False):
                 continue
             if Path(file_found).match(filename):
                 return file_found
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logfunc(f"Error: {str(e)}")
     return None        
 
@@ -586,7 +590,7 @@ def get_txt_file_content(file_path):
         logfunc(f"Error: File not found at {file_path}")
     except PermissionError:
         logfunc(f"Error: Permission denied when trying to read {file_path}")
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logfunc(f"Unexpected error reading file {file_path}: {str(e)}")
     return []
 
@@ -685,7 +689,6 @@ def does_column_exist_in_db(path, table_name, col_name):
                 return True
     except sqlite3.Error as ex:
         logfunc(f"Query error, query={query} Error={str(ex)}")
-        pass
     return False
 
 def does_table_exist_in_db(path, table_name):
@@ -695,7 +698,7 @@ def does_table_exist_in_db(path, table_name):
         try:
             query = f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'"
             cursor = db.execute(query)
-            for row in cursor:
+            for _ in cursor:
                 return True
         except sqlite3.Error as ex:
             logfunc(f"Query error, query={query} Error={str(ex)}")
@@ -708,14 +711,14 @@ def does_view_exist_in_db(path, table_name):
         try:
             query = f"SELECT name FROM sqlite_master WHERE type='view' AND name='{table_name}'"
             cursor = db.execute(query)
-            for row in cursor:
+            for _ in cursor:
                 return True
         except sqlite3.Error as ex:
             logfunc(f"Query error, query={query} Error={str(ex)}")
     return False
 
 
-def tsv(report_folder, data_headers, data_list, tsvname, source_file=None):
+def tsv(report_folder, data_headers, data_list, tsvname, source_file=None):  # pylint: disable=unused-argument
     report_folder = report_folder.rstrip('/')
     report_folder = report_folder.rstrip('\\')
     report_folder_base = os.path.dirname(os.path.dirname(report_folder))
@@ -890,6 +893,7 @@ def media_to_html(media_path, files_found, report_folder):
     return thumb
 
 
+# pylint: disable-next=pointless-string-statement
 """
 Copyright 2021, CCL Forensics
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -996,7 +1000,7 @@ def device_info(category, label, value, source_file=""):
     try:
         frame = inspect.stack()[1]
         func_name = frame.function
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         func_name = 'unknown'
 
     values = identifiers.get(category, {})
@@ -1113,7 +1117,7 @@ def convert_log_ts_to_utc(str_dt):
     if str_dt:
         try:
             return datetime.strptime(str_dt, '%b %d %Y %H:%M:%S').replace(tzinfo=timezone.utc)
-        except:
+        except:  # pylint: disable=bare-except
             return str_dt
     else:
         return str_dt
@@ -1135,10 +1139,10 @@ def convert_time_obj_to_utc(ts):
 
 def convert_utc_human_to_timezone(utc_time, time_offset):
     #fetch the timezone information
-    timezone = pytz.timezone(time_offset)
+    tz_info = pytz.timezone(time_offset)
     
     #convert utc to timezone
-    timezone_time = utc_time.astimezone(timezone)
+    timezone_time = utc_time.astimezone(tz_info)
     
     #return the converted value
     return timezone_time
@@ -1148,10 +1152,10 @@ def convert_ts_int_to_timezone(time, time_offset):
     utc_time = convert_ts_int_to_utc(time)
 
     #fetch the timezone information
-    timezone = pytz.timezone(time_offset)
+    tz_info = pytz.timezone(time_offset)
     
     #convert utc to timezone
-    timezone_time = utc_time.astimezone(timezone)
+    timezone_time = utc_time.astimezone(tz_info)
     
     #return the converted value
     return timezone_time
@@ -1226,12 +1230,14 @@ def convert_bytes_to_unit(size):
     else:
         return size
 
+# pylint: disable-next=pointless-string-statement
 ''' Returns string of printable characters. Replacing non-printable characters
 with '.', or CHR(46)
 '''
 def strings_raw(data):
     return "".join([chr(byte) if byte >= 0x20 and byte < 0x7F else chr(46) for byte in data])
 
+# pylint: disable-next=pointless-string-statement
 ''' Returns string of printable characters. Works similar to the Linux
 `string` function.
 '''
@@ -1239,11 +1245,13 @@ def strings(data):
     cleansed = "".join([chr(byte) if byte >= 0x20 and byte < 0x7F else chr(0) for byte in data])
     return filter(lambda string: len(string) >= 4, cleansed.split(chr(0)))
 
+# pylint: disable-next=pointless-string-statement
 ''' Retuns HTML table of the hexdump of the passed in data.
 '''
 def generate_hexdump(data, char_per_row = 5):
     raise NotImplementedError
 
+# pylint: disable-next=pointless-string-statement
 '''
 searching for thumbnails, copy it to report folder and return tag  to insert in html
 '''
@@ -1265,11 +1273,10 @@ def html2csv(reportfolderbase):
         pass
     else:
         os.makedirs(os.path.join(reportfolderbase, '_CSV Exports'))
-    for root, dirs, files in sorted(os.walk(reportfolderbase)):
+    for root, _dirs, files in sorted(os.walk(reportfolderbase)):
         for file in files:
             if file.endswith(".html"):
                 fullpath = (os.path.join(root, file))
-                head, tail = os.path.split(fullpath)
                 if file in itemstoignore:
                     pass
                 else:
@@ -1277,7 +1284,7 @@ def html2csv(reportfolderbase):
                     soup = BeautifulSoup(data, 'html.parser')
                     tables = soup.find_all("table")
                     data.close()
-                    output_final_rows = []
+                    output_final_rows = []  # pylint: disable=unused-variable
 
                     for table in tables:
                         output_rows = []
@@ -1386,7 +1393,7 @@ def gather_hashes_in_file(file_found: str, regex: Pattern):
     target_hashes = {}
 
     factor = int(_get_line_count(file_found) / 100)
-    with open(file_found, 'r') as data:
+    with open(file_found, 'r', encoding='utf-8') as data:
         for i, x in enumerate(data):
             if i % factor == 0:
                 pass
@@ -1396,7 +1403,7 @@ def gather_hashes_in_file(file_found: str, regex: Pattern):
             if not result:
                 continue
 
-            for hash in result.group(1).split(", "):
+            for hash in result.group(1).split(", "):  # pylint: disable=redefined-builtin
                 deserialized = json.loads(x)
                 eventmessage = deserialized.get('eventMessage', '')
                 targetstart = hash[:5]
