@@ -3,7 +3,7 @@
 import tkinter as tk
 import typing
 import json
-import vleapp
+import ileapp
 import webbrowser
 import base64
 
@@ -12,9 +12,10 @@ import leapp_functions.app.history as history
 
 from PIL import Image, ImageTk
 from tkinter import ttk, filedialog as tk_filedialog, messagebox as tk_msgbox
-from scripts.version_info import vleapp_version
+from scripts.version_info import leapp_name, leapp_version
 from scripts.search_files import *
 from scripts.ilapfuncs import *
+from scripts.tz_offset import tzvalues
 from scripts.modules_to_exclude import modules_to_exclude
 from scripts.lavafuncs import *
 from leapp_functions.lava_launcher import (
@@ -28,10 +29,10 @@ from leapp_functions.app.output import default_output_folder_name, validate_outp
 from scripts.context import Context
 from scripts.lavafuncs import lava_json_name
 
+
 def allow_output_folder_name_chars(proposed):
     return sanitize_file_name(proposed) == proposed
 
-leapp_name = "VLEAPP"
 
 def show_history_menu(button, path_type):
     """
@@ -60,9 +61,21 @@ def show_history_menu(button, path_type):
 
 
 def pickModules():
-    '''Create a list of available modules'''
+    '''Create a list of available modules:
+        - itunes_backup_info, itunes_backup_installed_applications, last_build and Ph100-UFED-device-values-Plist that need
+        to be executed first are excluded
+        - logarchive_artifacts is also excluded as it uses the LAVA SQLite database to extract
+        relevant event messages from the logarchive table and must be executed only if logarchive
+        module has been already executed
+        - ones that take a long time to run are deselected by default'''
     global mlist
     for plugin in sorted(loader.plugins, key=lambda p: p.category.upper()):
+        if (plugin.module_name == 'iTunesBackupInfo'
+                or plugin.name == 'last_build'
+                or plugin.module_name == 'logarchive' and plugin.name != 'logarchive'):
+            continue
+        # Items that take a long time to execute are deselected by default
+        # and referenced in the modules_to_exclude list in an external file (modules_to_exclude.py).
         plugin_enabled = tk.BooleanVar(value=False) if plugin.module_name in modules_to_exclude else tk.BooleanVar(value=True)
         plugin_module_name = plugin.artifact_info.get('name', plugin.name) if hasattr(plugin, 'artifact_info') else plugin.name
         mlist[plugin.name] = [plugin.category, plugin_module_name, plugin.module_name, plugin_enabled]
@@ -120,7 +133,7 @@ def load_profile():
 
     destination_path = tk_filedialog.askopenfilename(parent=main_window,
                                                      title='Load a profile',
-                                                     filetypes=(('VLEAPP Profile', '*.vlprofile'),))
+                                                     filetypes=(('iLEAPP Profile', '*.ilprofile'),))
 
     if destination_path and os.path.exists(destination_path):
         profile_load_error = None
@@ -131,7 +144,7 @@ def load_profile():
                 profile_load_error = 'File was not a valid profile file: invalid format'
         if not profile_load_error:
             if isinstance(profile, dict):
-                if profile.get('leapp') != 'VLEAPP' or profile.get('format_version') != 1:
+                if profile.get('leapp') != 'ileapp' or profile.get('format_version') != 1:
                     profile_load_error = 'File was not a valid profile file: incorrect LEAPP or version'
                 else:
                     deselect_all()
@@ -154,13 +167,13 @@ def save_profile():
     '''Save selected modules in a profile file'''
     destination_path = tk_filedialog.asksaveasfilename(parent=main_window,
                                                        title='Save a profile',
-                                                       filetypes=(('VLEAPP Profile', '*.vlprofile'),),
-                                                       defaultextension='.vlprofile')
+                                                       filetypes=(('iLEAPP Profile', '*.ilprofile'),),
+                                                       defaultextension='.ilprofile')
 
     if destination_path:
         selected_modules = get_selected_modules()
         with open(destination_path, 'wt', encoding='utf-8') as profile_out:
-            json.dump({'leapp': 'VLEAPP', 'format_version': 1, 'plugins': selected_modules}, profile_out)
+            json.dump({'leapp': 'ileapp', 'format_version': 1, 'plugins': selected_modules}, profile_out)
         tk_msgbox.showinfo(
             title='Save a profile', message=f'Profile saved: {destination_path}', parent=main_window)
 
@@ -185,7 +198,33 @@ def ValidateInput():
         tk_msgbox.showerror(title='Error', message='INPUT file/folder does not exist!', parent=main_window)
         return False, ext_type, None
     elif os.path.isdir(i_path):
-        ext_type = 'fs'
+        itunes_backup_type = get_itunes_backup_type(i_path)
+        if itunes_backup_type:
+            supported, encrypted, message = check_itunes_backup_status(
+                i_path, itunes_backup_type)
+            if not supported:
+                tk_msgbox.showerror(title='Error', message=message,
+                                    parent=main_window)
+                return False, ext_type, None
+            else:
+                if encrypted:
+                    decryption_keys = None
+                    while not decryption_keys:
+                        password = tk.simpledialog.askstring(
+                            "Detected encrypted iTunes backup",
+                            "iTunes Backup password:",
+                            show='*',
+                            parent=main_window)
+                        decryption_keys, message = decrypt_itunes_backup(i_path, password)
+                        if not decryption_keys:
+                            tk_msgbox.showerror(title='Error', message=message,
+                                                parent=main_window)
+                            return False, ext_type, decryption_keys
+                        else:
+                            return True, 'itunes', decryption_keys
+            ext_type = 'itunes'
+        else:
+            ext_type = 'fs'
     else:
         ext_type = Path(i_path).suffix[1:].lower()
 
@@ -224,7 +263,7 @@ def open_lava(project_path, launcher):
     except (OSError, ValueError) as ex:
         tk_msgbox.showerror(
             title='Unable to open LAVA',
-            message=f'VLEAPP could not open the project in LAVA:\n{ex}',
+            message=f'iLEAPP could not open the project in LAVA:\n{ex}',
             parent=main_window)
         return
     main_window.quit()
@@ -242,7 +281,7 @@ def open_folder(output_path):
     except OSError as ex:
         tk_msgbox.showerror(
             title='Unable to open output folder',
-            message=f'VLEAPP could not open the output folder:\n{ex}',
+            message=f'iLEAPP could not open the output folder:\n{ex}',
             parent=main_window)
 
 
@@ -434,14 +473,14 @@ def resource_path(filename):
 def process(casedata):
     '''Execute selected modules and create reports'''
     # check if selections made properly; if not we will return to input form without exiting app altogether
-    is_valid, extracttype, blah = ValidateInput()
+    is_valid, extracttype, decryption_keys = ValidateInput()
 
     if is_valid:
         GuiWindow.window_handle = main_window
         input_path = input_entry.get()
         output_folder = output_entry.get()
 
-        # File system extractions contain paths > 260 char, which causes problems
+        # ios file system extractions contain paths > 260 char, which causes problems
         # This fixes the problem by prefixing \\?\ on each windows path.
         if is_platform_windows():
             if input_path[1] == ':' and extracttype == 'fs': input_path = '\\\\?\\' + input_path.replace('/', '\\')
@@ -455,6 +494,10 @@ def process(casedata):
         out_params = OutputParameters(output_folder, output_folder_name_entry.get().strip())
         Context.set_output_params(out_params)
         wrap_text = True
+        time_offset = timezone_set.get()
+        if time_offset == '':
+            time_offset = 'UTC'
+
         bottom_frame.pack_forget()
         mlist_frame.pack_forget()
         output_frame.pack_forget()
@@ -468,9 +511,9 @@ def process(casedata):
         history.record_input_path(input_path)
         history.record_output_path(output_folder)
 
-        crunch_successful = vleapp.crunch_artifacts(
+        crunch_successful = ileapp.crunch_artifacts(
             selected_modules, extracttype, input_path, out_params, wrap_text,
-            loader, casedata, profile_filename)
+            loader, casedata, time_offset, profile_filename, None, decryption_keys)
 
         lava_finalize_output(out_params.output_folder_base)
 
@@ -478,7 +521,7 @@ def process(casedata):
             # Record the run in history
             report_path = os.path.join(out_params.output_folder_base, 'index.html')
             lava_project_path = os.path.join(out_params.output_folder_base, lava_json_name)
-            history.record_recent_run(leapp_name.lower(), vleapp_version, lava_project_path)
+            history.record_recent_run(leapp_name.lower(), leapp_version, lava_project_path)
 
             output_folder_path = out_params.output_folder_base
             if report_path.startswith('\\\\?\\'):  # windows
@@ -489,6 +532,15 @@ def process(casedata):
                 report_path = report_path[2:]
                 lava_project_path = lava_project_path[2:]
                 output_folder_path = output_folder_path[2:]
+            if lava_only_artifacts:
+                message = "You have selected artifacts that are likely to return too much data "
+                message += "to be viewed in a Web browser.\n\n"
+                message += "Please see the 'LAVA only artifacts' tab in the HTML report for a list of these artifacts "
+                message += "and instructions on how to view them."
+                tk_msgbox.showwarning(
+                    title="Important information",
+                    message=message,
+                    parent=main_window)
             progress_bar.pack_forget()
             completion_button_frame = ttk.Frame(progress_bar_frame)
             completion_button_frame.place(relx=0.5, rely=0.5, anchor='center')
@@ -740,10 +792,6 @@ def case_data():
 
 ## Main window creation
 main_window = tk.Tk()
-window_width = 890
-window_height = 620
-
-## Variables
 icon = resource_path('icon.png')
 loader: typing.Optional[plugin_loader.PluginLoader] = None
 loader = plugin_loader.PluginLoader()
@@ -756,35 +804,19 @@ casedata = {'Case Number': tk.StringVar(),
             'Agency Logo base64': tk.StringVar(),
             'Examiner': tk.StringVar(),
             }
+timezone_set = tk.StringVar()
 modules_filter_var = tk.StringVar()
 modules_filter_var.trace_add("write", filter_modules)  # Trigger filtering on input change
 pickModules()
 
 ## Theme properties
-theme_bgcolor = '#070739'
-theme_inputcolor = '#da9bd2'
-theme_fgcolor = '#e1e099'
-theme_button = '#521477'
-
-if is_platform_macos():
-    mlist_window_height = 24
-    log_text_height = 37
-elif is_platform_linux():
-    mlist_window_height = 16
-    log_text_height = 27
-else:
-    mlist_window_height = 19
-    log_text_height = 29
-
-## Places main window in the center
-screen_width = main_window.winfo_screenwidth()
-screen_height = main_window.winfo_screenheight()
-margin_width = (screen_width - window_width) // 2
-margin_height = (screen_height - window_height) // 2
+theme_bgcolor = '#2c2825'
+theme_inputcolor = '#705e52'
+theme_fgcolor = '#fdcb52'
 
 ## Main window properties
 main_window.minsize(890, 690)
-main_window.title(f'VLEAPP version {vleapp_version}')
+main_window.title(f'iLEAPP version {leapp_version}')
 main_window.configure(bg=theme_bgcolor)
 logo_icon = tk.PhotoImage(file=icon)
 main_window.iconphoto(True, logo_icon)
@@ -800,32 +832,32 @@ style.configure('.',
                 foreground=theme_fgcolor)
 style.configure('TButton')
 style.map('TButton',
-          background=[('active', 'black'), ('!disabled', theme_button)],
-          foreground=[('active', theme_button), ('!disabled', 'black')])
-style.configure('TEntry', fieldbackground=theme_inputcolor, foreground='black', highlightthickness=0)
+          background=[('active', 'black'), ('!disabled', theme_fgcolor)],
+          foreground=[('active', theme_fgcolor), ('!disabled', 'black')])
+style.configure('TEntry', fieldbackground=theme_inputcolor, highlightthickness=0)
 style.configure(
-    'TCombobox', selectforeground='black',
-    selectbackground='theme_button', arrowcolor=theme_fgcolor)
+    'TCombobox', selectforeground=theme_fgcolor,
+    selectbackground=theme_inputcolor, arrowcolor=theme_fgcolor)
 style.map('TCombobox',
           fieldbackground=[('active', theme_inputcolor), ('readonly', theme_inputcolor)],
           )
-style.configure('TScrollbar', background=theme_button, arrowcolor='black', troughcolor=theme_inputcolor)
+style.configure('TScrollbar', background=theme_fgcolor, arrowcolor='black', troughcolor=theme_inputcolor)
 style.configure('TProgressbar', thickness=4, background='DarkGreen')
 
 ## Main Window Layout
 ### Top part of the window
 title_frame = ttk.Frame(main_window)
 title_frame.pack(padx=14, pady=8, fill='x')
-VLEAPP_logo = ImageTk.PhotoImage(file=resource_path("VLEAPP_logo.png"))
-VLEAPP_logo_label = ttk.Label(title_frame, image=VLEAPP_logo)
-VLEAPP_logo_label.pack(side='left')
+ileapp_logo = ImageTk.PhotoImage(file=resource_path("iLEAPP_logo.png"))
+ileapp_logo_label = ttk.Label(title_frame, image=ileapp_logo)
+ileapp_logo_label.pack(side='left')
 
 settings_icon = ImageTk.PhotoImage(Image.open(resource_path("settings.png")).resize((32, 32)))
 settings_label = ttk.Label(title_frame, image=settings_icon, cursor="hand2")
 settings_label.pack(side='right', padx=(10, 0))
 settings_label.bind("<Button-1>", lambda e: open_settings_window())
 
-leapps_logo = ImageTk.PhotoImage(Image.open(resource_path("leapps_v_logo.png")).resize((110, 51)))
+leapps_logo = ImageTk.PhotoImage(Image.open(resource_path("leapps_i_logo.png")).resize((110, 51)))
 leapps_logo_label = ttk.Label(title_frame, image=leapps_logo, cursor="target")
 leapps_logo_label.pack(side='right')
 leapps_logo_label.bind("<Button-1>", lambda e: open_website("https://leapps.org"))
@@ -833,7 +865,7 @@ leapps_logo_label.bind("<Button-1>", lambda e: open_website("https://leapps.org"
 ### Input output selection
 input_frame = ttk.LabelFrame(
     main_window,
-    text=' Select the file (tar/zip/gz) or directory containing the data to be parsed: ')
+    text=' Select the file (tar/zip/gz) or directory of the target iOS full file system extraction for parsing: ')
 input_frame.pack(padx=14, pady=2, fill='x')
 input_entry = ttk.Entry(input_frame)
 input_entry.pack(side='left', padx=5, pady=4, fill='x', expand=True)
@@ -933,7 +965,7 @@ get_selected_modules()
 #### Logs
 logtext_frame = ttk.Frame(main_window, name='logs_frame')
 log_text = tk.Text(
-    logtext_frame, name='log_text', bg=theme_inputcolor, fg='black', highlightthickness=1)
+    logtext_frame, name='log_text', bg=theme_inputcolor, fg=theme_fgcolor, highlightthickness=1)
 log_text.pack(expand=True, fill='both')
 log_text_scrollbar = ttk.Scrollbar(logtext_frame, orient='vertical', command=log_text.yview)
 log_text.config(yscrollcommand=log_text_scrollbar.set)
@@ -953,8 +985,8 @@ def geometry_offset(value):
     return f'+{value}' if value >= 0 else str(value)
 
 def center_main_window_macos(window, width, height):
-    """
-    MacOS: Determine full desktop dimensions and which monitor the mouse is on,
+    """ 
+    MacOS: Determine full desktop dimensions and which monitor the mouse is on, 
     then center the window within those specific monitor boundaries.
     """
     window.update_idletasks()
