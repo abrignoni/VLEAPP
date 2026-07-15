@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "BT_Device_History": {
+    "get_bt_device_hist": {
         "name": "BT Device History",
         "description": "Bluetooth connect/disconnect history from a Ford smartdevicelink.log.",
         "author": "@JaysonU25",
@@ -13,7 +13,6 @@ __artifacts_v2__ = {
         "paths": ('*/*smartdevicelink.log',),
         "output_types": "standard",
         "artifact_icon": "bluetooth",
-        "function": "get_bt_device_hist",
     }
 }
 

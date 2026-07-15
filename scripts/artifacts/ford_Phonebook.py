@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "Phonebook_contacts": {
+    "get_PhoneBook": {
         "name": "Phonebook Contacts",
         "description": "Phonebook contacts (name + number list) from Ford vehicles (BTPhonebook).",
         "author": "@JaysonU25",
@@ -13,7 +13,6 @@ __artifacts_v2__ = {
         "paths": ('*/BTPhonebook*',),
         "output_types": "standard",
         "artifact_icon": "phone",
-        "function": "get_PhoneBook",
     }
 }
 

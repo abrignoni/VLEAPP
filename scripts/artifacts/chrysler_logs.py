@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "Location_logs": {
+    "get_location_logs": {
         "name": "Location Logs",
         "description": "GPS location fixes (with accuracy, speed, course) parsed from Chrysler "
                        "JSR179 persistent logs.",
@@ -13,7 +13,6 @@ __artifacts_v2__ = {
         "paths": ('*/persistentLogs/*/Log*',),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'],
         "artifact_icon": "map-pin",
-        "function": "get_location_logs",
     }
 }
 

@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "Ford_Model": {
+    "get_Model": {
         "name": "Vehicle Model",
         "description": "Vehicle/head-unit model from a Ford bluetooth_v1.ddb.",
         "author": "@JaysonU25",
@@ -13,7 +13,6 @@ __artifacts_v2__ = {
         "paths": ('*/bluetooth_v1.ddb',),
         "output_types": "standard",
         "artifact_icon": "truck",
-        "function": "get_Model",
     }
 }
 

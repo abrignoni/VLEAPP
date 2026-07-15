@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "GPS_Speed_Data": {
+    "get_ford_gps_speed_data": {
         "name": "GPS Speed Data",
         "description": "Dead-reckoning speed/heading data from Ford fdp logs.",
         "author": "@JaysonU25",
@@ -13,7 +13,6 @@ __artifacts_v2__ = {
         "paths": ('*/*fdplog.np.txt*',),
         "output_types": "standard",
         "artifact_icon": "navigation",
-        "function": "get_ford_gps_speed_data",
     }
 }
 

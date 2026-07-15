@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "Device_Manager_Devices": {
+    "get_devices": {
         "name": "Device Manager Devices",
         "description": "Device manager history from Chrysler vehicles (DeviceManagerDeviceList "
                        "bz2-compressed sqlite).",
@@ -13,7 +13,6 @@ __artifacts_v2__ = {
         "paths": ('*/*DeviceManagerDeviceList.bz*',),
         "output_types": "standard",
         "artifact_icon": "smartphone",
-        "function": "get_devices",
     }
 }
 

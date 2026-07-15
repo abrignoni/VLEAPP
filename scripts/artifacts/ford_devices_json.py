@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "Devices_from_json": {
+    "get_devices_json": {
         "name": "Devices from json",
         "description": "Bluetooth devices (MAC, serial, name) from a Ford devices.json.",
         "author": "@JaysonU25",
@@ -12,7 +12,6 @@ __artifacts_v2__ = {
         "paths": ('*/devices.json',),
         "output_types": "standard",
         "artifact_icon": "smartphone",
-        "function": "get_devices",
     }
 }
 
@@ -20,7 +19,7 @@ from scripts.ilapfuncs import artifact_processor
 
 
 @artifact_processor
-def get_devices(context):
+def get_devices_json(context):
     data_list = []
     source_path = ''
     for file_found in context.get_files_found():
