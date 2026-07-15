@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "Vin_Number": {
+    "get_info": {
         "name": "VIN",
         "description": "Vehicle Identification Number(s) from a Ford vin.txt.",
         "author": "@JaysonU25",
@@ -13,7 +13,6 @@ __artifacts_v2__ = {
         "paths": ('*/vin.txt',),
         "output_types": "standard",
         "artifact_icon": "hash",
-        "function": "get_info",
     }
 }
 

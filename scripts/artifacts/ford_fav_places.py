@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "Favorite_Places": {
+    "get_fav_places": {
         "name": "Favorite places",
         "description": "Saved/recent navigation places (label, address, coordinates) from Ford "
                        "places storage.",
@@ -13,7 +13,6 @@ __artifacts_v2__ = {
         "paths": ('*/recents_storage', '*/favorites_storage'),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'],
         "artifact_icon": "map-pin",
-        "function": "get_fav_places",
     }
 }
 

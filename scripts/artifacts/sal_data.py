@@ -1,5 +1,5 @@
 __artifacts_v2__ = {
-    "Proj_Ctrl_Devices": {
+    "get_proj_ctrl_devices": {
         "name": "Chrysler - Proj Ctrl Devices",
         "description": "Device list (type, name, serial, BT MAC, port, attach count) from a "
                        "Chrysler sal_bkup/proj_ctrl SQLite database.",
@@ -13,7 +13,6 @@ __artifacts_v2__ = {
         "paths": ('*/sal_bkup/proj_ctrl',),
         "output_types": "standard",
         "artifact_icon": "list",
-        "function": "get_proj_ctrl_devices",
     }
 }
 
