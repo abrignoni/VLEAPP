@@ -16,7 +16,7 @@ __artifacts_v2__ = {
     }
 }
 
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 
 from scripts.ilapfuncs import artifact_processor
 
