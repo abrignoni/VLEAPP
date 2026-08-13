@@ -64,5 +64,5 @@ app = BUNDLE(
     name='vleappGUI.app',
     icon='../../assets/icon.icns',
     bundle_identifier='4n6.brigs.VLEAPP',
-    version='2026.2.0',
+    version='2026.3.0',
 )
