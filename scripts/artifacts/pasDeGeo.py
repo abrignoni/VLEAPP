@@ -68,14 +68,16 @@ __artifacts_v2__ = {
 
 import os
 import re
+import gzip
 from datetime import datetime, timezone
 
 from scripts.ilapfuncs import artifact_processor, logdevinfo
 
 _NUM = r"([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?"
-_RE = {k: re.compile(f"({label} {_NUM})") for k, label in (
-    ('lon1', 'Longitude = '), ('lat1', 'Latitude ='), ('alt1', 'Altitude ='),
-    ('lon2', 'Lon = '), ('lat2', 'Lat ='), ('alt2', 'Alt ='), ('head', 'Heading ='))}
+_RE = {k: re.compile(f"({label}\\s*{_NUM})", re.IGNORECASE) for k, label in (
+    ('lon1', 'Longitude ='), ('lat1', 'Latitude ='), ('alt1', 'Altitude ='),
+    ('lon2', 'Lon ='), ('lat2', 'Lat ='), ('alt2', 'Alt ='), ('head', 'Heading ='),
+    ('lon3', 'lon:'), ('lat3', 'lat:'), ('alt3', 'alt:'), ('head3', 'hd:'))}
 
 
 def timeorder(line):
@@ -105,75 +107,96 @@ def _parse(context):
     source_path = ''
     for file_found in context.get_files_found():
         file_found = str(file_found)
+
+        if not os.path.isfile(file_found):
+            continue
+
         source_path = file_found
         basename = os.path.basename(file_found)
         bssid, ts_link = '', ''
-        with open(file_found, 'r', encoding='cp437') as f:
-            for line in f:
-                try:
-                    if 'NAV_FRAMEWORK_IF' in line and 'dev_loc_results' in line \
-                            and 'ERROR  RPT!!!' not in line:
-                        if 'Longitude =' in line:
-                            lat, lon, alt = _RE['lat1'].search(line), _RE['lon1'].search(line), \
-                                _RE['alt1'].search(line)
-                        elif 'Lon =' in line:
-                            lat, lon, alt = _RE['lat2'].search(line), _RE['lon2'].search(line), \
-                                _RE['alt2'].search(line)
-                        else:
-                            lat = lon = alt = None
-                        if lat and lon:
-                            sect['dev'].append((_ts(timeorder(line)), _val(lat), _val(lon),
-                                                _val(alt), _val(_RE['head'].search(line)),
-                                                'NAV_FRAMEWORK_IF', 'dev_loc_results', basename))
-                    if 'Speed limit' in line:
-                        parts = line.split(',')
-                        street = parts[-2].split(':')[-1].replace('[', '').replace(']', '').strip()
-                        limit = parts[-1].split(':')[-1].replace('[', '').replace(']', '').strip()
-                        if street:
-                            sect['speed'].append((_ts(timeorder(line)), street, limit, basename))
-                    if 'WIFI_MID' in line:
-                        if 'Extracted BSSID' in line:
-                            bssid = line.split('=')[-1].strip()
-                        if 'SSID:' in line:
-                            parts = line.split(';')
-                            ssid = parts[0].split(':')[-1].strip()
-                            signal = parts[-1].split(',')[-1].split(':')[-1].strip()
-                            sect['apinfo'].append((_ts(timeorder(line)), bssid, ssid, signal,
-                                                   basename))
-                    if 'QT_HMI' in line:
-                        last = line.strip().split(' ')[-1].replace('"', '').strip()
-                        if 'VehicleSpeed' in line:
-                            sect['vspeed'].append((_ts(timeorder(line)), last, basename))
-                        if 'TransmissionStatus' in line:
-                            sect['transm'].append((_ts(timeorder(line)), last, basename))
-                        if 'General_Temperature_Unit_INT' in line:
-                            sect['outtemp'].append((_ts(timeorder(line)), f'Temp. Unit: {last}',
-                                                    basename))
-                        if 'OutsideAirTemperature_E_FLT' in line:
-                            sect['outtemp'].append((_ts(timeorder(line)), last, basename))
-                    if 'USBUPDT_MID' in line and '=Line read is Version Number =' in line:
-                        ver = line.strip().split('=')[-1].strip()
-                        if ver and ver not in platforms:
-                            platforms.append(ver)
-                    if 'CAppLinkService' in line:
-                        ts_link = _ts(timeorder(line))
-                    if 'odometer' in line:
-                        sect['odometer'].append((ts_link, line.strip().split(':')[-1].strip(),
-                                                 basename))
-                    if '"vin" :' in line:
-                        vin = line.strip().split(':')[-1].strip().replace('"', '')
-                        if vin and vin not in vins:
-                            vins.append(vin)
-                    if 'VIN got from GGC' in line:
-                        vin = line.strip().split('=')[-1].strip()
-                        if vin and vin not in vins:
-                            vins.append(vin)
-                    if '"make"' in line:
-                        make = line.strip().split(':')[-1].strip().replace('"', '')
-                    if '"model"' in line:
-                        model = line.strip().split(':')[-1].strip().replace('"', '')
-                except (IndexError, ValueError, TypeError):
-                    continue
+
+        try:
+            if file_found.lower().endswith('.gz'):
+                opener = gzip.open
+                mode = 'rt'
+            else:
+                opener = open
+                mode = 'r'
+
+            with opener(file_found, mode, encoding='cp437') as f:
+                for line in f:
+                    try:
+                        if 'NAV_FRAMEWORK_IF' in line and 'dev_loc_results' in line \
+                                and 'ERROR  RPT!!!' not in line:
+                            if 'Longitude =' in line:
+                                lat, lon, alt = _RE['lat1'].search(line), _RE['lon1'].search(line), \
+                                    _RE['alt1'].search(line)
+                                head_match = _RE['head'].search(line)
+                            elif 'Lon =' in line:
+                                lat, lon, alt = _RE['lat2'].search(line), _RE['lon2'].search(line), \
+                                    _RE['alt2'].search(line)
+                                head_match = _RE['head'].search(line)
+                            elif 'lon:' in line.lower() or 'lat:' in line.lower():
+                                lat, lon, alt = _RE['lat3'].search(line), _RE['lon3'].search(line), \
+                                    _RE['alt3'].search(line)
+                                head_match = _RE['head3'].search(line)
+                            else:
+                                lat = lon = alt = head_match = None
+                            if lat and lon:
+                                sect['dev'].append((_ts(timeorder(line)), _val(lat), _val(lon),
+                                                    _val(alt), _val(head_match),
+                                                    'NAV_FRAMEWORK_IF', 'dev_loc_results', basename))
+                        if 'Speed limit' in line:
+                            parts = line.split(',')
+                            street = parts[-2].split(':')[-1].replace('[', '').replace(']', '').strip()
+                            limit = parts[-1].split(':')[-1].replace('[', '').replace(']', '').strip()
+                            if street:
+                                sect['speed'].append((_ts(timeorder(line)), street, limit, basename))
+                        if 'WIFI_MID' in line:
+                            if 'Extracted BSSID' in line:
+                                bssid = line.split('=')[-1].strip()
+                            if 'SSID:' in line:
+                                parts = line.split(';')
+                                ssid = parts[0].split(':')[-1].strip()
+                                signal = parts[-1].split(',')[-1].split(':')[-1].strip()
+                                sect['apinfo'].append((_ts(timeorder(line)), bssid, ssid, signal,
+                                                       basename))
+                        if 'QT_HMI' in line:
+                            last = line.strip().split(' ')[-1].replace('"', '').strip()
+                            if 'VehicleSpeed' in line:
+                                sect['vspeed'].append((_ts(timeorder(line)), last, basename))
+                            if 'TransmissionStatus' in line:
+                                sect['transm'].append((_ts(timeorder(line)), last, basename))
+                            if 'General_Temperature_Unit_INT' in line:
+                                sect['outtemp'].append((_ts(timeorder(line)), f'Temp. Unit: {last}',
+                                                        basename))
+                            if 'OutsideAirTemperature_E_FLT' in line:
+                                sect['outtemp'].append((_ts(timeorder(line)), last, basename))
+                        if 'USBUPDT_MID' in line and '=Line read is Version Number =' in line:
+                            ver = line.strip().split('=')[-1].strip()
+                            if ver and ver not in platforms:
+                                platforms.append(ver)
+                        if 'CAppLinkService' in line:
+                            ts_link = _ts(timeorder(line))
+                        if 'odometer' in line:
+                            sect['odometer'].append((ts_link, line.strip().split(':')[-1].strip(),
+                                                     basename))
+                        if '"vin" :' in line:
+                            vin = line.strip().split(':')[-1].strip().replace('"', '')
+                            if vin and vin not in vins:
+                                vins.append(vin)
+                        if 'VIN got from GGC' in line:
+                            vin = line.strip().split('=')[-1].strip()
+                            if vin and vin not in vins:
+                                vins.append(vin)
+                        if '"make"' in line:
+                            make = line.strip().split(':')[-1].strip().replace('"', '')
+                        if '"model"' in line:
+                            model = line.strip().split(':')[-1].strip().replace('"', '')
+                    except (IndexError, ValueError, TypeError):
+                        continue
+        except (OSError, PermissionError, UnicodeError):
+            continue
 
     if make:
         sect['vehicle'].append(('Make', make))
