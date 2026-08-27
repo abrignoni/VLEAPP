@@ -17,6 +17,9 @@ on:
       - 'vleapp.py'
       - 'vleappGUI.py'
 
+permissions:
+  contents: read
+
 jobs:
   runtime-contract:
     runs-on: ubuntu-latest
