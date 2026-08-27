@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "Time Stamp normalized to UTC where parseable; unparseable values kept as stored. "
-                 "(These records carry speed/heading but no latitude/longitude, so there is no map.)",
+                 "These dead reckoning records carry speed and heading and no latitude or longitude, so this artifact has no map. Other lines in the same log do carry coordinates and are read by the positioning log artifact.",
         "paths": ('*/*fdplog.np.txt*',),
         "output_types": "standard",
         "artifact_icon": "navigation",
