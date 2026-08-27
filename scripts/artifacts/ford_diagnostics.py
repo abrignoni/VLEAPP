@@ -43,7 +43,9 @@ __artifacts_v2__ = {
                  "and is reported as stored. boot_count is the unit's own counter and is "
                  "useful as a sequence: on the tested image 281 errors spanned boot counts "
                  "736 to 775 over six days, so the counter advances with power cycles, but "
-                 "what exactly increments it is not established here. error_code is an "
+                 "what exactly increments it is not established here. That range falls "
+                 "inside the 677 to 776 window the unit's reset-history.txt records, so the "
+                 "two stores can be read against each other. error_code is an "
                  "undocumented integer, reported as stored.",
         "paths": ('*/diagnostics/db/diagnostics_slave.sqlite*',),
         "sample_data": {
@@ -52,13 +54,42 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "alert-triangle",
     },
+    "ford_diag_identifiers": {
+        "name": "Diagnostic Identifiers",
+        "description": "Identifier values the head unit stored beside its diagnostics "
+                       "configuration, reported as stored.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-08-27",
+        "last_update_date": "2026-08-27",
+        "requirements": "none",
+        "category": "Ford Vehicles",
+        "notes": "Each file holds a single 64 character hexadecimal value on one line, and "
+                 "the file name is the unit's own name for it. A 64 character hex string is "
+                 "the length a SHA-256 digest prints to, but what was hashed is not "
+                 "established here: the VIN in the same folder was tested as a preimage in "
+                 "several spellings and did not match any of the three, so no derivation is "
+                 "asserted and the values are reported as stored. On the tested image the "
+                 "three values were distinct from one another. The VIN itself is covered "
+                 "separately by the artifact reading vin.txt, so these are an independent "
+                 "identity record rather than a restatement of it.",
+        "paths": ('*/diagnostics/*_id.txt',),
+        "sample_data": {
+            "ford_syncg4_logical": "Ford Sync G4 | 3 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "hash",
+    },
 }
 
 import re
 from datetime import datetime, timezone
 
+import os
+
 from scripts.ilapfuncs import (artifact_processor, convert_unix_ts_to_utc,
-                               get_file_path, open_sqlite_db_readonly)
+                               get_file_path, logdevinfo,
+                               open_sqlite_db_readonly)
 
 
 def _parse_ctime_string(value):
@@ -135,3 +166,28 @@ def ford_diag_upload_errors(context):
                     'Error Code (as stored)', 'Error Text', 'Duration (seconds)',
                     'Transmitter', 'Wakelock', 'Event ID', 'Source File')
     return data_headers, data_list, context.get_relative_path(source_path)
+
+
+@artifact_processor
+def ford_diag_identifiers(context):
+    data_list = []
+    source_paths = []
+    for file_found in context.get_files_found():
+        file_found = str(file_found)
+        if os.path.isdir(file_found):
+            continue
+        try:
+            with open(file_found, 'r', encoding='utf-8', errors='replace') as handle:
+                value = handle.read(4096).strip()
+        except OSError:
+            continue
+        if not value:
+            continue
+        key = os.path.basename(file_found)
+        source_paths.append(file_found)
+        data_list.append((key, value, len(value),
+                          context.get_relative_path(file_found)))
+        logdevinfo(f"Ford diagnostic identifier {key}: {value}")
+
+    data_headers = ('File', 'Stored Value', 'Length', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
