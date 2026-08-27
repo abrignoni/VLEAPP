@@ -1,7 +1,23 @@
 # pylint: skip-file
+#
+# Vendored from CCL Forensics. ArtifactLocationProtocol is defined inline here
+# rather than imported from the upstream package, so this repo carries no
+# dependency on ccl_chromium_reader being installed.
 import typing
 
-from ccl_chromium_reader.profile_folder_protocols import ArtifactLocationProtocol
+
+class ArtifactLocationProtocol(typing.Protocol):
+    @property
+    def source_file(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def offset(self) -> typing.Optional[int]:
+        raise NotImplementedError()
+
+    @property
+    def friendly_string(self) -> str:
+        raise NotImplementedError()
 
 
 class ArtifactLocation(ArtifactLocationProtocol):
