@@ -39,10 +39,14 @@ __artifacts_v2__ = {
         "category": "BMW Vehicles",
         "notes": "Values are reported as stored. The file name is the application's own key "
                  "name; no meaning beyond that is asserted here. lastUserLoggedIn and "
-                 "lastAvailableUsername held the same 20 character value on the tested image, "
-                 "which is one observation and not a rule. This store sits beside an "
+                 "lastAvailableUsername held the same 20 character value on the tested "
+                 "image, which is one observation and not a rule. This store sits beside an "
                  "eCryptfs-encrypted subtree on the same volume, so an extraction of this "
-                 "volume may be only partly readable.",
+                 "volume may be only partly readable. The store sits under a directory named "
+                 "golden_package, which reads like a shipped default set, but on the tested "
+                 "image it is the only copy of this store present and its values are device "
+                 "specific, so the name should not be taken to mean the contents are factory "
+                 "defaults.",
         "paths": ('*/data_localStorage/private/shared/lastUserLoggedIn',
                   '*/data_localStorage/private/shared/lastAvailableUsername',
                   '*/data_localStorage/private/shared/LastEpisodeDownloadUser',
