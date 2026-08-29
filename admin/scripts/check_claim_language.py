@@ -180,7 +180,9 @@ CHECKED_FIELDS = {
     'notes': NOTES_PATTERN,
 }
 
-# Reviewed exceptions, keyed by (filename, artifact_key, field). Every entry
+# Reviewed exceptions, as (filename, artifact_key, field, term). Each needs a
+# reason. The term is part of the key, so an entry silences the one word it was
+# granted for and never the next claim added to the same text.
 # needs a comment justifying it. See the module docstring before adding one.
 #
 # Empty on purpose: at the time this check landed, no artifact module in this
@@ -189,6 +191,15 @@ CHECKED_FIELDS = {
 # the match is genuinely a product name, a verbatim schema value, a UI path, or
 # part of a hedge, and say which in the comment.
 ALLOWLIST = set()
+
+def unallowlisted(filename, artifact_key, field, terms):
+    """The terms no ALLOWLIST entry covers for this field.
+
+    An entry is keyed on the term it was granted for, so allowlisting one word does
+    not pre-approve the next claim somebody adds to the same text.
+    """
+    return [term for term in terms
+            if (filename, str(artifact_key), field, term) not in ALLOWLIST]
 
 STANDARD_NOTE = (
     'Artifact name/description reach the examiner through the HTML report and the LAVA\n'
@@ -352,7 +363,7 @@ def main():
         print(f'Stale ALLOWLIST entr(ies) ({len(stale)}) -- these no longer match '
               f'anything and should be deleted:')
         for entry in stale:
-            print(f'  {entry[0]}:{entry[1]}:{entry[2]}')
+            print(f'  {entry[0]}:{entry[1]}:{entry[2]}  [{entry[3]}]')
         print()
 
     if args.list_all and allowlisted:
