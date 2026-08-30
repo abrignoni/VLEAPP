@@ -43,7 +43,17 @@ __artifacts_v2__ = {
                  "Module, Driver and Collection Date each hold one value when a "
                  "collection covers one module, and VIN was empty on the tested "
                  "export because iVe carries the field but it was not populated "
-                 "there, which is worth showing rather than hiding.",
+                 "there, which is worth showing rather than hiding. Note what the "
+                 "unwrapped export does and does not give you: iVe carries both the raw "
+                 "image and the file set it extracted from the head unit's filesystems, "
+                 "and VLEAPP reads only the extracted files. On the tested export those "
+                 "filesystems are QNX6, which no filesystem type Sleuth Kit supports can "
+                 "walk, so the raw image is not reachable with that tooling. It is "
+                 "reachable with qnxprobe, which reads QNX6 superblocks directly and "
+                 "writes the logical files to a zip; on the tested export that route "
+                 "produced the same rows from the same bytes, and it also surfaced a "
+                 "fourth QNX6 volume that the export did not carry extracted files "
+                 "for.",
         "paths": ('*/Vehicle.json',),
         "sample_data": {
             "adams_ford_syncgen3_iva": "Berla iVe export, Ford Sync Gen3 | 4 rows",

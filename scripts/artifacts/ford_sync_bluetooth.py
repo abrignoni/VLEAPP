@@ -30,7 +30,16 @@ __artifacts_v2__ = {
                  "unit downloaded over Bluetooth; it does not establish that any number was "
                  "dialled or that the handset owner was present. TelType is not surfaced "
                  "because nothing available here documents its values. The store carries no "
-                 "write-ahead log or journal on the tested unit.",
+                 "write-ahead log or journal on the tested unit. Where the input came "
+                 "from a Berla iVe export, these rows are read from the file set iVe "
+                 "extracted from the head unit's QNX6 volumes, not from the raw image "
+                 "the export also carries. The values themselves are the unit's own "
+                 "rather than iVe's parse of them. That route is not the only one: "
+                 "these same rows were reproduced from the raw image directly, by "
+                 "extracting its QNX6 volumes with qnxprobe and running this module "
+                 "against that output. Both paths gave 507 contacts, 126 calls and 2 "
+                 "paired devices, and the two stores were byte-identical by SHA-256, so "
+                 "neither extraction is a bottleneck for what these artifacts report.",
         "paths": ('*/BT/btpbk*',),
         "sample_data": {
             "adams_ford_syncgen3": "Ford Sync Gen3 | 507 rows",
