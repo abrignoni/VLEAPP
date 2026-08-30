@@ -201,6 +201,13 @@ def scroll(event):
     parent.event_generate('<MouseWheel>', delta=event.delta, when='now')
 
 
+# Extensions conventionally given to a raw disk image. Everything a raw image
+# run needs is decided by reading the image, so this list only has to get the
+# file past type selection; an image named anything else is still reachable
+# from the command line with -t raw.
+RAW_IMAGE_SUFFIXES = ('img', 'bin', 'dd', 'raw')
+
+
 def ValidateInput():
     '''Returns tuple (success, extraction_type)'''
     i_path = input_entry.get()  # input file/folder
@@ -218,6 +225,12 @@ def ValidateInput():
         ext_type = 'fs'
     else:
         ext_type = Path(i_path).suffix[1:].lower()
+        # A raw disk image has no type of its own, only a conventional extension,
+        # so the suffix taken literally ('img', 'bin') matches no branch in
+        # crunch_artifacts and the run stops with nothing parsed. Map the
+        # conventional ones onto the input type that reads them.
+        if ext_type in RAW_IMAGE_SUFFIXES:
+            ext_type = 'raw'
 
     # check output now
     if len(o_path) == 0:  # output path
@@ -561,9 +574,11 @@ def select_input(button_type):
     if button_type == 'file':
         input_filename = tk_filedialog.askopenfilename(parent=main_window,
                                                        title='Select a file',
-                                                       filetypes=(('All supported files', '*.tar *.zip *.gz'),
+                                                       filetypes=(('All supported files',
+                                                                   '*.tar *.zip *.gz *.img *.bin *.dd *.raw'),
                                                                   ('tar file', '*.tar'), ('zip file', '*.zip'),
-                                                                  ('gz file', '*.gz')))
+                                                                  ('gz file', '*.gz'),
+                                                                  ('raw disk image', '*.img *.bin *.dd *.raw')))
     else:
         input_filename = tk_filedialog.askdirectory(parent=main_window, title='Select a folder')
     input_entry.delete(0, 'end')
