@@ -1,0 +1,17 @@
+{
+  "vendored": [
+    {
+      "path": "scripts/vendor/qnxprobe.py",
+      "name": "qnxprobe",
+      "version": "1.3",
+      "upstream": "https://github.com/abrignoni/qnxprobe",
+      "upstream_file": "qnxprobe.py",
+      "commit": "3c3259a3f89a953af156eddbd0727313ccf8281f",
+      "commit_date": "2026-08-27T02:27:13-05:00",
+      "sha256": "9f163a18db2c7b2f66cf6be09a8c6a260ead4d993f0311c56ee55945dfe0863c",
+      "licence": "MIT",
+      "licence_file": "scripts/vendor/LICENSE-qnxprobe",
+      "note": "Copied verbatim. Fix upstream and re-vendor; edits here are reverted by the next sync."
+    }
+  ]
+}
