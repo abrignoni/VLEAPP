@@ -22,8 +22,12 @@ Functions:
 
 import time as timex
 import os
+import shutil
+import subprocess
+import sys
 import tarfile
 import struct
+import tempfile
 
 from pathlib import Path
 from scripts.ilapfuncs import *
@@ -499,6 +503,68 @@ class FileSeekerZip(FileSeekerBase):
 
     def cleanup(self):
         self.zip_file.close()
+
+
+class FileSeekerRaw(FileSeekerZip):
+    """Read a raw disk image by extracting its volumes to a zip first.
+
+    Vehicle head units run QNX6 and ext filesystems. Neither mounts here without
+    administrator rights, and no filesystem type The Sleuth Kit supports can walk
+    QNX6 at all, so a raw head unit image is otherwise unreadable by this tool.
+    scripts/vendor/qnxprobe.py reads both directly from the image.
+
+    Working out which partitions hold which filesystem, and which superblock
+    generation is the current one, happens inside qnxprobe's own command line flow
+    rather than behind a callable seam. Reimplementing that here would duplicate
+    logic that then drifts from the vendored copy, which is the thing vendoring
+    with a hash guard exists to prevent. So this runs the vendored tool to produce
+    a zip of the logical files and then behaves exactly like a zip input, which
+    keeps every staging and matching decision on the path the zip seeker already
+    exercises on every run.
+
+    The zip is written to a temporary directory and removed by cleanup(). An
+    examiner who wants to keep it, which is worth doing for a large image because
+    the extraction is the slow part, should run the vendored script directly:
+
+        python3 scripts/vendor/qnxprobe.py --extract volumes.zip IMAGE
+        python3 vleapp.py -t zip -i volumes.zip -o REPORT
+    """
+
+    def __init__(self, image_path, data_folder, exclude=None):
+        self._stage_dir = tempfile.mkdtemp(prefix='vleapp_raw_')
+        staged_zip = os.path.join(self._stage_dir, 'qnx_volumes.zip')
+        probe = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'vendor', 'qnxprobe.py')
+        if not os.path.isfile(probe):
+            raise FileNotFoundError(
+                f'the vendored reader is missing: {probe}. Raw image input needs '
+                'scripts/vendor/qnxprobe.py.')
+
+        cmd = [sys.executable, probe, '--extract', staged_zip]
+        for text in (exclude or ()):
+            cmd += ['--exclude', text]
+        cmd.append(image_path)
+
+        logfunc(f'Reading volumes out of {os.path.basename(image_path)} with the '
+                f'vendored qnxprobe. This is the slow part of a raw image run.')
+        completed = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        for line in (completed.stdout or '').splitlines():
+            # The tool prints the partition table, every filesystem it confirmed and
+            # what it extracted. That belongs in the run log: it is the record of
+            # which volumes the rows below came from.
+            if line.strip():
+                logfunc(line.rstrip())
+        if completed.returncode != 0 or not os.path.isfile(staged_zip):
+            detail = (completed.stderr or '').strip() or 'no error text'
+            raise RuntimeError(
+                f'qnxprobe could not extract any filesystem from {image_path}. '
+                f'Exit {completed.returncode}: {detail}')
+
+        FileSeekerZip.__init__(self, staged_zip, data_folder)
+
+    def cleanup(self):
+        FileSeekerZip.cleanup(self)
+        shutil.rmtree(getattr(self, '_stage_dir', ''), ignore_errors=True)
 
 
 class FileSeekerFile(FileSeekerBase):
