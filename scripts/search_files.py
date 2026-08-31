@@ -637,16 +637,25 @@ class FileSeekerRaw(FileSeekerZip):
 
     def __init__(self, image_path, data_folder, exclude=None):
         self._stage_dir = tempfile.mkdtemp(prefix='vleapp_raw_')
-        staged_zip = os.path.join(self._stage_dir, 'qnx_volumes.zip')
-        probe = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             'vendor', 'qnxprobe.py')
-        if not os.path.isfile(probe):
-            raise FileNotFoundError(
-                f'the vendored reader is missing: {probe}. Raw image input needs '
-                'scripts/vendor/qnxprobe.py.')
+        staged = False
+        try:
+            staged_zip = os.path.join(self._stage_dir, 'qnx_volumes.zip')
+            probe = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 'vendor', 'qnxprobe.py')
+            if not os.path.isfile(probe):
+                raise FileNotFoundError(
+                    f'the vendored reader is missing: {probe}. Raw image input needs '
+                    'scripts/vendor/qnxprobe.py.')
 
-        _extract_image_volumes(probe, image_path, staged_zip, exclude)
-        FileSeekerZip.__init__(self, staged_zip, data_folder)
+            _extract_image_volumes(probe, image_path, staged_zip, exclude)
+            FileSeekerZip.__init__(self, staged_zip, data_folder)
+            staged = True
+        finally:
+            # A failed or interrupted (Ctrl-C on a slow run) __init__ after mkdtemp
+            # never binds an object for cleanup() to reach, so remove the staging
+            # dir here; a successful build keeps it for cleanup() at end of run.
+            if not staged:
+                shutil.rmtree(self._stage_dir, ignore_errors=True)
 
     def cleanup(self):
         FileSeekerZip.cleanup(self)
@@ -681,72 +690,81 @@ class FileSeekerIva(FileSeekerZip):
 
     def __init__(self, iva_path, data_folder, exclude=None):
         self._stage_dir = tempfile.mkdtemp(prefix='vleapp_iva_')
-        probe = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             'vendor', 'qnxprobe.py')
-        if not os.path.isfile(probe):
-            raise FileNotFoundError(
-                f'the vendored reader is missing: {probe}. .iVa input needs '
-                'scripts/vendor/qnxprobe.py.')
+        staged = False
+        try:
+            probe = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 'vendor', 'qnxprobe.py')
+            if not os.path.isfile(probe):
+                raise FileNotFoundError(
+                    f'the vendored reader is missing: {probe}. .iVa input needs '
+                    'scripts/vendor/qnxprobe.py.')
 
-        vehicle_json = None
-        with ZipFile(iva_path) as outer:
-            names = outer.namelist()
-            if 'Vehicle.json' in names:
-                vehicle_json = outer.read('Vehicle.json')
-            else:
-                logfunc('This .iVa carries no Vehicle.json, so no acquisition '
-                        'record will be reported for it.')
-            inner_names = [n for n in names if n.lower().endswith('.zip')]
-            if not inner_names:
-                raise RuntimeError(
-                    f'{os.path.basename(iva_path)} holds no inner zip, so it '
-                    'does not look like an iVe export.')
-            inner_path = os.path.join(self._stage_dir, 'inner.zip')
-            logfunc(f'Unpacking {os.path.basename(iva_path)}: '
-                    f'{inner_names[0]} ...')
-            with outer.open(inner_names[0]) as src, open(inner_path, 'wb') as dst:
-                copyfileobj(src, dst, 16 << 20)
-
-        with ZipFile(inner_path) as inner:
-            if self.SOURCE_FILES_MEMBER not in inner.namelist():
-                raise RuntimeError(
-                    f'{inner_names[0]} carries no {self.SOURCE_FILES_MEMBER}; '
-                    'this export does not include the vehicle source files.')
-            source_zip = os.path.join(self._stage_dir, self.SOURCE_FILES_MEMBER)
-            logfunc(f'Unpacking {self.SOURCE_FILES_MEMBER} ...')
-            with inner.open(self.SOURCE_FILES_MEMBER) as src, \
-                    open(source_zip, 'wb') as dst:
-                copyfileobj(src, dst, 16 << 20)
-        os.remove(inner_path)
-
-        with ZipFile(source_zip) as source:
-            images = [n for n in source.namelist()
-                      if n.startswith('DiskImages/')
-                      and n.lower().endswith(('.img', '.bin', '.dd', '.raw'))]
-            image_path = None
-            if images:
-                image_path = os.path.join(self._stage_dir,
-                                          os.path.basename(images[0]))
-                logfunc(f'The export carries a raw image, {images[0]}; reading '
-                        'the vehicle data from the image itself.')
-                with source.open(images[0]) as src, open(image_path, 'wb') as dst:
+            vehicle_json = None
+            with ZipFile(iva_path) as outer:
+                names = outer.namelist()
+                if 'Vehicle.json' in names:
+                    vehicle_json = outer.read('Vehicle.json')
+                else:
+                    logfunc('This .iVa carries no Vehicle.json, so no acquisition '
+                            'record will be reported for it.')
+                inner_names = [n for n in names if n.lower().endswith('.zip')]
+                if not inner_names:
+                    raise RuntimeError(
+                        f'{os.path.basename(iva_path)} holds no inner zip, so it '
+                        'does not look like an iVe export.')
+                inner_path = os.path.join(self._stage_dir, 'inner.zip')
+                logfunc(f'Unpacking {os.path.basename(iva_path)}: '
+                        f'{inner_names[0]} ...')
+                with outer.open(inner_names[0]) as src, open(inner_path, 'wb') as dst:
                     copyfileobj(src, dst, 16 << 20)
 
-        staged_zip = os.path.join(self._stage_dir, 'iva_volumes.zip')
-        if image_path is not None:
-            _extract_image_volumes(probe, image_path, staged_zip, exclude)
-            os.remove(image_path)
-            os.remove(source_zip)
-        else:
-            logfunc('The export carries no raw image; using the file set iVe '
-                    'extracted.')
-            staged_zip = source_zip
+            with ZipFile(inner_path) as inner:
+                if self.SOURCE_FILES_MEMBER not in inner.namelist():
+                    raise RuntimeError(
+                        f'{inner_names[0]} carries no {self.SOURCE_FILES_MEMBER}; '
+                        'this export does not include the vehicle source files.')
+                source_zip = os.path.join(self._stage_dir, self.SOURCE_FILES_MEMBER)
+                logfunc(f'Unpacking {self.SOURCE_FILES_MEMBER} ...')
+                with inner.open(self.SOURCE_FILES_MEMBER) as src, \
+                        open(source_zip, 'wb') as dst:
+                    copyfileobj(src, dst, 16 << 20)
+            os.remove(inner_path)
 
-        if vehicle_json is not None:
-            with ZipFile(staged_zip, 'a') as add:
-                add.writestr('Vehicle.json', vehicle_json)
+            with ZipFile(source_zip) as source:
+                images = [n for n in source.namelist()
+                          if n.startswith('DiskImages/')
+                          and n.lower().endswith(('.img', '.bin', '.dd', '.raw'))]
+                image_path = None
+                if images:
+                    image_path = os.path.join(self._stage_dir,
+                                              os.path.basename(images[0]))
+                    logfunc(f'The export carries a raw image, {images[0]}; reading '
+                            'the vehicle data from the image itself.')
+                    with source.open(images[0]) as src, open(image_path, 'wb') as dst:
+                        copyfileobj(src, dst, 16 << 20)
 
-        FileSeekerZip.__init__(self, staged_zip, data_folder)
+            staged_zip = os.path.join(self._stage_dir, 'iva_volumes.zip')
+            if image_path is not None:
+                _extract_image_volumes(probe, image_path, staged_zip, exclude)
+                os.remove(image_path)
+                os.remove(source_zip)
+            else:
+                logfunc('The export carries no raw image; using the file set iVe '
+                        'extracted.')
+                staged_zip = source_zip
+
+            if vehicle_json is not None:
+                with ZipFile(staged_zip, 'a') as add:
+                    add.writestr('Vehicle.json', vehicle_json)
+
+            FileSeekerZip.__init__(self, staged_zip, data_folder)
+            staged = True
+        finally:
+            # A failed or interrupted (Ctrl-C on a slow run) __init__ after mkdtemp
+            # never binds an object for cleanup() to reach, so remove the staging
+            # dir here; a successful build keeps it for cleanup() at end of run.
+            if not staged:
+                shutil.rmtree(self._stage_dir, ignore_errors=True)
 
     def cleanup(self):
         FileSeekerZip.cleanup(self)
