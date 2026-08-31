@@ -21,6 +21,7 @@ Functions:
 """
 
 import time as timex
+import json
 import os
 import shutil
 import subprocess
@@ -505,6 +506,66 @@ class FileSeekerZip(FileSeekerBase):
         self.zip_file.close()
 
 
+def _format_duration(seconds):
+    seconds = int(max(0, seconds))
+    return f'{seconds // 3600:02d}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}'
+
+
+class _RawExtractProgress:
+    """Throttled progress lines for a raw image extraction, through logfunc.
+
+    Reading the volumes out of a head unit image runs for minutes with no output
+    between "artifact started" and the first row, which reads as a hang. The
+    vendored reader emits one JSON object per line on stderr while it works; this
+    turns those into a line an examiner can read, at most every `interval`
+    seconds.
+
+    The counts are the reader's own and are exact, not estimated: it knows the
+    full entry list for a volume before it writes the first file. Percent is
+    per volume, because that is what the reader reports and what an examiner
+    watching a multi volume image wants to see move. Rate and elapsed are
+    cumulative across the run.
+
+    The line is kept short enough to fit the GUI log pane without widening it.
+    """
+
+    def __init__(self, interval=10.0, clock=None, log=None):
+        self.interval = interval
+        self.clock = clock or timex.monotonic
+        self.log = log or logfunc
+        self.started = self.clock()
+        self.last_report = self.started
+        self.done_bytes = 0          # completed volumes
+        self.volumes = 0
+
+    def update(self, event):
+        """One decoded progress object from the reader."""
+        volume = event.get('volume', '?')
+        files, total_files = event.get('files', 0), event.get('total_files', 0)
+        written, total_bytes = event.get('bytes', 0), event.get('total_bytes', 0)
+        complete = total_files and files >= total_files
+        now = self.clock()
+        if not complete and now - self.last_report < self.interval:
+            return
+        self.last_report = now
+        elapsed = now - self.started
+        overall = self.done_bytes + written
+        parts = [f'Reading volumes: {volume}',
+                 f'{files:,}/{total_files:,} files' if total_files else f'{files:,} files']
+        if total_bytes:
+            parts.append(f'{100.0 * written / total_bytes:.0f}%')
+        if elapsed > 0:
+            parts.append(f'{overall / elapsed / (1 << 20):.1f} MiB/s')
+        parts.append(f'elapsed {_format_duration(elapsed)}')
+        if total_bytes and 0 < written < total_bytes and elapsed > 0 and overall > 0:
+            remaining = (total_bytes - written) / (overall / elapsed)
+            parts.append(f'~{_format_duration(remaining)} left on this volume')
+        self.log('  ' + '  '.join(parts))
+        if complete:
+            self.done_bytes += written
+            self.volumes += 1
+
+
 class FileSeekerRaw(FileSeekerZip):
     """Read a raw disk image by extracting its volumes to a zip first.
 
@@ -540,25 +601,44 @@ class FileSeekerRaw(FileSeekerZip):
                 f'the vendored reader is missing: {probe}. Raw image input needs '
                 'scripts/vendor/qnxprobe.py.')
 
-        cmd = [sys.executable, probe, '--extract', staged_zip]
+        # -u so the reader's stdout is unbuffered and its report arrives while it
+        # works rather than in one block at the end. --progress puts machine
+        # readable progress on stderr; stderr is merged into stdout here and the
+        # two are told apart by the leading brace, which no report line has, so
+        # one stream is read and there is no second pipe to deadlock on.
+        cmd = [sys.executable, '-u', probe, '--progress', '--extract', staged_zip]
         for text in (exclude or ()):
             cmd += ['--exclude', text]
         cmd.append(image_path)
 
         logfunc(f'Reading volumes out of {os.path.basename(image_path)} with the '
                 f'vendored qnxprobe. This is the slow part of a raw image run.')
-        completed = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        for line in (completed.stdout or '').splitlines():
-            # The tool prints the partition table, every filesystem it confirmed and
-            # what it extracted. That belongs in the run log: it is the record of
+        progress = _RawExtractProgress()
+        tail = []
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True, bufsize=1)
+        for line in proc.stdout:
+            line = line.rstrip()
+            if not line:
+                continue
+            if line.lstrip().startswith('{'):
+                try:
+                    progress.update(json.loads(line))
+                    continue
+                except ValueError:
+                    pass    # not ours after all, fall through and log it
+            # The report names the partition table, every filesystem confirmed and
+            # what was extracted. That belongs in the run log: it is the record of
             # which volumes the rows below came from.
-            if line.strip():
-                logfunc(line.rstrip())
-        if completed.returncode != 0 or not os.path.isfile(staged_zip):
-            detail = (completed.stderr or '').strip() or 'no error text'
+            logfunc(line)
+            tail.append(line)
+            del tail[:-20]
+        proc.wait()
+        if proc.returncode != 0 or not os.path.isfile(staged_zip):
+            detail = '\n'.join(tail) or 'no output'
             raise RuntimeError(
                 f'qnxprobe could not extract any filesystem from {image_path}. '
-                f'Exit {completed.returncode}: {detail}')
+                f'Exit {proc.returncode}. Last output:\n{detail}')
 
         FileSeekerZip.__init__(self, staged_zip, data_folder)
 
