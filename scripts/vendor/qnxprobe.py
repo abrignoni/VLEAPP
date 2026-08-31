@@ -25,7 +25,7 @@ its fields checked for internal consistency before it is reported CONFIRMED.
 
 Read-only throughout. Never writes to the image.
 """
-import os, struct, sys, datetime, uuid, zipfile
+import os, struct, sys, datetime, json, time, uuid, zipfile
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -613,8 +613,52 @@ def apply_exclude(entries, exclude):
     return keep, len(entries) - len(keep)
 
 
-def extract_to_zip(zf, w, volume, entries, log):
-    """Stream each regular file into the open zipfile. Returns a tally."""
+class ProgressEmitter:
+    """Throttled machine-readable extraction progress, one JSON object per line.
+
+    Extraction of a head unit volume runs for minutes with nothing on stdout
+    until the volume finishes, which reads as a hang to anything driving this
+    as a subprocess. --progress emits to STDERR so the human report on stdout
+    is untouched and a caller can consume one stream without parsing the other.
+
+    Each line carries exact counts for the volume being written, not estimates:
+
+        {"volume": "@13168672", "files": 1234, "total_files": 1629,
+         "bytes": 123456789, "total_bytes": 297023717}
+
+    Throttled to one line per interval, plus a final line per volume so a
+    consumer always sees the completed state whatever the timing.
+    """
+
+    def __init__(self, stream=None, interval=1.0, clock=time.monotonic):
+        self.stream = stream if stream is not None else sys.stderr
+        self.interval = interval
+        self.clock = clock
+        self.last = 0.0
+
+    def __call__(self, volume, files, written, total_files, total_bytes):
+        now = self.clock()
+        done = total_files and files >= total_files
+        if not done and now - self.last < self.interval:
+            return
+        self.last = now
+        self.stream.write(json.dumps({
+            "volume": volume, "files": files, "total_files": total_files,
+            "bytes": written, "total_bytes": total_bytes,
+        }) + "\n")
+        self.stream.flush()
+
+
+def extract_to_zip(zf, w, volume, entries, log, progress=None):
+    """Stream each regular file into the open zipfile. Returns a tally.
+
+    progress, when given, is called after each file with
+    (volume, files_done, written_bytes, total_files, total_bytes). The totals
+    are exact rather than estimated: entries is already the full list for this
+    volume, so both are known before the first file is written.
+    """
+    total_files = sum(1 for _, _, size, _ in entries if size is not None)
+    total_bytes = sum(size for _, _, size, _ in entries if size is not None)
     files = written = skipped = failed = 0
     for path, ino, size, mtime in entries:
         arc = f"{volume}/{path}"
@@ -633,6 +677,8 @@ def extract_to_zip(zf, w, volume, entries, log):
         except Exception as exc:
             failed += 1
             log.append(f"        could not extract {arc}: {exc}")
+        if progress is not None:
+            progress(volume, files, written, total_files, total_bytes)
     return files, written, skipped, failed
 
 
@@ -848,7 +894,8 @@ def scan(fh, limit, size, cap=400):
 
 
 def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
-         extract=None, only=None, zf=None, do_triage=False, exclude=None):
+         extract=None, only=None, zf=None, do_triage=False, exclude=None,
+         reporter=None):
     size = os.path.getsize(path)
     print("=" * 78)
     print(path)
@@ -1070,7 +1117,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                     ents = collect(w, w.root)
                     ents, dropped = apply_exclude(ents, exclude)
                     log = []
-                    f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log)
+                    f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log, reporter)
                     print(f"        {f_:,} files, {human(wr)}"
                           + (f", {sk:,} symlinks or special files skipped" if sk else "")
                           + (f", {fa:,} FAILED" if fa else "")
@@ -1145,7 +1192,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                         ents = collect(w, w.root)
                         ents, dropped = apply_exclude(ents, exclude)
                         log = []
-                        f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log)
+                        f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log, reporter)
                         print(f"            {f_:,} files, {human(wr)}"
                               + (f", {sk:,} symlinks or special files skipped" if sk else "")
                               + (f", {fa:,} FAILED" if fa else "")
@@ -1488,7 +1535,11 @@ if __name__ == "__main__":
                     help="rank the volumes found by how much each has been "
                          "written, and flag encrypted or bulk ones, so you know "
                          "what to extract first")
-    ap.add_argument("--version", action="version", version="qnxprobe 1.3")
+    ap.add_argument("--progress", action="store_true",
+                    help="while extracting, emit one JSON progress object per line on "
+                         "stderr, for a caller driving this as a subprocess. stdout, "
+                         "the human readable report, is unchanged")
+    ap.add_argument("--version", action="version", version="qnxprobe 1.4")
     args = ap.parse_args()
 
     if args.self_test:
@@ -1503,6 +1554,7 @@ if __name__ == "__main__":
     if missing:
         sys.exit("not found: " + ", ".join(missing))
 
+    reporter = ProgressEmitter() if args.progress else None
     zf = None
     if args.extract:
         if os.path.exists(args.extract):
@@ -1514,7 +1566,8 @@ if __name__ == "__main__":
             main(p, scan_limit_mib=args.scan_limit, do_list=args.list,
              list_depth=args.depth, list_max=args.list_max,
                  extract=args.extract, only=args.only, zf=zf,
-                 do_triage=args.triage, exclude=args.exclude)
+                 do_triage=args.triage, exclude=args.exclude,
+                 reporter=reporter)
     finally:
         if zf is not None:
             zf.close()
