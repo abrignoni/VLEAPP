@@ -27,7 +27,7 @@ Read-only throughout. Never writes to the image.
 """
 import os, re, struct, sys, datetime, json, time, uuid, zipfile
 
-QNXPROBE_VERSION = "1.7"
+QNXPROBE_VERSION = "1.8"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -1132,7 +1132,7 @@ def print_tree(w, num, depth, maxdepth, budget, indent=0, pad=6):
 # QNX IFS boot images.
 #
 # An IFS is not a mountable filesystem, it is a bootable image: a startup
-# header, the startup code, then the image filesystem, often compressed.
+# header, the startup code, then the image filesystem, usually compressed.
 # Constants and field order from sys/startup.h:
 #     STARTUP_HDR_SIGNATURE 0x00ff7eeb   startup.h:88
 #     STARTUP_HDR_VERSION   1            startup.h:89
@@ -1144,12 +1144,16 @@ def print_tree(w, num, depth, maxdepth, budget, indent=0, pad=6):
 # through the ELF constants (EM_AARCH64 183, EM_ARM 40, EM_386 3, EM_X86_64 62
 # from linux/include/uapi/linux/elf-em.h).
 #
-# The image filesystem begins at startup_size, and stored_size - startup_size
-# against imagefs_size says whether it is stored compressed.
-#
-# Contents are NOT listed. The IFS directory format is not sourced here, and
-# on the images tested the filesystem is compressed, so listing it would mean
-# guessing at a layout and decompressing. Reported, not invented.
+# The image filesystem begins at startup_size. flags1 carries the compression
+# method (COMPRESS_MASK 0x1c: none 0x00, zlib 0x04, lzo 0x08, ucl 0x0c;
+# startup.h:73-80). When compressed, the imagefs is a run of blocks, each a
+# 2-byte big-endian compressed length followed by that many bytes, decompressing
+# to at most 64 KiB, terminated by a zero length. dumpifs.c:563-595. All real
+# evidence to hand is UCL, and there is no UCL decompressor in the standard
+# library, so a small one is carried below rather than taking a dependency: this
+# tool's whole point is that it installs nothing. zlib is handled through the
+# standard library. lzo and the Harman Becker HBCIFS container are recognised but
+# not decompressed here, because no sample exists to validate a reader against.
 # ---------------------------------------------------------------------------
 QNX_IFS_SIG = 0x00FF7EEB
 QNX_IFS_VER = 1
@@ -1159,6 +1163,249 @@ IFS_F = dict(signature=0, version=4, flags1=6, flags2=7, header_size=8,
              imagefs_paddr=40, imagefs_size=44, preboot_size=48)
 IFS_HDR_SIZE = 256
 ELF_MACHINE = {3: "x86", 40: "ARM 32 bit", 62: "x86-64", 183: "ARM 64 bit"}
+
+# startup_header flags1, sys/startup.h:73-80. dumpifs.c:533 switches on the
+# masked value directly, so the names below are the masked constants, not shifted.
+IFS_COMPRESS_MASK  = 0x1c
+IFS_COMPRESS = {0x00: "none", 0x04: "zlib", 0x08: "lzo", 0x0c: "ucl"}
+IFS_FLAG_BIGENDIAN = 0x02
+
+# image_header, the "imagefs" filesystem header, sys/image.h:42-56. Every field
+# is a 4-byte unsigned long (32-bit target, ILP32; dumpifs.c byte-swaps each with
+# ENDIAN_RET32). image_size runs from this header to the end of the trailer;
+# dir_offset is the first directory entry, hdr_dir_size the byte past the last.
+IMG_SIG = b"imagefs"
+IMGH = dict(flags=7, image_size=8, hdr_dir_size=12, dir_offset=16,
+            boot_ino=20, script_ino=36, chain_paddr=40, mountflags=84)
+
+# union image_dirent, sys/image.h:75-108. A flat, contiguous table of variable
+# length records; each starts with the 24-byte image_attr, then a type-specific
+# tail keyed on mode & S_IFMT, then the entry's full path relative to the image
+# root (no leading slash). attr.size is the whole record's length and steps to
+# the next entry; size 0 ends the table. attr.ino 0 means skip. There is no
+# per-directory child list: the tree is carried entirely in the path strings.
+IFS_ATTR = dict(size=0, extattr_offset=2, ino=4, mode=8, gid=12, uid=16, mtime=20)
+IFS_ATTR_LEN = 24
+# QNX sys/stat.h:210-218. S_IFNAM 0x5000 is QNX specific; the rest match Unix,
+# so the shared collect()/print_tree() read dir, regular and link modes as usual.
+IFS_S_IFMT, IFS_S_IFREG, IFS_S_IFDIR, IFS_S_IFLNK = 0xF000, 0x8000, 0x4000, 0xA000
+
+
+def ucl_nrv2b_decompress(src):
+    """Decompress one UCL NRV2B block. This is the _8 (byte at a time, MSB first)
+    variant that dumpifs links as ucl_nrv2b_decompress_8. Ported field for field
+    from Markus Oberhumer's UCL, src/n2b_d.c and src/getbit.h (getbit_8). The bit
+    stream and the literal and offset bytes share one input cursor.
+
+    A wrong port almost never lands on the exact target length, so the caller
+    checks the concatenated output against the header's imagefs_size and the
+    image trailer checksum rather than trusting this in isolation.
+    """
+    out = bytearray()
+    ilen = 0
+    bb = 0
+    bits = 0
+    last_m_off = 1
+
+    def getbit():
+        nonlocal bb, bits, ilen
+        if bits == 0:
+            bb = src[ilen]
+            ilen += 1
+            bits = 8
+        bits -= 1
+        return (bb >> bits) & 1
+
+    while True:
+        while getbit():                         # literal run
+            out.append(src[ilen])
+            ilen += 1
+        m_off = 1                               # match offset, high part
+        while True:
+            m_off = m_off * 2 + getbit()
+            if getbit():
+                break
+        if m_off == 2:                          # reuse the previous offset
+            m_off = last_m_off
+        else:
+            m_off = (m_off - 3) * 256 + src[ilen]
+            ilen += 1
+            if m_off == 0xFFFFFFFF:             # end of stream
+                break
+            m_off += 1
+            last_m_off = m_off
+        m_len = getbit() * 2 + getbit()         # match length
+        if m_len == 0:
+            m_len = 1
+            while True:
+                m_len = m_len * 2 + getbit()
+                if getbit():
+                    break
+            m_len += 2
+        if m_off > 0xd00:
+            m_len += 1
+        pos = len(out) - m_off
+        out.append(out[pos])                    # copy m_len + 1 bytes, forward,
+        pos += 1                                # so overlapping runs work
+        for _ in range(m_len):
+            out.append(out[pos])
+            pos += 1
+    return bytes(out)
+
+
+def ifs_decompress_blocks(stored, decompress):
+    """Concatenate the decompressed blocks. Each block is a 2-byte big-endian
+    compressed length then that many bytes; a zero length ends the run.
+    dumpifs.c:563-595."""
+    out = bytearray()
+    pos = 0
+    while pos + 2 <= len(stored):
+        ln = struct.unpack_from(">H", stored, pos)[0]
+        if ln == 0:
+            break
+        out += decompress(stored[pos + 2:pos + 2 + ln])
+        pos += 2 + ln
+    return bytes(out)
+
+
+class IfsUnsupported(Exception):
+    """Raised when an IFS is recognised but its contents cannot be read here,
+    for example an lzo-compressed image or the HBCIFS container. The header is
+    still reported; only the walk is declined, and the reason is said out loud."""
+
+
+class IfsWalker:
+    """List and read files from a QNX IFS boot image. The whole image filesystem
+    is decompressed into memory once (a compressed block cannot be seeked into),
+    then the flat directory table is parsed and a tree is built from the full
+    path strings. Same interface as the other walkers, so collect(), print_tree()
+    and extract_to_zip() drive it unchanged. A node is the entry's full path."""
+
+    root = ""
+
+    def __init__(self, fh, base):
+        self.fh, self.base = fh, base
+        hdr = read_at(fh, base, IFS_HDR_SIZE)
+        if len(hdr) < IFS_HDR_SIZE or \
+                struct.unpack_from("<I", hdr, IFS_F["signature"])[0] != QNX_IFS_SIG:
+            raise IfsUnsupported("not a startup header")
+        flags1 = hdr[IFS_F["flags1"]]
+        if flags1 & IFS_FLAG_BIGENDIAN:
+            # No big-endian IFS is to hand to validate the swap against, so the
+            # walk is declined rather than guessed. The header still reports.
+            raise IfsUnsupported("big-endian image, not read here")
+        self.compress = IFS_COMPRESS.get(flags1 & IFS_COMPRESS_MASK, "unknown")
+        ss = struct.unpack_from("<I", hdr, IFS_F["startup_size"])[0]
+        st = struct.unpack_from("<I", hdr, IFS_F["stored_size"])[0]
+        isz = struct.unpack_from("<I", hdr, IFS_F["imagefs_size"])[0]
+        stored = read_at(fh, base + ss, st - ss)
+        if self.compress == "none":
+            img = stored[:isz]
+        elif self.compress == "ucl":
+            img = ifs_decompress_blocks(stored, ucl_nrv2b_decompress)
+        elif self.compress == "zlib":
+            import zlib
+            img = zlib.decompress(stored)       # a single gzip stream, dumpifs.c:534
+        else:
+            raise IfsUnsupported(f"{self.compress} compression not read here")
+        if img[:len(IMG_SIG)] != IMG_SIG:
+            raise IfsUnsupported("no imagefs header after decompression")
+        self.img = img
+        self.image_size = struct.unpack_from("<I", img, IMGH["image_size"])[0]
+        self.hdr_dir_size = struct.unpack_from("<I", img, IMGH["hdr_dir_size"])[0]
+        self.dir_offset = struct.unpack_from("<I", img, IMGH["dir_offset"])[0]
+        self.decompressed = len(img)
+        # A byte-exact self-check that does not depend on this reader: the image
+        # trailer holds a 32-bit checksum such that the 32-bit words from the
+        # header to the end of the trailer sum to zero (image.h:110, and observed
+        # to hold on every Sync G4 volume). A single wrong byte breaks it.
+        n = self.image_size // 4
+        if n * 4 <= len(img):
+            total = sum(struct.unpack_from("<%dI" % n, img, 0)) & 0xFFFFFFFF
+            self.cksum_ok = total == 0
+        else:
+            self.cksum_ok = None
+        self._parse_dir()
+
+    def _parse_dir(self):
+        img = self.img
+        root_mode, root_mtime = IFS_S_IFDIR, 0
+        self.nodes = {}                          # path -> (mode, size, mtime)
+        self.files = {}                          # path -> (offset, size)
+        self.links = {}                          # path -> target string
+        self.kids = {"": []}                     # path -> [(name, childpath)]
+        dpos = self.dir_offset
+        while dpos + IFS_ATTR_LEN <= self.hdr_dir_size:
+            size = struct.unpack_from("<H", img, dpos)[0]
+            if size < IFS_ATTR_LEN:              # 0 ends the table; <24 is invalid
+                break
+            ino = struct.unpack_from("<I", img, dpos + IFS_ATTR["ino"])[0]
+            mode = struct.unpack_from("<I", img, dpos + IFS_ATTR["mode"])[0]
+            mtime = struct.unpack_from("<I", img, dpos + IFS_ATTR["mtime"])[0]
+            rec = img[dpos:dpos + size]
+            dpos += size
+            if ino == 0:
+                continue
+            typ = mode & IFS_S_IFMT
+            if typ == IFS_S_IFREG:
+                foff, fsize = struct.unpack_from("<II", rec, IFS_ATTR_LEN)
+                path = rec[IFS_ATTR_LEN + 8:].split(b"\x00")[0]
+                self._add(path, mode, fsize, mtime)
+                self.files[path.decode("utf-8", "replace")] = (foff, fsize)
+            elif typ == IFS_S_IFDIR:
+                path = rec[IFS_ATTR_LEN:].split(b"\x00")[0]
+                self._add(path, mode, 0, mtime)
+                if path:
+                    self.kids.setdefault(path.decode("utf-8", "replace"), [])
+                else:
+                    root_mode, root_mtime = mode, mtime
+            elif typ == IFS_S_IFLNK:
+                soff, ssize = struct.unpack_from("<HH", rec, IFS_ATTR_LEN)
+                nb = IFS_ATTR_LEN + 4                 # name and target follow the two u16
+                path = rec[nb:].split(b"\x00")[0]
+                self.links[path.decode("utf-8", "replace")] = \
+                    rec[nb + soff:nb + soff + ssize].decode("utf-8", "replace")
+                self._add(path, mode, 0, mtime)
+            else:                                # device, fifo, or QNX name special
+                path = rec[IFS_ATTR_LEN + 8:].split(b"\x00")[0]
+                self._add(path, mode, 0, mtime)
+        self.nodes[""] = (root_mode, 0, root_mtime)
+
+    def _add(self, path_b, mode, size, mtime):
+        """Place one entry, materialising any parent directories the flat table
+        left implicit (a file at a/b/c with no dirent for a or a/b)."""
+        path = path_b.decode("utf-8", "replace")
+        if path == "":
+            return
+        parts = path.split("/")
+        parent = ""
+        for i in range(len(parts) - 1):
+            ap = "/".join(parts[:i + 1])
+            if ap not in self.nodes:
+                self.nodes[ap] = (IFS_S_IFDIR, 0, mtime)
+                self.kids.setdefault(parent, [])
+                self.kids[parent].append((parts[i], ap))
+                self.kids.setdefault(ap, [])
+            parent = ap
+        if path not in self.nodes:
+            self.kids.setdefault(parent, [])
+            self.kids[parent].append((parts[-1], path))
+        self.nodes[path] = (mode, size, mtime)
+
+    def inode(self, node):
+        return self.nodes.get(node)
+
+    def listdir(self, node):
+        return sorted(self.kids.get(node, []))
+
+    def entry(self, node):
+        return self.nodes.get(node)
+
+    def read_file(self, node, size):
+        off, fsize = self.files.get(node, (None, None))
+        if off is None:
+            return
+        yield self.img[off:off + fsize]
 
 
 # ---------------------------------------------------------------------------
@@ -1377,6 +1624,9 @@ def identify_ifs(fh, base):
         return None
     hsz, ver, mach = g16("header_size"), g16("version"), g16("machine")
     ss, st, ifs_sz = g32("startup_size"), g32("stored_size"), g32("imagefs_size")
+    flags1 = h[IFS_F["flags1"]]
+    method = IFS_COMPRESS.get(flags1 & IFS_COMPRESS_MASK, "unknown")
+    endian = "big" if flags1 & IFS_FLAG_BIGENDIAN else "little"
 
     lines = [f"version      {ver}" + ("" if ver == QNX_IFS_VER
                                       else f"   (STARTUP_HDR_VERSION is {QNX_IFS_VER})"),
@@ -1384,7 +1634,8 @@ def identify_ifs(fh, base):
                                       if hsz == IFS_HDR_SIZE else
                                       "   DOES NOT match the 256-byte struct"),
              f"machine      {mach}  ({ELF_MACHINE.get(mach, 'unrecognised ELF machine')})",
-             f"flags        0x{h[IFS_F['flags1']]:02x} 0x{h[IFS_F['flags2']]:02x}"
+             f"flags        0x{flags1:02x} 0x{h[IFS_F['flags2']]:02x}"
+             f"   {endian} endian, {method} compression"
              f"   startup_vaddr 0x{g32('startup_vaddr'):08x}",
              f"startup      {human(ss)} of startup code, image filesystem begins at "
              f"0x{ss:x}"]
@@ -1393,19 +1644,21 @@ def identify_ifs(fh, base):
     if stored_ifs == ifs_sz:
         how = "stored uncompressed"
     elif 0 < stored_ifs < ifs_sz:
-        how = f"stored compressed, {human(ifs_sz)} into {human(stored_ifs)}"
+        how = f"stored {method} compressed, {human(ifs_sz)} into {human(stored_ifs)}"
     else:
         how = "stored size and imagefs size disagree"
     lines.append(f"imagefs      {human(ifs_sz)} uncompressed, {how}")
     lines.append(f"total        {human(st)} stored on the partition")
 
-    # the image filesystem carries a literal 'imagefs' signature at its head
-    near = read_at(fh, base + ss, 64)
-    at = near.find(b"imagefs")
-    lines.append("imagefs sig  " + (f"found at startup_size + {at}" if at >= 0
-                                    else "not found in the 64 bytes at startup_size"))
-    lines.append("contents     not listed, the IFS directory format is not "
-                 "sourced here (see --help)")
+    if method in ("ucl", "zlib", "none") and endian == "little":
+        lines.append("contents     listed and extracted with --list and --extract")
+    elif endian == "big":
+        lines.append("contents     big-endian image, header reported but not walked here")
+    elif method == "lzo":
+        lines.append("contents     lzo compressed, not read here (no sample to "
+                     "validate a reader), see --help")
+    else:
+        lines.append(f"contents     {method} compression, not read here, see --help")
     return lines
 
 
@@ -1426,6 +1679,8 @@ def walker_for(kind, fh, base, size=None):
     if kind == "etfs" and size is not None:
         P = etfs_pagesize(fh, base, size)
         return EtfsWalker(fh, base, size, P) if P else None
+    if kind == "QNX IFS boot image":
+        return IfsWalker(fh, base)
     return None
 
 
@@ -2066,6 +2321,59 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                                 print(line)
                         except Exception as exc:
                             print(f"        could not extract: {exc}")
+
+                if (kind == "QNX IFS boot image" and wanted
+                        and (do_list or zf is not None)):
+                    w = None
+                    try:
+                        w = IfsWalker(fh, b)
+                    except IfsUnsupported as exc:
+                        print(f"        contents not read: {exc}")
+                    except Exception as exc:
+                        print(f"        could not read this image filesystem: {exc}")
+                    if w is not None:
+                        ck = ("image checksum balances" if w.cksum_ok
+                              else "IMAGE CHECKSUM DOES NOT BALANCE" if w.cksum_ok is False
+                              else "image checksum not checked")
+                        print(f"        decoded {human(w.decompressed)} imagefs "
+                              f"({w.compress}), {ck}")
+                        if do_list:
+                            print(f"        CONTENTS  (depth {list_depth})")
+                            try:
+                                print_tree(w, w.root, 1, list_depth, [list_max], pad=8)
+                            except Exception as exc:
+                                print(f"        could not walk this filesystem: {exc}")
+                        if zf is not None:
+                            vol = vol_names.get(b) or f"lba{b // SECTOR}"
+                            print(f"        EXTRACTING to {extract}  as {vol}/")
+                            try:
+                                ents = collect(w, w.root)
+                                ents, dropped = apply_exclude(ents, exclude)
+                                log = []
+                                f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents,
+                                                                log, reporter)
+                                if manifest is not None:
+                                    manifest.append({
+                                        "volume": vol, "image": os.path.basename(path),
+                                        "lba": b // SECTOR, "offset_bytes": b,
+                                        "partition_size_bytes": sz,
+                                        "filesystem": "qnx_ifs",
+                                        "compression": w.compress,
+                                        "imagefs_size_bytes": w.decompressed,
+                                        "image_checksum_balances": w.cksum_ok,
+                                        "files": f_, "bytes": wr,
+                                        "symlinks_or_special_skipped": sk,
+                                        "failed": fa, "excluded": dropped,
+                                    })
+                                print(f"            {f_:,} files, {human(wr)}"
+                                      + (f", {sk:,} symlinks or special files skipped"
+                                         if sk else "")
+                                      + (f", {fa:,} FAILED" if fa else "")
+                                      + (f", {dropped:,} excluded" if dropped else ""))
+                                for line in log[:5]:
+                                    print(line)
+                            except Exception as exc:
+                                print(f"        could not extract: {exc}")
                 print()
 
         if rejected:
@@ -2311,6 +2619,128 @@ def self_test():
                 ok = False
             print(f"  [{mark}] ETFS and EFS decline the {label} image")
 
+        # QNX IFS. The UCL decompressor and the imagefs layout are proven byte
+        # for byte against real Ford Sync G4 images; these legs are the both-ways
+        # regression guard, built from synthetic bytes so no evidence travels.
+        #
+        # The UCL stream below is a fixed synthetic block that exercises a literal
+        # run, a back reference, a reuse of the last offset, a gamma-coded length
+        # and the end marker. The expected output is written out by hand rather
+        # than taken from the decoder, so a regression fails against a fixed
+        # target instead of against itself. It reads: literals "abcXYZ", copy 3
+        # from 6 back ("abc"), then copy 7 from 6 back ("XYZabcX").
+        UCL_BLOCK = bytes.fromhex("fd61626358595ac40510000000000048ff")
+        UCL_WANT = b"abcXYZabcXYZabcX"
+        try:
+            got = ucl_nrv2b_decompress(UCL_BLOCK)
+        except Exception:
+            got = None
+        mark = "PASS" if got == UCL_WANT else "FAIL"
+        if got != UCL_WANT:
+            ok = False
+        print(f"  [{mark}] UCL NRV2B decompresses a known block to {got!r}")
+
+        broken = bytearray(UCL_BLOCK); broken[1] ^= 0xFF
+        try:
+            bad = ucl_nrv2b_decompress(bytes(broken))
+        except Exception:
+            bad = None
+        mark = "PASS" if bad != UCL_WANT else "FAIL"
+        if bad == UCL_WANT:
+            ok = False
+        print(f"  [{mark}] a corrupted UCL block does not reproduce it")
+
+        framed = (struct.pack(">H", len(UCL_BLOCK)) + UCL_BLOCK) * 2 + b"\x00\x00"
+        try:
+            got = ifs_decompress_blocks(framed, ucl_nrv2b_decompress)
+        except Exception:
+            got = None
+        mark = "PASS" if got == UCL_WANT * 2 else "FAIL"
+        if got != UCL_WANT * 2:
+            ok = False
+        print(f"  [{mark}] block framing concatenates two blocks and stops at 0")
+
+        # A small uncompressed imagefs: root dir, a top-level file, a file in an
+        # implicit subdirectory, and a symlink. Built from the image.h structs so
+        # the walker's dirent parse, implicit-directory synthesis, file read and
+        # trailer checksum are all exercised. The trailer is set over the clean
+        # image; the sabotaged copy flips one data byte afterwards, so its stored
+        # checksum can no longer balance.
+        def _ifs_image(corrupt=False):
+            f2, f1, tgt = b"second file\n", b"hello d/f1\n", b"/etc/target"
+            def attr(size, ino, mode):
+                return struct.pack("<HHIIIII", size, 0, ino, mode, 0, 0, 0x5000)
+            def d_dir(p, ino):
+                t = p + b"\x00"; return attr(24 + len(t), ino, IFS_S_IFDIR | 0o755) + t
+            def d_file(p, ino, off, sz):
+                t = struct.pack("<II", off, sz) + p + b"\x00"
+                return attr(24 + len(t), ino, IFS_S_IFREG | 0o644) + t
+            def d_link(p, target, ino):
+                nm = p + b"\x00"; t = nm + target + b"\x00"
+                return (attr(24 + 4 + len(t), ino, IFS_S_IFLNK | 0o777)
+                        + struct.pack("<HH", len(nm), len(target)) + t)
+            def table(o2, o1):
+                return (d_dir(b"", 1) + d_file(b"f2", 2, o2, len(f2))
+                        + d_file(b"d/f1", 3, o1, len(f1))
+                        + d_link(b"d/l1", tgt, 4) + struct.pack("<H", 0))
+            dir_off = 92
+            hdr_dir = dir_off + len(table(0, 0)) - 2
+            data = (dir_off + len(table(0, 0)) + 3) & ~3
+            o2, o1 = data, data + len(f2)
+            img = bytearray(88)
+            img[0:7] = b"imagefs"
+            struct.pack_into("<I", img, 16, dir_off)
+            img += b"/\x00\x00\x00"
+            img += table(o2, o1)
+            img += b"\x00" * (o2 - len(img))
+            img += f2 + f1
+            while len(img) % 4:
+                img.append(0)
+            struct.pack_into("<I", img, 8, len(img) + 4)
+            struct.pack_into("<I", img, 12, hdr_dir)
+            body = sum(struct.unpack_from("<%dI" % (len(img) // 4), img, 0))
+            img += struct.pack("<I", (-body) & 0xFFFFFFFF)
+            if corrupt:
+                img[o2 + 1] ^= 0xFF
+            hdr = bytearray(256)
+            struct.pack_into("<I", hdr, 0, QNX_IFS_SIG)
+            struct.pack_into("<H", hdr, 4, 1); hdr[6] = 0x01
+            struct.pack_into("<H", hdr, 8, 256)
+            struct.pack_into("<H", hdr, 10, 183)
+            struct.pack_into("<I", hdr, 32, 512)
+            struct.pack_into("<I", hdr, 36, 512 + len(img))
+            struct.pack_into("<I", hdr, 44, len(img))
+            return bytes(hdr) + b"\x00" * (512 - 256) + bytes(img)
+
+        ip = os.path.join(d, "ifs_ok.img"); open(ip, "wb").write(_ifs_image())
+        try:
+            with open(ip, "rb") as fh:
+                det = identify_ifs(fh, 0)
+                w = IfsWalker(fh, 0)
+                files = {p: (node, sz) for p, node, sz, _ in collect(w, w.root)}
+                f2ok = b"".join(w.read_file(*files.get("f2", (None, 0)))) == b"second file\n"
+                f1ok = b"".join(w.read_file(*files.get("d/f1", (None, 0)))) == b"hello d/f1\n"
+                good = (det is not None and w.compress == "none" and w.cksum_ok is True
+                        and f2ok and f1ok and "d" in w.nodes
+                        and w.links.get("d/l1") == "/etc/target")
+        except Exception:
+            good = False
+        mark = "PASS" if good else "FAIL"
+        if not good:
+            ok = False
+        print(f"  [{mark}] synthetic IFS: header, tree, subdir, files, symlink, checksum")
+
+        cp = os.path.join(d, "ifs_bad.img"); open(cp, "wb").write(_ifs_image(corrupt=True))
+        try:
+            with open(cp, "rb") as fh:
+                balanced = IfsWalker(fh, 0).cksum_ok
+        except Exception:
+            balanced = None
+        mark = "PASS" if balanced is False else "FAIL"
+        if balanced is not False:
+            ok = False
+        print(f"  [{mark}] a flipped imagefs byte breaks the image checksum")
+
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"
               if ok else
@@ -2387,10 +2817,10 @@ getting the files out, without mounting:
 
 listing contents:
   --list walks each filesystem it identified and prints the tree. It handles
-  qnx6, ext2/3/4, FAT32, exFAT and the QNX flash filesystems ETFS and EFS,
-  follows qnx6 long filenames and ext4 extent trees, and reads only. --depth
-  sets how far down it goes and --list-max caps the number of entries per
-  filesystem so a large volume cannot flood the terminal.
+  qnx6, ext2/3/4, FAT32, exFAT, the QNX flash filesystems ETFS and EFS, and
+  QNX IFS boot images, follows qnx6 long filenames and ext4 extent trees, and
+  reads only. --depth sets how far down it goes and --list-max caps the number
+  of entries per filesystem so a large volume cannot flood the terminal.
 
 what it reports:
   Every superblock copy it can find, grouped into generations by serial. The
@@ -2420,11 +2850,12 @@ what it reports:
   partition type byte is a label and not a fact. ext2, ext3 and ext4 are read
   in full: label, last mount point, UUID, creation and mount and write times,
   mount count, usage, lifetime bytes written, and whether the volume was
-  cleanly unmounted. QNX IFS boot images are recognised and their startup
-  header reported: version, target machine, how much startup code precedes the
-  image filesystem, and whether that filesystem is stored compressed. The QNX
-  flash filesystems ETFS and EFS are recognised too, and listed and extracted
-  in full. Anything else is reported as its leading bytes plus any ASCII magic,
+  cleanly unmounted. QNX IFS boot images report their startup header (version,
+  target machine, startup code size, compression method), then the image
+  filesystem is decompressed and listed and extracted like any other, with the
+  image checksum reported as a decode self-check. The QNX flash filesystems
+  ETFS and EFS are recognised too, and listed and extracted in full. Anything
+  else is reported as its leading bytes plus any ASCII magic,
   so there is a lead to follow rather than a guess. On a 2024 BMW
   MGU image that turned twelve partitions all marked 0x83 "Linux" into ten
   ext4 volumes, one extended container, and one holding an ipk container with
@@ -2492,10 +2923,29 @@ what it checks, and where the constants come from:
   startup_size, and stored_size minus startup_size against imagefs_size says
   whether it is stored compressed.
 
-  IFS contents are NOT listed. The IFS directory format is not sourced here,
-  and on every image tested the filesystem is stored compressed, so listing it
-  would mean guessing a layout and decompressing. The header is reported and
-  nothing is invented.
+  The image filesystem and its compression come from QNX's own dumpifs and
+  sys/image.h. startup_header flags1 carries the method (none, zlib, lzo or
+  ucl). A compressed imagefs is a run of blocks, each a 2-byte big-endian
+  compressed length then that many bytes, decompressing to at most 64 KiB and
+  ending at a zero length. Each ucl block is UCL NRV2B, the _8 variant dumpifs
+  links as ucl_nrv2b_decompress_8; it is carried here as a small pure-Python
+  decoder ported from Markus Oberhumer's UCL (src/n2b_d.c, src/getbit.h), so
+  nothing has to be installed. The decompressed image is walked from its
+  image_header and a flat table of image_dirent records: each carries an inode,
+  mode, mtime and a full path, and a file points at an offset and size inside
+  the image. zlib images are read through the standard library.
+
+  This is proven byte for byte against the Ford Sync G4 ifs_a, ifs_b and
+  ifs_recovery volumes. Each decompressed to exactly the imagefs_size its own
+  header records, the 32-bit words from the header through the image_trailer
+  summed to zero (the trailer holds a checksum), and the extracted files were
+  valid, including the AArch64 ELF kernel whose machine matched the startup
+  header. That checksum is printed on every run as a decode self-check.
+
+  lzo-compressed images and the Harman Becker HBCIFS container are recognised
+  but not read here, since no sample exists to validate a reader against, and a
+  big-endian image is declined the same way. In each case the header is still
+  reported and the walk is declined out loud. Nothing is invented.
 
   For the QNX flash filesystems ETFS and EFS:
   struct etfs_trans, the fid scheme, ftable and directory entry layouts, and
@@ -2534,11 +2984,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(
         prog="qnxprobe.py",
         description="Read QNX6, ETFS, EFS, ext2/3/4, FAT32 and exFAT "
-                    "filesystems out of raw disk images: identify each by its "
-                    "own on-disk structure rather than trusting a partition "
-                    "type byte, list, and extract to a zip with a provenance "
-                    "manifest. No mounting, no admin rights, standard library "
-                    "only.",
+                    "filesystems, and QNX IFS boot images, out of raw disk "
+                    "images: identify each by its own on-disk structure rather "
+                    "than trusting a partition type byte, list, and extract to a "
+                    "zip with a provenance manifest. No mounting, no admin "
+                    "rights, standard library only.",
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("image", nargs="*",
