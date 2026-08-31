@@ -32,7 +32,7 @@ import tempfile
 
 from pathlib import Path
 from scripts.ilapfuncs import *
-from shutil import copy2
+from shutil import copy2, copyfileobj
 from zipfile import ZipFile
 from fnmatch import _compile_pattern
 from functools import lru_cache
@@ -566,6 +566,49 @@ class _RawExtractProgress:
             self.volumes += 1
 
 
+def _extract_image_volumes(probe, image_path, staged_zip, exclude=None):
+    """Run the vendored reader over a raw image, streaming its output to the log.
+
+    -u so the reader's stdout is unbuffered and its report arrives while it
+    works rather than in one block at the end. --progress puts machine readable
+    progress on stderr; stderr is merged into stdout here and the two are told
+    apart by the leading brace, which no report line has, so one stream is read
+    and there is no second pipe to deadlock on. The report names the partition
+    table, every filesystem confirmed and what was extracted; that belongs in
+    the run log, because it is the record of which volumes the rows came from.
+    """
+    cmd = [sys.executable, '-u', probe, '--progress', '--extract', staged_zip]
+    for text in (exclude or ()):
+        cmd += ['--exclude', text]
+    cmd.append(image_path)
+
+    logfunc(f'Reading volumes out of {os.path.basename(image_path)} with the '
+            f'vendored qnxprobe. This is the slow part of a raw image run.')
+    progress = _RawExtractProgress()
+    tail = []
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, bufsize=1)
+    for line in proc.stdout:
+        line = line.rstrip()
+        if not line:
+            continue
+        if line.lstrip().startswith('{'):
+            try:
+                progress.update(json.loads(line))
+                continue
+            except ValueError:
+                pass    # not ours after all, fall through and log it
+        logfunc(line)
+        tail.append(line)
+        del tail[:-20]
+    proc.wait()
+    if proc.returncode != 0 or not os.path.isfile(staged_zip):
+        detail = '\n'.join(tail) or 'no output'
+        raise RuntimeError(
+            f'qnxprobe could not extract any filesystem from {image_path}. '
+            f'Exit {proc.returncode}. Last output:\n{detail}')
+
+
 class FileSeekerRaw(FileSeekerZip):
     """Read a raw disk image by extracting its volumes to a zip first.
 
@@ -601,51 +644,112 @@ class FileSeekerRaw(FileSeekerZip):
                 f'the vendored reader is missing: {probe}. Raw image input needs '
                 'scripts/vendor/qnxprobe.py.')
 
-        # -u so the reader's stdout is unbuffered and its report arrives while it
-        # works rather than in one block at the end. --progress puts machine
-        # readable progress on stderr; stderr is merged into stdout here and the
-        # two are told apart by the leading brace, which no report line has, so
-        # one stream is read and there is no second pipe to deadlock on.
-        cmd = [sys.executable, '-u', probe, '--progress', '--extract', staged_zip]
-        for text in (exclude or ()):
-            cmd += ['--exclude', text]
-        cmd.append(image_path)
-
-        logfunc(f'Reading volumes out of {os.path.basename(image_path)} with the '
-                f'vendored qnxprobe. This is the slow part of a raw image run.')
-        progress = _RawExtractProgress()
-        tail = []
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, text=True, bufsize=1)
-        for line in proc.stdout:
-            line = line.rstrip()
-            if not line:
-                continue
-            if line.lstrip().startswith('{'):
-                try:
-                    progress.update(json.loads(line))
-                    continue
-                except ValueError:
-                    pass    # not ours after all, fall through and log it
-            # The report names the partition table, every filesystem confirmed and
-            # what was extracted. That belongs in the run log: it is the record of
-            # which volumes the rows below came from.
-            logfunc(line)
-            tail.append(line)
-            del tail[:-20]
-        proc.wait()
-        if proc.returncode != 0 or not os.path.isfile(staged_zip):
-            detail = '\n'.join(tail) or 'no output'
-            raise RuntimeError(
-                f'qnxprobe could not extract any filesystem from {image_path}. '
-                f'Exit {proc.returncode}. Last output:\n{detail}')
-
+        _extract_image_volumes(probe, image_path, staged_zip, exclude)
         FileSeekerZip.__init__(self, staged_zip, data_folder)
 
     def cleanup(self):
         FileSeekerZip.cleanup(self)
         shutil.rmtree(getattr(self, '_stage_dir', ''), ignore_errors=True)
 
+
+
+class FileSeekerIva(FileSeekerZip):
+    """Read a Berla iVe .iVa export directly.
+
+    An .iVa is a ZIP holding another ZIP, which holds the vehicle's source
+    files: usually a raw disk image of the head unit plus the file set iVe
+    extracted from it, beside Vehicle.json and iVe's own encrypted database.
+    The seekers do not descend into nested archives, so before this a .iVa had
+    to be unwrapped by hand (admin/scripts/unwrap_berla_iva.py) and the report
+    of a direct run was empty.
+
+    This reaches through the nesting itself. When the export carries a raw
+    image, that image is read with the vendored qnxprobe, which is the more
+    complete route: on the tested export it reaches a volume the vendor's own
+    extracted file set does not include. When no raw image is present, the
+    extracted file set is used as it stands. Either way Vehicle.json is staged
+    at the root so the export's acquisition record is reported alongside the
+    vehicle data.
+
+    Everything intermediate lands in a temporary directory and cleanup()
+    removes it. The unwrap script remains the way to KEEP the intermediate
+    zip, which makes re-runs cheap on a large export.
+    """
+
+    SOURCE_FILES_MEMBER = 'DCASourceFilesUpload.zip'
+
+    def __init__(self, iva_path, data_folder, exclude=None):
+        self._stage_dir = tempfile.mkdtemp(prefix='vleapp_iva_')
+        probe = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'vendor', 'qnxprobe.py')
+        if not os.path.isfile(probe):
+            raise FileNotFoundError(
+                f'the vendored reader is missing: {probe}. .iVa input needs '
+                'scripts/vendor/qnxprobe.py.')
+
+        vehicle_json = None
+        with ZipFile(iva_path) as outer:
+            names = outer.namelist()
+            if 'Vehicle.json' in names:
+                vehicle_json = outer.read('Vehicle.json')
+            else:
+                logfunc('This .iVa carries no Vehicle.json, so no acquisition '
+                        'record will be reported for it.')
+            inner_names = [n for n in names if n.lower().endswith('.zip')]
+            if not inner_names:
+                raise RuntimeError(
+                    f'{os.path.basename(iva_path)} holds no inner zip, so it '
+                    'does not look like an iVe export.')
+            inner_path = os.path.join(self._stage_dir, 'inner.zip')
+            logfunc(f'Unpacking {os.path.basename(iva_path)}: '
+                    f'{inner_names[0]} ...')
+            with outer.open(inner_names[0]) as src, open(inner_path, 'wb') as dst:
+                copyfileobj(src, dst, 16 << 20)
+
+        with ZipFile(inner_path) as inner:
+            if self.SOURCE_FILES_MEMBER not in inner.namelist():
+                raise RuntimeError(
+                    f'{inner_names[0]} carries no {self.SOURCE_FILES_MEMBER}; '
+                    'this export does not include the vehicle source files.')
+            source_zip = os.path.join(self._stage_dir, self.SOURCE_FILES_MEMBER)
+            logfunc(f'Unpacking {self.SOURCE_FILES_MEMBER} ...')
+            with inner.open(self.SOURCE_FILES_MEMBER) as src, \
+                    open(source_zip, 'wb') as dst:
+                copyfileobj(src, dst, 16 << 20)
+        os.remove(inner_path)
+
+        with ZipFile(source_zip) as source:
+            images = [n for n in source.namelist()
+                      if n.startswith('DiskImages/')
+                      and n.lower().endswith(('.img', '.bin', '.dd', '.raw'))]
+            image_path = None
+            if images:
+                image_path = os.path.join(self._stage_dir,
+                                          os.path.basename(images[0]))
+                logfunc(f'The export carries a raw image, {images[0]}; reading '
+                        'the vehicle data from the image itself.')
+                with source.open(images[0]) as src, open(image_path, 'wb') as dst:
+                    copyfileobj(src, dst, 16 << 20)
+
+        staged_zip = os.path.join(self._stage_dir, 'iva_volumes.zip')
+        if image_path is not None:
+            _extract_image_volumes(probe, image_path, staged_zip, exclude)
+            os.remove(image_path)
+            os.remove(source_zip)
+        else:
+            logfunc('The export carries no raw image; using the file set iVe '
+                    'extracted.')
+            staged_zip = source_zip
+
+        if vehicle_json is not None:
+            with ZipFile(staged_zip, 'a') as add:
+                add.writestr('Vehicle.json', vehicle_json)
+
+        FileSeekerZip.__init__(self, staged_zip, data_folder)
+
+    def cleanup(self):
+        FileSeekerZip.cleanup(self)
+        shutil.rmtree(getattr(self, '_stage_dir', ''), ignore_errors=True)
 
 class FileSeekerFile(FileSeekerBase):
     """
