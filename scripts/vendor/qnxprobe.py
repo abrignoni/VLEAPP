@@ -1570,9 +1570,11 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(
         prog="qnxprobe.py",
-        description="Decide whether an extraction holds a QNX6 filesystem, "
-                    "by locating and validating the superblock rather than "
-                    "trusting a partition type byte.",
+        description="Read QNX6 and ext2/3/4 filesystems out of raw disk "
+                    "images: identify by superblock rather than trusting a "
+                    "partition type byte, list, and extract to a zip with a "
+                    "provenance manifest. No mounting, no admin rights, "
+                    "standard library only.",
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("image", nargs="*",
