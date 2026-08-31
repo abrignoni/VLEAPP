@@ -7,7 +7,7 @@ and produces an empty report, which reads as though the vehicle held no data.
 Vehicle.json sits uncompressed at the top of the export, so this artifact fires on that
 and reports what the export says it holds, including iVe's own per-acquisition counts.
 That turns the empty run into a record of what is present and names the step that
-reaches it: admin/scripts/unwrap_berla_iva.py.
+reaches it: -t iva, or admin/scripts/unwrap_berla_iva.py to keep the intermediate zip.
 """
 
 import json
@@ -29,11 +29,11 @@ __artifacts_v2__ = {
         "category": "Vehicle Acquisition",
         "notes": "From Vehicle.json at the top of a Berla iVe .iVa export. The .iVa is a "
                  "ZIP holding another ZIP, and the seekers do not descend into nested "
-                 "archives, so running VLEAPP against a .iVa directly reaches only this "
-                 "file and the vehicle's own data is not seen. Unwrap it first with "
-                 "admin/scripts/unwrap_berla_iva.py, which lifts DCASourceFilesUpload.zip "
-                 "out and verifies it against the SHA-256 the export records, then run "
-                 "VLEAPP against that zip. The counts in these rows are what iVe reported "
+                 "archives, so with any input type other than iva a .iVa reaches only "
+                 "this file and the vehicle's own data is not seen. Run the export "
+                 "with -t iva, which reaches through to the raw image inside; "
+                 "admin/scripts/unwrap_berla_iva.py remains the way to keep the "
+                 "intermediate zip for cheap re-runs. The counts in these rows are what iVe reported "
                  "for its own parse; they are not produced by VLEAPP and this artifact does "
                  "not verify them. iVe's parsed database, AcquireDB.ive, is encrypted and "
                  "is not read. A row here records that an acquisition was attempted and "
@@ -49,11 +49,11 @@ __artifacts_v2__ = {
                  "and VLEAPP reads only the extracted files. On the tested export those "
                  "filesystems are QNX6, which no filesystem type Sleuth Kit supports can "
                  "walk, so the raw image is not reachable with that tooling. It is "
-                 "reachable with qnxprobe, which reads QNX6 superblocks directly and "
-                 "writes the logical files to a zip; on the tested export that route "
-                 "produced the same rows from the same bytes, and it also surfaced a "
-                 "fourth QNX6 volume that the export did not carry extracted files "
-                 "for.",
+                 "reachable with the vendored qnxprobe, which is what -t iva uses: it "
+                 "reaches through the export to the raw image and reads its QNX6 "
+                 "volumes directly. On the tested export that route produced the same "
+                 "rows as the vendor's own extracted file set and also surfaced a "
+                 "fourth QNX6 volume the export carried no extracted files for.",
         "paths": ('*/Vehicle.json',),
         "sample_data": {
             "adams_ford_syncgen3_iva": "Berla iVe export, Ford Sync Gen3 | 4 rows",

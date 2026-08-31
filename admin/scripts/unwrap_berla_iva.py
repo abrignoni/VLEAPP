@@ -12,10 +12,12 @@ source files:
         AcquireDB.ive                 iVe's own parsed database, encrypted
         Manifest.json, ECUData.json, DLCData.json, CaseData.json, Audit.json
 
-VLEAPP's seekers do not descend into nested archives, so pointing the tool at a .iVa
-matches nothing and produces an empty report. This script lifts DCASourceFilesUpload.zip
-out, verifies it against the SHA-256 iVe recorded for it, and leaves a zip that can be
-passed straight to VLEAPP with -t zip.
+VLEAPP reads a .iVa directly with -t iva, so this script is no longer the only
+route. It remains the way to KEEP the intermediate zip: -t iva unpacks to a
+temporary directory and removes it after the run, so on a large export the unwrap
+cost is paid again on every re-run, while this script pays it once. It also
+verifies the lifted zip against the SHA-256 iVe recorded for it, which the seeker
+route leaves to the zip member CRCs.
 
     python3 admin/scripts/unwrap_berla_iva.py CASE.iVa -o outdir
     python3 vleapp.py -t zip -i outdir/DCASourceFilesUpload.zip -o reports

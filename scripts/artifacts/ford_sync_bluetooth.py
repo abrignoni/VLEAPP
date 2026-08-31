@@ -30,19 +30,17 @@ __artifacts_v2__ = {
                  "unit downloaded over Bluetooth; it does not establish that any number was "
                  "dialled or that the handset owner was present. TelType is not surfaced "
                  "because nothing available here documents its values. The store carries no "
-                 "write-ahead log or journal on the tested unit. Where the input came "
-                 "from a Berla iVe export, these rows are read from the file set iVe "
-                 "extracted from the head unit's QNX6 volumes, not from the raw image "
-                 "the export also carries. The values themselves are the unit's own "
-                 "rather than iVe's parse of them. That route is not the only one: "
-                 "these same rows were reproduced from the raw image directly, by "
-                 "extracting its QNX6 volumes with qnxprobe and running this module "
-                 "against that output. Both paths gave 507 contacts, 126 calls and 2 "
-                 "paired devices, and the two stores were byte-identical by SHA-256, so "
-                 "neither extraction is a bottleneck for what these artifacts report.",
+                 "write-ahead log or journal on the tested unit. A Berla iVe export run "
+                 "with -t iva reads these rows from the raw image the export carries, "
+                 "through the head unit's own QNX6 volumes, so the values are the "
+                 "unit's rather than iVe's parse of them. The same rows were also "
+                 "reproduced from the file set iVe itself extracted: both routes gave "
+                 "507 contacts, 126 calls and 2 paired devices, and the two stores "
+                 "were byte-identical by SHA-256, so neither extraction is a "
+                 "bottleneck for what these artifacts report.",
         "paths": ('*/BT/btpbk*',),
         "sample_data": {
-            "adams_ford_syncgen3": "Ford Sync Gen3 | 507 rows",
+            "adams_ford_syncgen3_iva": "Ford Sync Gen3, via -t iva | 507 rows",
             "ford_syncg4_logical": "Ford Sync G4 | 0 rows, BT/btpbk not present",
         },
         "output_types": "standard",
@@ -75,7 +73,7 @@ __artifacts_v2__ = {
                  "not establish who used the handset or that the vehicle was moving.",
         "paths": ('*/BT/btpbk*',),
         "sample_data": {
-            "adams_ford_syncgen3": "Ford Sync Gen3 | 126 rows",
+            "adams_ford_syncgen3_iva": "Ford Sync Gen3, via -t iva | 126 rows",
             "ford_syncg4_logical": "Ford Sync G4 | 0 rows, BT/btpbk not present",
         },
         "output_types": "standard",
@@ -102,7 +100,7 @@ __artifacts_v2__ = {
                  "of device, vendor id and product id are reported as stored.",
         "paths": ('*/BT/btpersist*',),
         "sample_data": {
-            "adams_ford_syncgen3": "Ford Sync Gen3 | 2 rows",
+            "adams_ford_syncgen3_iva": "Ford Sync Gen3, via -t iva | 2 rows",
             "ford_syncg4_logical": "Ford Sync G4 | 0 rows, BT/btpersist not present",
         },
         "output_types": "standard",
