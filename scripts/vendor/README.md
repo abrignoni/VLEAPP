@@ -8,11 +8,14 @@ formats without asking the examiner to install anything.
 | | |
 | --- | --- |
 | upstream | https://github.com/abrignoni/qnxprobe |
-| commit | `3c3259a3f89a953af156eddbd0727313ccf8281f` |
-| dated | 2026-08-27T02:27:13-05:00 |
-| version | qnxprobe 1.3 |
-| sha256 | 9f163a18db2c7b2f66cf6be09a8c6a260ead4d993f0311c56ee55945dfe0863c |
 | licence | MIT, kept beside it as LICENSE-qnxprobe |
+
+The vendored version, upstream commit and sha256 are recorded in
+`vendored.json` in this directory, which `admin/scripts/check_vendored.py`
+enforces in CI. They are deliberately not repeated here: this table held them
+once and went stale on the first re-vendor, because prose is checked by nobody
+and the manifest is checked on every push.
+
 
 Reads QNX6 and ext2/3/4 volumes out of a raw image without mounting and with no
 administrator rights. Python 3 standard library only, so vendoring it adds no
