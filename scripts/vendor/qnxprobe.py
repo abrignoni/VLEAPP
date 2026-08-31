@@ -27,7 +27,7 @@ Read-only throughout. Never writes to the image.
 """
 import os, re, struct, sys, datetime, json, time, uuid, zipfile
 
-QNXPROBE_VERSION = "1.5"
+QNXPROBE_VERSION = "1.6"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -207,6 +207,12 @@ def check(fh, off):
 def parse_mbr(fh):
     mbr = read_at(fh, 0, 512)
     if len(mbr) < 512 or mbr[510:512] != b"\x55\xaa":
+        return None
+    # A FAT or exFAT boot sector also ends in 0x55AA, and its boot code sits
+    # where MBR partition entries would be, so it parses as four nonsense
+    # partitions. Its own type string at bytes 3..11 (exFAT) or 82..90 (FAT32)
+    # says it is a filesystem, not a partition table.
+    if mbr[3:11] == b"EXFAT   " or mbr[82:90] == b"FAT32   " or mbr[54:62] == b"FAT16   ":
         return None
     out = []
     for i in range(4):
@@ -512,6 +518,219 @@ class ExtWalker:
     root = 2
 
 
+# ---------------------------------------------------------------------------
+# FAT32 and exFAT.
+#
+# FAT is the file system of removable media and of many embedded devices, so a
+# vehicle image can carry one beside its QNX and ext volumes. Both are read
+# here directly, no mounting.
+#
+# Field offsets are from Microsoft's own specifications: the FAT32 BPB from the
+# "Microsoft Extensible Firmware Initiative FAT32 File System Specification"
+# v1.03, and the exFAT structures from the "exFAT file system specification"
+# (Microsoft, 2019). Long file names on FAT are the VFAT scheme (UTF-16 across
+# 0x0F entries); exFAT names are UTF-16 in a chain of file-name directory
+# entries. Only the fields needed to list and read files are parsed.
+# ---------------------------------------------------------------------------
+
+class Fat32Walker:
+    """List and read files from a FAT32 volume. inode() takes a (cluster, size,
+    is_dir) tuple, so the shared collect()/extract_to_zip() work unchanged; the
+    root is that tuple for the root cluster."""
+
+    def __init__(self, fh, base):
+        self.fh = fh
+        self.base = base
+        bpb = read_at(fh, base, 512)
+        self.bps = struct.unpack_from("<H", bpb, 11)[0]
+        self.spc = bpb[13]
+        self.reserved = struct.unpack_from("<H", bpb, 14)[0]
+        self.nfats = bpb[16]
+        self.spf = struct.unpack_from("<I", bpb, 36)[0]
+        self.root_clus = struct.unpack_from("<I", bpb, 44)[0]
+        self.fat_start = base + self.reserved * self.bps
+        self.data_start = self.fat_start + self.nfats * self.spf * self.bps
+        self.cluster_bytes = self.spc * self.bps
+        self.root = (self.root_clus, 0, True)
+
+    def _fat_next(self, clus):
+        off = self.fat_start + clus * 4
+        val = struct.unpack_from("<I", read_at(self.fh, off, 4), 0)[0] & 0x0FFFFFFF
+        return val
+
+    def _chain(self, clus):
+        seen = set()
+        while 0x2 <= clus < 0x0FFFFFF8 and clus not in seen:
+            seen.add(clus)
+            yield clus
+            clus = self._fat_next(clus)
+
+    def _cluster_off(self, clus):
+        return self.data_start + (clus - 2) * self.cluster_bytes
+
+    def _read_chain(self, clus, size=None):
+        out = bytearray()
+        for c in self._chain(clus):
+            out += read_at(self.fh, self._cluster_off(c), self.cluster_bytes)
+            if size is not None and len(out) >= size:
+                break
+        return bytes(out[:size]) if size is not None else bytes(out)
+
+    def inode(self, node):
+        return node    # (cluster, size, is_dir) already carries what entry() needs
+
+    def entry(self, node):
+        clus, size, is_dir = node
+        mode = 0o040000 if is_dir else 0o100000
+        return (mode, size, 0)
+
+    def listdir(self, node):
+        clus = node[0]
+        raw = self._read_chain(clus)
+        out, lfn = [], []
+        for i in range(0, len(raw), 32):
+            e = raw[i:i + 32]
+            if len(e) < 32 or e[0] == 0x00:
+                break
+            if e[0] == 0xE5:
+                lfn = []; continue
+            attr = e[11]
+            if attr == 0x0F:                       # VFAT long-name fragment
+                seq = e[0] & 0x3F
+                chars = e[1:11] + e[14:26] + e[28:32]
+                lfn.append((seq, chars)); continue
+            if attr & 0x08:                        # volume label
+                lfn = []; continue
+            name = _vfat_name(lfn) if lfn else _fat_short_name(e)
+            lfn = []
+            hi = struct.unpack_from("<H", e, 20)[0]
+            lo = struct.unpack_from("<H", e, 26)[0]
+            first = (hi << 16) | lo
+            sz = struct.unpack_from("<I", e, 28)[0]
+            is_sub = bool(attr & 0x10)
+            if name in (".", ".."):
+                continue
+            out.append((name, (first or 2, sz, is_sub)))
+        return out
+
+    def read_file(self, node, size):
+        clus, sz, _ = node
+        yield self._read_chain(clus, sz)
+
+
+def _fat_short_name(e):
+    # Byte 12 carries Windows NT's case flags for a short name that had no long
+    # entry: 0x08 lowercases the base, 0x10 the extension. Honouring them keeps
+    # the recorded case of an 8.3 name, which a filename in evidence should hold.
+    nt = e[12]
+    base = e[0:8].decode("ascii", "replace").rstrip(" ")
+    ext = e[8:11].decode("ascii", "replace").rstrip(" ")
+    if nt & 0x08:
+        base = base.lower()
+    if nt & 0x10:
+        ext = ext.lower()
+    return f"{base}.{ext}" if ext else base
+
+
+def _vfat_name(lfn):
+    parts = sorted(lfn, key=lambda x: x[0])
+    raw = b"".join(chunk for _, chunk in parts)
+    name = raw.decode("utf-16-le", "replace")
+    end = name.find("\uffff")
+    if end != -1:
+        name = name[:end]
+    return name.split("\x00")[0]
+
+
+class ExfatWalker:
+    """List and read files from an exFAT volume, same interface as Fat32Walker.
+    A node is (cluster, size, is_dir, fat_chain_flag)."""
+
+    def __init__(self, fh, base):
+        self.fh = fh
+        self.base = base
+        b = read_at(fh, base, 512)
+        self.bps = 1 << b[108]
+        self.spc = 1 << b[109]
+        self.fat_off = struct.unpack_from("<I", b, 80)[0]
+        self.heap_off = struct.unpack_from("<I", b, 88)[0]
+        self.root_clus = struct.unpack_from("<I", b, 96)[0]
+        self.cluster_bytes = self.bps * self.spc
+        self.fat_start = base + self.fat_off * self.bps
+        self.heap_start = base + self.heap_off * self.bps
+        self.root = (self.root_clus, 0, True, False)
+
+    def _fat_next(self, clus):
+        v = struct.unpack_from("<I", read_at(self.fh, self.fat_start + clus * 4, 4), 0)[0]
+        return v
+
+    def _cluster_off(self, clus):
+        return self.heap_start + (clus - 2) * self.cluster_bytes
+
+    def _read(self, clus, size, contiguous):
+        out = bytearray()
+        if contiguous:
+            need = size if size else self.cluster_bytes
+            n = (need + self.cluster_bytes - 1) // self.cluster_bytes
+            for i in range(n):
+                out += read_at(self.fh, self._cluster_off(clus + i), self.cluster_bytes)
+        else:
+            seen = set()
+            c = clus
+            while 0x2 <= c < 0xFFFFFFF7 and c not in seen:
+                seen.add(c)
+                out += read_at(self.fh, self._cluster_off(c), self.cluster_bytes)
+                if size and len(out) >= size:
+                    break
+                c = self._fat_next(c)
+        return bytes(out[:size]) if size else bytes(out)
+
+    def inode(self, node):
+        return node
+
+    def entry(self, node):
+        _, size, is_dir, _ = node
+        return (0o040000 if is_dir else 0o100000, size, 0)
+
+    def listdir(self, node):
+        clus, _, _, contig = node
+        raw = self._read(clus, 0, contig)
+        out = []
+        i = 0
+        while i < len(raw):
+            etype = raw[i]
+            if etype == 0x00:
+                break
+            if etype == 0x85:                       # File directory entry
+                secs = raw[i + 1]
+                s2 = raw[i + 32:i + 64]             # Stream extension (next entry)
+                flags = s2[1]
+                name_len = s2[3]
+                first = struct.unpack_from("<I", s2, 20)[0]
+                data_len = struct.unpack_from("<Q", s2, 24)[0]
+                is_dir = bool(raw[i + 4] & 0x10)
+                contiguous = bool(flags & 0x02)
+                # name entries follow, 0xC1, 15 UTF-16 chars each
+                name = ""
+                for k in range(2, secs + 1):
+                    ent = raw[i + 32 * k:i + 32 * k + 32]
+                    if not ent or ent[0] != 0xC1:
+                        break
+                    name += ent[2:32].decode("utf-16-le", "replace")
+                name = name[:name_len]
+                if name not in (".", ".."):
+                    out.append((name, (first, data_len, is_dir, contiguous)))
+                i += 32 * (secs + 1)
+            else:
+                i += 32
+        return out
+
+    def read_file(self, node, size):
+        clus, sz, _, contig = node
+        yield self._read(clus, sz, contig)
+
+
+
 def print_tree(w, num, depth, maxdepth, budget, indent=0, pad=6):
     for name, ino in w.listdir(num):
         if budget[0] <= 0:
@@ -812,6 +1031,52 @@ def identify_ifs(fh, base):
     return lines
 
 
+def walker_for(kind, fh, base):
+    """The walker class for a filesystem kind, or None if it has no walker."""
+    if kind and kind.startswith("ext"):
+        return ExtWalker(fh, base)
+    if kind == "fat32":
+        return Fat32Walker(fh, base)
+    if kind == "exfat":
+        return ExfatWalker(fh, base)
+    return None
+
+
+def identify_fat(fh, base):
+    """Return (kind, lines) for a FAT32 or exFAT volume at base, else None.
+
+    exFAT names itself in bytes 3..11 of the boot sector. FAT32 is recognised
+    by its "FAT32   " filesystem-type string at offset 82 together with a 0x55AA
+    boot signature, rather than by the OEM name, which is set by whatever tool
+    wrote the volume.
+    """
+    b = read_at(fh, base, 512)
+    if len(b) < 512 or b[510:512] != b"\x55\xaa":
+        if b[3:11] != b"EXFAT   ":
+            return None
+    if b[3:11] == b"EXFAT   ":
+        bps = 1 << b[108]
+        spc = 1 << b[109]
+        clusters = struct.unpack_from("<I", b, 92)[0]
+        vol = struct.unpack_from("<Q", b, 72)[0] * bps
+        return "exfat", [
+            f"bytes/sector {bps}   sectors/cluster {spc}",
+            f"clusters     {clusters:,}",
+            f"volume       {human(vol)}",
+        ]
+    if b[82:90] == b"FAT32   ":
+        bps = struct.unpack_from("<H", b, 11)[0]
+        spc = b[13]
+        total = struct.unpack_from("<I", b, 32)[0] * bps
+        label = b[71:82].decode("ascii", "replace").rstrip(" ")
+        return "fat32", [
+            f"label        {label or '(none)'}",
+            f"bytes/sector {bps}   sectors/cluster {spc}",
+            f"volume       {human(total)}",
+        ]
+    return None
+
+
 def identify_fs(fh, base):
     """Return (name, [detail lines]) for whatever sits at this partition."""
     sb = read_at(fh, base + EXT_SB_OFF, 1024)
@@ -852,6 +1117,10 @@ def identify_fs(fh, base):
     ifs = identify_ifs(fh, base)
     if ifs:
         return "QNX IFS boot image", ifs
+
+    fat = identify_fat(fh, base)
+    if fat:
+        return fat
 
     # Not ext, not qnx6, not IFS. Report the leading bytes so there is a lead
     # to follow, rather than inventing a signature for it.
@@ -996,6 +1265,15 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                 regions.append((f"GPT part {idx} {name[:20]}", first * SECTOR))
                 sized_regions.append((f"GPT part {idx} {name[:20]}", first * SECTOR, sz))
                 vol_names[first * SECTOR] = volume_name(idx, first, name)
+
+        # No partition table at all (a whole-disk filesystem, or a bare region
+        # such as an ETFS flash dump) means no regions were recorded. Treat the
+        # whole image as one region so it still reaches identify_fs and the
+        # walkers, named lba0 by the volume_name fallback.
+        if not sized_regions:
+            sized_regions.append(("whole image", 0, size))
+            regions.append(("whole image", 0))
+            vol_names[0] = volume_name(None, 0)
 
         # the two offsets the kernel itself probes, per region and whole-image
         print()
@@ -1271,6 +1549,42 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                             print(line)
                     except Exception as exc:
                         print(f"        could not extract: {exc}")
+
+                if kind in ("fat32", "exfat") and wanted:
+                    if do_list:
+                        print(f"        CONTENTS  (depth {list_depth})")
+                        try:
+                            print_tree(walker_for(kind, fh, b),
+                                       walker_for(kind, fh, b).root, 1,
+                                       list_depth, [list_max], pad=8)
+                        except Exception as exc:
+                            print(f"        could not walk this filesystem: {exc}")
+                    if zf is not None:
+                        vol = vol_names.get(b) or f"lba{b // SECTOR}"
+                        print(f"        EXTRACTING to {extract}  as {vol}/")
+                        try:
+                            w = walker_for(kind, fh, b)
+                            ents = collect(w, w.root)
+                            ents, dropped = apply_exclude(ents, exclude)
+                            log = []
+                            f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log, reporter)
+                            if manifest is not None:
+                                manifest.append({
+                                    "volume": vol, "image": os.path.basename(path),
+                                    "lba": b // SECTOR, "offset_bytes": b,
+                                    "partition_size_bytes": sz, "filesystem": kind,
+                                    "files": f_, "bytes": wr,
+                                    "symlinks_or_special_skipped": sk,
+                                    "failed": fa, "excluded": dropped,
+                                })
+                            print(f"            {f_:,} files, {human(wr)}"
+                                  + (f", {sk:,} symlinks or special files skipped" if sk else "")
+                                  + (f", {fa:,} FAILED" if fa else "")
+                                  + (f", {dropped:,} excluded" if dropped else ""))
+                            for line in log[:5]:
+                                print(line)
+                        except Exception as exc:
+                            print(f"        could not extract: {exc}")
                 print()
 
         if rejected:
@@ -1378,6 +1692,48 @@ def self_test():
             if got != want:
                 ok = False
             print(f"  [{mark}] {label}: detected={got}, expected={want}")
+
+        # FAT and exFAT detection, both ways, from synthetic boot sectors. The
+        # type strings are written as literals here, deliberately not by
+        # reference to identify_fat's own comparisons, for the same circularity
+        # reason as TRUE_MAGIC_LE above: Microsoft's specifications spell them
+        # "FAT32   " at offset 82 and "EXFAT   " at offset 3.
+        fat = bytearray(64 * 1024)
+        fat[82:90] = b"FAT32   "
+        struct.pack_into("<H", fat, 11, 512); fat[13] = 1
+        struct.pack_into("<I", fat, 32, 96)
+        fat[510:512] = b"\x55\xaa"
+        fp = os.path.join(d, "fat32.img"); open(fp, "wb").write(fat)
+
+        exf = bytearray(64 * 1024)
+        exf[3:11] = b"EXFAT   "
+        exf[108] = 9; exf[109] = 0
+        struct.pack_into("<Q", exf, 72, 128)
+        struct.pack_into("<I", exf, 92, 16)
+        exf[510:512] = b"\x55\xaa"
+        xp = os.path.join(d, "exfat.img"); open(xp, "wb").write(exf)
+
+        for path, want_kind, label in (
+                (fp, "fat32", "fat32 boot sector recognised"),
+                (xp, "exfat", "exfat boot sector recognised"),
+                (c, None, "no filesystem claimed on the empty image")):
+            with open(path, "rb") as fh:
+                r = identify_fat(fh, 0)
+            got = r[0] if r else None
+            mark = "PASS" if got == want_kind else "FAIL"
+            if got != want_kind:
+                ok = False
+            print(f"  [{mark}] {label}: got={got}")
+
+        # A FAT boot sector must not parse as an MBR: its boot code sits where
+        # partition entries would be and yields nonsense regions otherwise.
+        for path, label in ((fp, "fat32"), (xp, "exfat")):
+            with open(path, "rb") as fh:
+                r = parse_mbr(fh)
+            mark = "PASS" if r is None else "FAIL"
+            if r is not None:
+                ok = False
+            print(f"  [{mark}] parse_mbr declines the {label} boot sector")
 
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"
@@ -1570,11 +1926,11 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(
         prog="qnxprobe.py",
-        description="Read QNX6 and ext2/3/4 filesystems out of raw disk "
-                    "images: identify by superblock rather than trusting a "
-                    "partition type byte, list, and extract to a zip with a "
-                    "provenance manifest. No mounting, no admin rights, "
-                    "standard library only.",
+        description="Read QNX6, ext2/3/4, FAT32 and exFAT filesystems out "
+                    "of raw disk images: identify by superblock rather than "
+                    "trusting a partition type byte, list, and extract to a "
+                    "zip with a provenance manifest. No mounting, no admin "
+                    "rights, standard library only.",
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("image", nargs="*",
