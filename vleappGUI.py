@@ -575,10 +575,11 @@ def select_input(button_type):
         input_filename = tk_filedialog.askopenfilename(parent=main_window,
                                                        title='Select a file',
                                                        filetypes=(('All supported files',
-                                                                   '*.tar *.zip *.gz *.img *.bin *.dd *.raw'),
+                                                                   '*.tar *.zip *.gz *.img *.bin *.dd *.raw *.iVa'),
                                                                   ('tar file', '*.tar'), ('zip file', '*.zip'),
                                                                   ('gz file', '*.gz'),
-                                                                  ('raw disk image', '*.img *.bin *.dd *.raw')))
+                                                                  ('raw disk image', '*.img *.bin *.dd *.raw'),
+                                                                  ('Berla iVe export', '*.iVa')))
     else:
         input_filename = tk_filedialog.askdirectory(parent=main_window, title='Select a folder')
     input_entry.delete(0, 'end')
