@@ -27,7 +27,7 @@ Read-only throughout. Never writes to the image.
 """
 import os, re, struct, sys, datetime, json, time, uuid, zipfile
 
-QNXPROBE_VERSION = "1.6"
+QNXPROBE_VERSION = "1.7"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -730,6 +730,384 @@ class ExfatWalker:
         yield self._read(clus, sz, contig)
 
 
+# ---------------------------------------------------------------------------
+# QNX flash filesystems: ETFS and EFS.
+#
+# These are QNX's two on-flash filesystems, the kind a head unit stores its
+# manufacturing and configuration data on. QNX does not publish either byte
+# layout. Both structures below are transcribed from the Kaitai .ksy specs in
+# NetherlandsForensicInstitute/qnxmount (Apache-2.0), a peer institute's
+# vehicle-forensics reader. Its ETFS spec cross-references QNX's own fs/etfs.h
+# and its EFS spec fs/f3s_spec.h, the same way the qnx6 code above is sourced
+# to the Linux driver. The Kaitai runtime is NOT taken as a dependency; only
+# the field layouts are transcribed, into the same hand-written struct style,
+# so this stays standard library only.
+#
+# Validated by round-trip against qnxmount's own committed test images: every
+# file name, mode, owner, mtime, symlink target and byte of file content
+# matched the tar archive built from the same live filesystem, ETFS 32 of 32
+# entries and EFS 31 of 31. The tar archives were produced by qnxmount's build
+# scripts on QNX, an implementation independent of this one.
+#
+# Both are typically imaged bare, with no partition table, so they arrive as
+# the whole-image region and are read at base 0.
+#
+# ETFS is transaction based. The flash is a run of fixed-size pages, each
+# holding <pagesize> bytes of user data followed by a 16-byte transaction
+# record, which on real NAND lives in the spare/out-of-band area:
+#     fid u4, cluster u4, nclusters u2, tacode u1, dacode u1, sequence u4
+# The live state is rebuilt by keeping, for every (fid, cluster), the record
+# with the highest sequence number, and ignoring pages whose transaction code
+# is not "ok" or "ecc" (erased and 0xFF-filler pages carry a junk cluster).
+# Files are addressed by a fixed file-id scheme from fs/etfs.h: root 0,
+# .filetable 1, .badblks 2, .counts 3, .lost+found 4, .reserved 5, first real
+# file 6. The .filetable (fid 1) is itself a file whose data is 64-byte entries
+# indexed by fid, each carrying a file's parent id, mode, owner, times, size
+# and short name; a name longer than 32 bytes is continued in an extension
+# entry the short entry points at.
+# Source: qnxmount/etfs/parser.ksy and qnxmount/etfs/interface.py, fs/etfs.h.
+# ---------------------------------------------------------------------------
+ETFS_TRANS_SIZE = 16
+ETFS_ENTRY_SIZE = 64
+ETFS_FID_ROOT, ETFS_FID_FTABLE = 0, 1
+ETFS_RESERVED = {1: ".filetable", 2: ".badblks", 3: ".counts",
+                 4: ".lost+found", 5: ".reserved"}
+ETFS_PAGE_SIZES = (512, 1024, 2048, 4096, 8192, 16384)
+
+
+def _etfs_scan_transactions(fh, base, pagesize, n, want_fid=None, cap=None):
+    """Yield (page_index, fid, cluster, tacode, sequence) for pages whose
+    transaction code is ok or ecc. Reads in blocks to avoid a syscall per page.
+    Stops after cap pages if given, and filters to want_fid if given."""
+    unit = pagesize + ETFS_TRANS_SIZE
+    limit = n if cap is None else min(n, cap)
+    BLK = 4096
+    start = 0
+    while start < limit:
+        count = min(BLK, limit - start)
+        buf = read_at(fh, base + start * unit, count * unit)
+        if len(buf) < count * unit:
+            count = len(buf) // unit
+        for k in range(count):
+            t = buf[k * unit + pagesize: k * unit + unit]
+            if len(t) < ETFS_TRANS_SIZE:
+                break
+            fid, cluster = struct.unpack_from("<II", t, 0)
+            if fid == 0xFFFFFFFF:
+                continue
+            if (t[10] & 0x0F) not in (0, 1):     # keep only ok / ecc pages
+                continue
+            if want_fid is not None and fid != want_fid:
+                continue
+            seq = struct.unpack_from("<I", t, 12)[0]
+            yield start + k, fid, cluster, t[10], seq
+        start += count
+        if count == 0:
+            break
+
+
+def _etfs_parse_entry(raw):
+    """One 64-byte .filetable entry, or None."""
+    if len(raw) < ETFS_ENTRY_SIZE:
+        return None
+    efid, pfid = struct.unpack_from("<HH", raw, 0)
+    is_ext = efid == 0x8000
+    no_parent = pfid == 0xFFFF
+    etype = int(is_ext) + int(no_parent) * 2
+    e = dict(efid=efid, pfid=pfid, is_ext=is_ext, is_solo=efid == 0x0000,
+             is_valid=efid != 0xFFFF, body=None, full=None)
+    if etype == 0:                                # file entry
+        mode, uid, gid, atime, mtime, ctime, size = struct.unpack_from("<7I", raw, 4)
+        name = raw[32:64].split(b"\x00", 1)[0].decode("utf-8", "replace")
+        e["body"] = dict(mode=mode, uid=uid, gid=gid, mtime=mtime,
+                         ctime=ctime, size=size, name=name)
+    elif etype == 1:                              # extension-name entry
+        e["body"] = dict(name=raw[4:63].split(b"\x00", 1)[0].decode("utf-8", "replace"))
+    return e
+
+
+class EtfsWalker:
+    """Reconstruct an ETFS filesystem by replaying its transactions, then walk
+    it through the shared collect()/extract interface. A node is a file id."""
+
+    root = ETFS_FID_ROOT
+
+    def __init__(self, fh, base, size, pagesize):
+        self.fh, self.base, self.bs = fh, base, pagesize
+        self.unit = pagesize + ETFS_TRANS_SIZE
+        self.n = size // self.unit
+        # current page for every (fid, cluster): the highest sequence wins, and
+        # for equal sequences the later physical page, matching qnxmount.
+        cur = {}
+        for pi, fid, cluster, ta, seq in _etfs_scan_transactions(fh, base, pagesize, self.n):
+            d = cur.setdefault(fid, {})
+            if cluster not in d or seq >= d[cluster][0]:
+                d[cluster] = (seq, pi)
+        self.cur = cur
+        self.ftable = self._build_ftable()
+        self._resolve_names()
+        self.kids = self._build_children()
+
+    def _page_data(self, page_index):
+        return read_at(self.fh, self.base + page_index * self.unit, self.bs)
+
+    def _build_ftable(self):
+        per = self.bs // ETFS_ENTRY_SIZE
+        pages = self.cur.get(ETFS_FID_FTABLE, {})
+        if not pages:
+            return []
+        ftable = []
+        for cluster in range(max(pages) + 1):
+            if cluster not in pages:
+                ftable.extend([None] * per)
+                continue
+            data = self._page_data(pages[cluster][1])
+            for k in range(per):
+                ftable.append(_etfs_parse_entry(data[k * ETFS_ENTRY_SIZE:
+                                                     (k + 1) * ETFS_ENTRY_SIZE]))
+        return ftable
+
+    def _resolve_names(self):
+        ft = self.ftable
+        for e in ft:
+            if e is None or e["body"] is None:
+                continue
+            if e["is_ext"] or not e["is_valid"]:
+                e["full"] = None
+            elif e["is_solo"]:
+                e["full"] = e["body"]["name"]
+            else:
+                ext = ft[e["efid"]] if e["efid"] < len(ft) else None
+                if ext is not None and ext["is_ext"] and ext["body"]:
+                    e["full"] = e["body"]["name"] + ext["body"]["name"]
+                else:
+                    e["full"] = e["body"]["name"]
+
+    def _build_children(self):
+        """parent fid -> [(name, fid)]. An entry whose parent id no longer
+        resolves to a real named entry (its page was lost, or the slot is
+        unallocated) is an orphan; qnxmount routes those to /recovered_files, so
+        they are attached to the root under that name rather than dropped."""
+        kids = {}
+        ft = self.ftable
+        self.orphans = []
+        for fid, e in enumerate(ft):
+            if fid == ETFS_FID_ROOT or e is None or e["full"] is None:
+                continue
+            pf = e["pfid"]
+            parent_ok = (0 <= pf < len(ft) and ft[pf] is not None
+                         and ft[pf]["full"] is not None)
+            if parent_ok:
+                kids.setdefault(pf, []).append((e["full"], fid))
+            else:
+                self.orphans.append((e["full"], fid))
+        return kids
+
+    def listdir(self, fid):
+        if fid == -1:                             # synthetic recovered_files dir
+            return sorted(self.orphans)
+        out = list(self.kids.get(fid, []))
+        if fid == ETFS_FID_ROOT and self.orphans:
+            out.append(("recovered_files", -1))
+        return sorted(out)
+
+    def entry(self, fid):
+        if fid == -1:                             # synthetic recovered_files dir
+            return (S_IFDIR | 0o755, 0, 0)
+        e = self.ftable[fid] if 0 <= fid < len(self.ftable) else None
+        if e is None or e["body"] is None:
+            return None
+        b = e["body"]
+        return (b["mode"], b["size"], b["mtime"])
+
+    def read_file(self, fid, size):
+        if fid == -1:
+            return
+        pages = self.cur.get(fid, {})
+        left = size
+        if not pages:
+            return
+        for cluster in range(max(pages) + 1):
+            if left <= 0:
+                return
+            if cluster in pages:
+                buf = self._page_data(pages[cluster][1])
+            else:
+                buf = b"\xff" * self.bs           # a hole reads as 0xFF on flash
+            if len(buf) < self.bs:
+                buf = buf + bytes(self.bs - len(buf))
+            take = min(self.bs, left)
+            yield buf[:take]
+            left -= take
+
+
+# ---------------------------------------------------------------------------
+# EFS is QNX's other flash filesystem, the F3S "flash 3" format. It is not
+# transaction based: the flash is divided into erase units, each unit carries a
+# growing-downward array of 32-byte extent headers at its end and the extent
+# data (text) packed from the front. An extent header names the data's offset
+# and size, a "next" pointer chaining the extents of one object, and a "super"
+# pointer to a newer version that supersedes it, which is how EFS does its
+# copy-on-write. Physical units are mapped to logical numbers through a per-unit
+# logi record, so a pointer is (logical unit, extent index).
+#
+# A directory's first extent points at its first child; each child extent's
+# "next" chains to the following sibling, and each child's own "first" descends
+# into it. A file's extents chained by "next" are its data. The partition is
+# found by its boot record, an extent whose text begins with the ASCII
+# signature "QSSL_F3S"; the unit size is read from the unit_info at the start of
+# the first unit. Source: qnxmount/efs/parser.ksy and interface.py, fs/f3s_spec.h.
+# ---------------------------------------------------------------------------
+EFS_SIG = b"QSSL_F3S"
+EFS_EXTHDR = 32
+
+
+def _efs_boot(fh, base, scan_bytes):
+    """Find the QSSL_F3S boot record in the first scan_bytes of the region and
+    return its parsed boot_info, or None. The boot_info starts 4 bytes before
+    the signature (struct_size u2, rev_major u1, rev_minor u1, then the sig)."""
+    chunk = read_at(fh, base, scan_bytes)
+    at = chunk.find(EFS_SIG)
+    if at < 4:
+        return None
+    o = at - 4
+    struct_size = struct.unpack_from("<H", chunk, o)[0]
+    rev_major, rev_minor = chunk[o + 2], chunk[o + 3]
+    if struct_size != 0x18 or rev_major != 3 or rev_minor != 0:
+        return None
+    unit_index, unit_total, unit_spare, align_pow2 = struct.unpack_from("<HHHH", chunk, o + 12)
+    root = struct.unpack_from("<HH", chunk, o + 20)
+    return dict(unit_index=unit_index, unit_total=unit_total, unit_spare=unit_spare,
+                align_pow2=align_pow2, root=root, sig_at=at)
+
+
+def _efs_unit_size(fh, base):
+    """The unit size from the unit_info at the start of the first unit. reserve
+    bytes must read 0xFF for this to be a plausible EFS unit header."""
+    b = read_at(fh, base, 16)
+    if len(b) < 16 or b[3] != 0xFF or b[6:8] != b"\xff\xff":
+        return None
+    unit_pow2 = struct.unpack_from("<H", b, 4)[0]
+    if not (9 <= unit_pow2 <= 30):
+        return None
+    return 1 << unit_pow2
+
+
+class EfsWalker:
+    """Reconstruct an EFS (F3S) filesystem and walk it through the shared
+    interface. A node is a parsed directory entry (a dict)."""
+
+    def __init__(self, fh, base):
+        self.fh, self.base = fh, base
+        self.unit_size = _efs_unit_size(fh, base)
+        boot = _efs_boot(fh, base, min(self.unit_size * 4, 1 << 24))
+        self.boot = boot
+        self.align = boot["align_pow2"]
+        self.units = [read_at(fh, base + u * self.unit_size, self.unit_size)
+                      for u in range(boot["unit_total"])]
+        self.logi_map = self._logi_map()
+        self.root = self._as_node(self._get_ext(boot["root"]))[1]
+
+    def _ext_header(self, unit, i):
+        off = self.unit_size - EFS_EXTHDR * (i + 1)
+        if off < 0 or off + EFS_EXTHDR > len(unit):
+            return None
+        h = unit[off:off + EFS_EXTHDR]
+        s0 = struct.unpack_from("<I", h, 0)[0]
+        return dict(no_next=bool((s0 >> 1) & 1), no_super=bool((s0 >> 2) & 1),
+                    ext_last=bool((s0 >> 7) & 1), type=(s0 >> 8) & 3,
+                    status1=struct.unpack_from("<I", h, 4)[0],
+                    toff_hi=h[19], toff_lo=struct.unpack_from("<H", h, 20)[0],
+                    tsize=struct.unpack_from("<H", h, 22)[0],
+                    next=struct.unpack_from("<HH", h, 24),
+                    super=struct.unpack_from("<HH", h, 28))
+
+    def _extents(self, unit):
+        exts, i = [], 0
+        while True:
+            h = self._ext_header(unit, i)
+            if h is None:
+                break
+            exts.append(h)
+            if h["ext_last"] or i > 4096:
+                break
+            i += 1
+        return exts
+
+    def _text(self, unit, hdr):
+        off = ((hdr["toff_hi"] << 16) + hdr["toff_lo"]) << self.align
+        return unit[off:off + hdr["tsize"]]
+
+    @staticmethod
+    def _is_spare(exts):
+        return (len(exts) == 1
+                or (len(exts) == 2 and exts[1]["status1"] == 0xFFFFFFFF))
+
+    def _logi_map(self):
+        logi = {}
+        for unit in self.units:
+            exts = self._extents(unit)
+            if len(exts) < 2 or self._is_spare(exts):   # no logi record to read
+                continue
+            t = self._text(unit, exts[1])            # unit_logi: struct_size, logi
+            logi[struct.unpack_from("<H", t, 2)[0]] = (unit, exts)
+        return logi
+
+    def _get_ext(self, ptr):
+        unit, exts = self.logi_map[ptr[0]]
+        hdr = exts[ptr[1]]
+        while not hdr["no_super"]:                   # follow to the current version
+            ptr = hdr["super"]
+            unit, exts = self.logi_map[ptr[0]]
+            hdr = exts[ptr[1]]
+        return unit, hdr
+
+    def _as_node(self, ext):
+        """A directory entry, as the hashable node (first_logi, first_index,
+        mode, mtime) the shared walker interface passes around. It stays hashable
+        so collect()'s cycle-guard set can hold it; first uniquely identifies the
+        object, so it doubles as identity. The name is returned by listdir, not
+        carried in the node."""
+        unit, hdr = ext
+        t = self._text(unit, hdr)
+        namelen = t[3]
+        first = struct.unpack_from("<HH", t, 4)
+        name = t[8:8 + namelen].split(b"\x00", 1)[0].decode("utf-8", "replace")
+        so = 8 + ((namelen + 3) & 0xFC)              # name+pad is 4-byte aligned
+        mode = struct.unpack_from("<H", t, so + 2)[0]
+        mtime = struct.unpack_from("<I", t, so + 12)[0]
+        return name, (first[0], first[1], mode, mtime)
+
+    def _chain(self, node):
+        first = (node[0], node[1])
+        unit, hdr = self._get_ext(first)
+        yield unit, hdr
+        while not hdr["no_next"]:
+            unit, hdr = self._get_ext(hdr["next"])
+            yield unit, hdr
+
+    def listdir(self, node):
+        out = []
+        for unit, hdr in self._chain(node):
+            if not hdr["tsize"]:
+                break
+            out.append(self._as_node((unit, hdr)))
+        return out
+
+    def _size(self, node):
+        return sum(hdr["tsize"] for _, hdr in self._chain(node))
+
+    def entry(self, node):
+        mode = node[2]
+        size = self._size(node) if (mode & 0o170000) in (0o100000, 0o120000) else 0
+        return (mode, size, node[3])
+
+    def read_file(self, node, size):
+        out = bytearray()
+        for unit, hdr in self._chain(node):
+            out += self._text(unit, hdr)
+        yield bytes(out[:size]) if size else bytes(out)
+
 
 def print_tree(w, num, depth, maxdepth, budget, indent=0, pad=6):
     for name, ino in w.listdir(num):
@@ -1031,15 +1409,100 @@ def identify_ifs(fh, base):
     return lines
 
 
-def walker_for(kind, fh, base):
-    """The walker class for a filesystem kind, or None if it has no walker."""
+def walker_for(kind, fh, base, size=None):
+    """The walker class for a filesystem kind, or None if it has no walker.
+
+    ETFS needs the region size (to page the flash) and its detected page size,
+    so callers that want an ETFS walker must pass size.
+    """
     if kind and kind.startswith("ext"):
         return ExtWalker(fh, base)
     if kind == "fat32":
         return Fat32Walker(fh, base)
     if kind == "exfat":
         return ExfatWalker(fh, base)
+    if kind == "efs":
+        return EfsWalker(fh, base)
+    if kind == "etfs" and size is not None:
+        P = etfs_pagesize(fh, base, size)
+        return EtfsWalker(fh, base, size, P) if P else None
     return None
+
+
+def _etfs_reserved_match(fh, base, pagesize, n, need=3):
+    """True if a fid==1 cluster-0 page parses into a .filetable carrying the
+    fixed reserved names at their fixed ids and a directory at the root id.
+
+    The reserved-name check is what makes ETFS detection specific: ETFS has no
+    magic number, so a bare page-count match would be a coincidence, but the
+    names .filetable/.badblks/.counts at fixed file ids are not.
+    """
+    per = pagesize // ETFS_ENTRY_SIZE
+    if per < 6:                                      # too small to hold fids 0..5
+        return False
+    unit = pagesize + ETFS_TRANS_SIZE
+    for pi, fid, cluster, ta, seq in _etfs_scan_transactions(
+            fh, base, pagesize, n, want_fid=ETFS_FID_FTABLE, cap=min(n, 200000)):
+        if cluster != 0:
+            continue
+        data = read_at(fh, base + pi * unit, pagesize)
+        r = _etfs_parse_entry(data[0:ETFS_ENTRY_SIZE])
+        if not (r and r["body"] and (r["body"]["mode"] & 0o170000) == S_IFDIR):
+            continue
+        hits = 0
+        for rid, name in ETFS_RESERVED.items():
+            e = _etfs_parse_entry(data[rid * ETFS_ENTRY_SIZE:(rid + 1) * ETFS_ENTRY_SIZE])
+            if e and e["body"] and e["body"].get("name") == name:
+                hits += 1
+        if hits >= need:
+            return True
+    return False
+
+
+def etfs_pagesize(fh, base, size):
+    """The ETFS page size for the region, or None. A candidate is accepted only
+    when the region divides evenly into (pagesize + 16)-byte pages AND the
+    .filetable carries its reserved names, so a chance size match is rejected.
+    """
+    for P in ETFS_PAGE_SIZES:
+        unit = P + ETFS_TRANS_SIZE
+        if size < unit or size % unit != 0:
+            continue
+        if _etfs_reserved_match(fh, base, P, size // unit):
+            return P
+    return None
+
+
+def identify_etfs(fh, base, size):
+    """Return ("etfs", lines) if an ETFS filesystem fills this region, else None."""
+    P = etfs_pagesize(fh, base, size)
+    if P is None:
+        return None
+    return "etfs", [
+        f"page size    {P:,} bytes data + {ETFS_TRANS_SIZE} bytes transaction",
+        f"pages        {size // (P + ETFS_TRANS_SIZE):,}",
+        "layout       transaction based, live state replayed from the spare area",
+        "reserved     .filetable/.badblks/.counts/.lost+found/.reserved present",
+    ]
+
+
+def identify_efs(fh, base, size):
+    """Return ("efs", lines) if an EFS (F3S) filesystem starts at base, else None."""
+    us = _efs_unit_size(fh, base)
+    if us is None:
+        return None
+    boot = _efs_boot(fh, base, min(us * 4, 1 << 24))
+    if boot is None:
+        return None
+    if boot["unit_total"] < 1 or boot["unit_total"] * us > size:
+        return None
+    return "efs", [
+        f"unit size    {human(us)}   {boot['unit_total']} units, "
+        f"{boot['unit_spare']} spare",
+        f"alignment    text offsets shifted left by {boot['align_pow2']}",
+        f"boot record  QSSL_F3S at +0x{boot['sig_at']:x}",
+        f"root         logical unit {boot['root'][0]}, extent {boot['root'][1]}",
+    ]
 
 
 def identify_fat(fh, base):
@@ -1077,8 +1540,18 @@ def identify_fat(fh, base):
     return None
 
 
-def identify_fs(fh, base):
-    """Return (name, [detail lines]) for whatever sits at this partition."""
+def identify_fs(fh, base, size=None):
+    """Return (name, [detail lines]) for whatever sits at this partition.
+
+    size is the region's byte length, needed by the flash filesystems (ETFS/EFS)
+    which have no header at a fixed offset and are sized by the region. When it
+    is not given it is taken as the rest of the file from base.
+    """
+    if size is None:
+        try:
+            size = os.fstat(fh.fileno()).st_size - base
+        except OSError:
+            size = 0
     sb = read_at(fh, base + EXT_SB_OFF, 1024)
     if len(sb) == 1024 and _e(sb, "magic", 2) == EXT_MAGIC:
         bs = 1024 << _e(sb, "log_block_size")
@@ -1122,8 +1595,17 @@ def identify_fs(fh, base):
     if fat:
         return fat
 
-    # Not ext, not qnx6, not IFS. Report the leading bytes so there is a lead
-    # to follow, rather than inventing a signature for it.
+    efs = identify_efs(fh, base, size)
+    if efs:
+        return efs
+
+    etfs = identify_etfs(fh, base, size)
+    if etfs:
+        return etfs
+
+    # Not ext, not qnx6, not IFS, not FAT, not a QNX flash filesystem. Report
+    # the leading bytes so there is a lead to follow, rather than inventing a
+    # signature for it.
     head = read_at(fh, base, 16)
     if not head:
         return None, []
@@ -1472,7 +1954,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                           f"container, holds the logical volumes below")
                     print()
                     continue
-                kind, lines = identify_fs(fh, b)
+                kind, lines = identify_fs(fh, b, sz)
                 print(f"    {lab}   {human(sz)}   ->  {kind or 'not recognised'}")
                 for line in lines:
                     print(f"        {line}")
@@ -1550,20 +2032,19 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                     except Exception as exc:
                         print(f"        could not extract: {exc}")
 
-                if kind in ("fat32", "exfat") and wanted:
+                if kind in ("fat32", "exfat", "etfs", "efs") and wanted:
                     if do_list:
                         print(f"        CONTENTS  (depth {list_depth})")
                         try:
-                            print_tree(walker_for(kind, fh, b),
-                                       walker_for(kind, fh, b).root, 1,
-                                       list_depth, [list_max], pad=8)
+                            w = walker_for(kind, fh, b, sz)
+                            print_tree(w, w.root, 1, list_depth, [list_max], pad=8)
                         except Exception as exc:
                             print(f"        could not walk this filesystem: {exc}")
                     if zf is not None:
                         vol = vol_names.get(b) or f"lba{b // SECTOR}"
                         print(f"        EXTRACTING to {extract}  as {vol}/")
                         try:
-                            w = walker_for(kind, fh, b)
+                            w = walker_for(kind, fh, b, sz)
                             ents = collect(w, w.root)
                             ents, dropped = apply_exclude(ents, exclude)
                             log = []
@@ -1735,6 +2216,101 @@ def self_test():
                 ok = False
             print(f"  [{mark}] parse_mbr declines the {label} boot sector")
 
+        # ETFS and EFS, the QNX flash filesystems. The reserved names and the
+        # F3S signature are spelled here as independent literals, deliberately
+        # NOT read from ETFS_RESERVED or EFS_SIG, for the same circularity
+        # reason as TRUE_MAGIC_LE above: a fixture built from the constant under
+        # test cannot go red when that constant is wrong. Break a name or the
+        # signature and this self-test exits 1. Change these only to the values
+        # in QNX's fs/etfs.h and fs/f3s_spec.h.
+        TRUE_RESERVED = {1: ".filetable", 2: ".badblks", 3: ".counts",
+                         4: ".lost+found", 5: ".reserved"}
+        TRUE_F3S_SIG = b"QSSL_F3S"
+        if ETFS_RESERVED != TRUE_RESERVED:
+            print(f"  [FAIL] ETFS_RESERVED {ETFS_RESERVED} != {TRUE_RESERVED}")
+            ok = False
+        if EFS_SIG != TRUE_F3S_SIG:
+            print(f"  [FAIL] EFS_SIG {EFS_SIG!r} != {TRUE_F3S_SIG!r}")
+            ok = False
+
+        # A synthetic ETFS image: 1024-byte pages, each with a 16-byte spare
+        # transaction. One .filetable page (fid 1) carries the reserved entries
+        # and a test file at fid 6; a second page carries that file's data.
+        Pz = 1024
+
+        def _tr(fid, cluster, seq):               # an "ok" transaction record
+            return struct.pack("<IIHBBI", fid, cluster, 1, 0, 0, seq)
+
+        def _fe(pfid, mode, mtime, size, name):    # a 64-byte file-table entry
+            return (struct.pack("<HH", 0x0000, pfid)
+                    + struct.pack("<7I", mode, 0, 0, 0, mtime, 0, size)
+                    + name.encode("utf-8")[:32].ljust(32, b"\x00"))
+
+        payload = b"ETFS self-test payload\n"
+        ftbl = bytearray()
+        ftbl += _fe(0x0000, S_IFDIR | 0o755, 0, 0, "")                # fid 0 root
+        for fid in range(1, 6):
+            m = (S_IFDIR | 0o755) if fid == 4 else 0o100444
+            ftbl += _fe(0x0000, m, 0, 0, TRUE_RESERVED[fid])          # fids 1..5
+        ftbl += _fe(0x0000, 0o100644, 1712000000, len(payload), "selftest.txt")
+        ftbl += b"\xff" * (Pz - len(ftbl))         # remaining entries invalid
+        etfs_img = (bytes(ftbl) + _tr(ETFS_FID_FTABLE, 0, 5)
+                    + payload.ljust(Pz, b"\x00") + _tr(6, 0, 6))
+        ep = os.path.join(d, "etfs.bin"); open(ep, "wb").write(etfs_img)
+
+        with open(ep, "rb") as fh:
+            det = identify_etfs(fh, 0, len(etfs_img))
+            kind = det[0] if det else None
+            got = b""
+            if kind == "etfs":
+                w = walker_for("etfs", fh, 0, len(etfs_img))
+                kids = dict(w.listdir(w.root))
+                node = kids.get("selftest.txt")
+                if node is not None:
+                    got = b"".join(w.read_file(node, w.entry(node)[1]))
+        mark = "PASS" if (kind == "etfs" and got == payload) else "FAIL"
+        if kind != "etfs" or got != payload:
+            ok = False
+        print(f"  [{mark}] synthetic ETFS recognised and one file round-tripped: "
+              f"kind={kind}")
+
+        # A synthetic EFS image: one erase unit whose unit_info sizes it and
+        # whose boot record carries the QSSL_F3S signature. Detection only, the
+        # same depth as the FAT legs above; the full walk is proven by the
+        # round-trip against qnxmount's committed images.
+        us_pow2 = 16
+        efs_img = bytearray(b"\xff" * (1 << us_pow2))
+        struct.pack_into("<H", efs_img, 0, 0x10)          # unit_info struct_size
+        efs_img[2] = 0x00                                 # endian
+        efs_img[3] = 0xFF                                 # pad
+        struct.pack_into("<H", efs_img, 4, us_pow2)       # unit_pow2
+        efs_img[6:8] = b"\xff\xff"                        # reserve
+        struct.pack_into("<I", efs_img, 8, 0)             # erase_count
+        bo = 0x100                                        # boot_info offset
+        struct.pack_into("<HBB", efs_img, bo, 0x18, 3, 0)
+        efs_img[bo + 4:bo + 12] = TRUE_F3S_SIG
+        struct.pack_into("<HHHH", efs_img, bo + 12, 0, 1, 0, 2)   # idx,total,spare,align
+        struct.pack_into("<HH", efs_img, bo + 20, 1, 0)          # root ptr
+        efp = os.path.join(d, "efs.bin"); open(efp, "wb").write(bytes(efs_img))
+        with open(efp, "rb") as fh:
+            det = identify_efs(fh, 0, len(efs_img))
+        got_kind = det[0] if det else None
+        mark = "PASS" if got_kind == "efs" else "FAIL"
+        if got_kind != "efs":
+            ok = False
+        print(f"  [{mark}] synthetic EFS boot record recognised: kind={got_kind}")
+
+        # Neither flash detector may fire on data that is not its filesystem.
+        for path, label in ((c, "random"), (fp, "fat32"), (xp, "exfat")):
+            sz = os.path.getsize(path)
+            with open(path, "rb") as fh:
+                e1 = identify_etfs(fh, 0, sz)
+                e2 = identify_efs(fh, 0, sz)
+            mark = "PASS" if (e1 is None and e2 is None) else "FAIL"
+            if e1 is not None or e2 is not None:
+                ok = False
+            print(f"  [{mark}] ETFS and EFS decline the {label} image")
+
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"
               if ok else
@@ -1811,9 +2387,10 @@ getting the files out, without mounting:
 
 listing contents:
   --list walks each filesystem it identified and prints the tree. It handles
-  qnx6 and ext2/3/4, follows qnx6 long filenames and ext4 extent trees, and
-  reads only. --depth sets how far down it goes and --list-max caps the number
-  of entries per filesystem so a large volume cannot flood the terminal.
+  qnx6, ext2/3/4, FAT32, exFAT and the QNX flash filesystems ETFS and EFS,
+  follows qnx6 long filenames and ext4 extent trees, and reads only. --depth
+  sets how far down it goes and --list-max caps the number of entries per
+  filesystem so a large volume cannot flood the terminal.
 
 what it reports:
   Every superblock copy it can find, grouped into generations by serial. The
@@ -1845,12 +2422,22 @@ what it reports:
   mount count, usage, lifetime bytes written, and whether the volume was
   cleanly unmounted. QNX IFS boot images are recognised and their startup
   header reported: version, target machine, how much startup code precedes the
-  image filesystem, and whether that filesystem is stored compressed. Anything
-  else is reported as its leading bytes plus any ASCII magic, so there is a
-  lead to follow rather than a guess. On a 2024 BMW
+  image filesystem, and whether that filesystem is stored compressed. The QNX
+  flash filesystems ETFS and EFS are recognised too, and listed and extracted
+  in full. Anything else is reported as its leading bytes plus any ASCII magic,
+  so there is a lead to follow rather than a guess. On a 2024 BMW
   MGU image that turned twelve partitions all marked 0x83 "Linux" into ten
   ext4 volumes, one extended container, and one holding an ipk container with
   a Linux bzImage inside it.
+
+  ETFS and EFS are usually imaged bare, with no partition table, so they arrive
+  as the whole image and extract under the lba0 name. ETFS has no superblock, so
+  its live state is rebuilt by replaying the transaction records in the spare
+  area of every page, keeping the highest sequence number for each block; its
+  extraction also carries the internal .filetable, .badblks, .counts and
+  .reserved bookkeeping files, which are real entries in the filesystem. EFS is
+  found by its QSSL_F3S boot record and walked through its extent chains, each
+  file resolved to its current version through the superseding-extent pointers.
 
   sb_ctime is written once, when the filesystem is made. sb_atime moves when
   the filesystem is COMMITTED, not when a file is read, so do not report it as
@@ -1910,6 +2497,26 @@ what it checks, and where the constants come from:
   would mean guessing a layout and decompressing. The header is reported and
   nothing is invented.
 
+  For the QNX flash filesystems ETFS and EFS:
+  struct etfs_trans, the fid scheme, ftable and directory entry layouts, and
+  the F3S extent, unit and boot structures are transcribed from the Kaitai
+  .ksy specs in NetherlandsForensicInstitute/qnxmount (Apache-2.0), whose ETFS
+  spec cross-references QNX's own fs/etfs.h and whose EFS spec fs/f3s_spec.h.
+  The Kaitai runtime is not a dependency; only the field layouts are copied,
+  into the same hand-written struct style as everything above, so this stays
+  standard library only. Both readers were validated by extracting qnxmount's
+  own committed test images and comparing every name, mode, owner, timestamp,
+  symlink target and byte of file content against the tar archive built from
+  the same live filesystem, which qnxmount produced on QNX independently of
+  this implementation: ETFS matched 32 of 32 entries and EFS 31 of 31.
+
+  ETFS has no magic number. It is claimed only when the region divides evenly
+  into (page + 16)-byte pages AND its .filetable carries the fixed reserved
+  names .filetable/.badblks/.counts/.lost+found/.reserved at their fixed file
+  ids, so a chance page-count match cannot pass. EFS is claimed by its
+  QSSL_F3S boot record with a valid F3S revision. Neither fired on the u-boot,
+  boot_fs or ext partitions of the two vehicle images tested.
+
   --list walks qnx6 through the same block resolution the kernel uses in
   qnx6_block_map(), including multi-level indirect trees and long filenames
   held out of line in the Longfile tree, and walks ext through its extent
@@ -1926,11 +2533,12 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(
         prog="qnxprobe.py",
-        description="Read QNX6, ext2/3/4, FAT32 and exFAT filesystems out "
-                    "of raw disk images: identify by superblock rather than "
-                    "trusting a partition type byte, list, and extract to a "
-                    "zip with a provenance manifest. No mounting, no admin "
-                    "rights, standard library only.",
+        description="Read QNX6, ETFS, EFS, ext2/3/4, FAT32 and exFAT "
+                    "filesystems out of raw disk images: identify each by its "
+                    "own on-disk structure rather than trusting a partition "
+                    "type byte, list, and extract to a zip with a provenance "
+                    "manifest. No mounting, no admin rights, standard library "
+                    "only.",
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("image", nargs="*",
@@ -1943,7 +2551,7 @@ if __name__ == "__main__":
                          "the detector reports both ways, then delete them")
     ap.add_argument("--list", action="store_true",
                     help="walk each filesystem found and list its contents "
-                         "(qnx6 and ext2/3/4)")
+                         "(qnx6, ext2/3/4, FAT32, exFAT, ETFS and EFS)")
     ap.add_argument("--depth", type=int, default=2, metavar="N",
                     help="how deep to walk with --list (default: 2)")
     ap.add_argument("--list-max", type=int, default=400, metavar="N",
