@@ -25,7 +25,9 @@ its fields checked for internal consistency before it is reported CONFIRMED.
 
 Read-only throughout. Never writes to the image.
 """
-import os, struct, sys, datetime, json, time, uuid, zipfile
+import os, re, struct, sys, datetime, json, time, uuid, zipfile
+
+QNXPROBE_VERSION = "1.5"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -893,9 +895,42 @@ def scan(fh, limit, size, cap=400):
     return sorted(set(hits))
 
 
+def sanitize_volume_label(label, max_len=24):
+    """A partition or filesystem label, reduced to zip-and-shell-safe form."""
+    cleaned = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_").lower()
+    return cleaned[:max_len].rstrip("_")
+
+
+def volume_name(part_idx, lba, label=""):
+    """The canonical directory name a volume extracts under.
+
+    Built from the partition table, not from the filesystem: the LBA is a
+    physical fact about the image that any partition tool reproduces, so it is
+    the identity, and it cannot collide because two volumes cannot share a
+    start sector. The index gives readability where a table provides one, and
+    a label rides along as a suffix, never as the identity, so two partitions
+    labelled alike still extract into distinct directories.
+
+        p2_lba65536                   MBR primary 2
+        p5_lba4259872                 first logical volume (numbered from 5,
+                                      as operating systems do)
+        p9_lba737280_storage          GPT partition with its name
+        lba0                          no partition table at all: a whole-disk
+                                      filesystem or a bare region, which is
+                                      how ETFS commonly arrives
+
+    The earlier scheme took the last word of the display label, which made
+    "...System Partition" and "...Data Partition" extract into the same
+    directory and silently merge.
+    """
+    stem = f"p{part_idx}_lba{lba}" if part_idx is not None else f"lba{lba}"
+    suffix = sanitize_volume_label(label) if label else ""
+    return f"{stem}_{suffix}" if suffix else stem
+
+
 def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
          extract=None, only=None, zf=None, do_triage=False, exclude=None,
-         reporter=None):
+         reporter=None, manifest=None):
     size = os.path.getsize(path)
     print("=" * 78)
     print(path)
@@ -904,6 +939,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
 
     candidates, regions, sized_regions, triage = [], [], [], []
     containers, protective = set(), set()
+    vol_names = {}                    # byte offset -> canonical extract name
     with open(path, "rb") as fh:
         parts = parse_mbr(fh)
         if parts is None:
@@ -917,6 +953,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                 print(f"    {idx}  type 0x{t:02x}  LBA {st:<12,} {human(cnt*SECTOR):>10}{tag}")
                 regions.append((f"MBR part {idx}", st * SECTOR))
                 sized_regions.append((f"MBR part {idx}", st * SECTOR, cnt * SECTOR))
+                vol_names[st * SECTOR] = volume_name(idx, st)
                 if t in (0x05, 0x0f, 0x85):
                     containers.add(f"MBR part {idx}")
                 if t == 0xEE:
@@ -925,6 +962,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
         # An extended partition holds the logical volumes; walk the EBR chain,
         # or the largest region of the image is never probed at all.
         EXT = (0x05, 0x0f, 0x85)
+        logical_idx = 4               # logical volumes number from 5, as OSes do
         for idx, t, st, cnt in (parts or []):
             if t not in EXT:
                 continue
@@ -943,6 +981,8 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                     regions.append((f"logical @{astart}", astart * SECTOR))
                     sized_regions.append((f"logical @{astart}", astart * SECTOR,
                                           lcnt * SECTOR))
+                    logical_idx += 1
+                    vol_names[astart * SECTOR] = volume_name(logical_idx, astart)
                 nxt = struct.unpack("<I", e2[8:12])[0]
                 cur = (base + nxt) if nxt else 0
                 n += 1
@@ -955,6 +995,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                 print(f"    {idx:>3}  {name[:26]:<26} {human(sz):>10}  LBA {first:,}")
                 regions.append((f"GPT part {idx} {name[:20]}", first * SECTOR))
                 sized_regions.append((f"GPT part {idx} {name[:20]}", first * SECTOR, sz))
+                vol_names[first * SECTOR] = volume_name(idx, first, name)
 
         # the two offsets the kernel itself probes, per region and whole-image
         print()
@@ -1110,14 +1151,27 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                     print(f"        could not walk this filesystem: {exc}")
 
             if zf is not None and base is not None and wanted:
-                vol = key.split()[-1] if key.split() else key
-                print(f"\n      EXTRACTING to {extract}")
+                vol = vol_names.get(base) or f"lba{base // SECTOR}"
+                print(f"\n      EXTRACTING to {extract}  as {vol}/")
                 try:
                     w = Qnx6Walker(fh, base, sorted(act["at"])[0] - base)
                     ents = collect(w, w.root)
                     ents, dropped = apply_exclude(ents, exclude)
                     log = []
                     f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log, reporter)
+                    if manifest is not None:
+                        rsize = next((r[2] for r in sized_regions if r[1] == base), None)
+                        manifest.append({
+                            "volume": vol, "image": os.path.basename(path),
+                            "lba": base // SECTOR, "offset_bytes": base,
+                            "partition_size_bytes": rsize,
+                            "filesystem": "qnx6",
+                            "volume_id_as_stored": sb["volumeid"].hex(),
+                            "superblock_serial": sb["serial"],
+                            "files": f_, "bytes": wr,
+                            "symlinks_or_special_skipped": sk,
+                            "failed": fa, "excluded": dropped,
+                        })
                     print(f"        {f_:,} files, {human(wr)}"
                           + (f", {sk:,} symlinks or special files skipped" if sk else "")
                           + (f", {fa:,} FAILED" if fa else "")
@@ -1185,14 +1239,30 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                     except Exception as exc:
                         print(f"        could not walk this filesystem: {exc}")
                 if zf is not None and kind and kind.startswith("ext") and wanted:
-                    vol = ext_name or lab.replace(" ", "_")
-                    print(f"        EXTRACTING to {extract}")
+                    stem = vol_names.get(b) or f"lba{b // SECTOR}"
+                    suffix = sanitize_volume_label(ext_name) if ext_name else ""
+                    vol = (f"{stem}_{suffix}"
+                           if suffix and not stem.endswith(f"_{suffix}") else stem)
+                    print(f"        EXTRACTING to {extract}  as {vol}/")
                     try:
                         w = ExtWalker(fh, b)
                         ents = collect(w, w.root)
                         ents, dropped = apply_exclude(ents, exclude)
                         log = []
                         f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log, reporter)
+                        if manifest is not None:
+                            _u = read_at(fh, b + EXT_SB_OFF, 1024)
+                            manifest.append({
+                                "volume": vol, "image": os.path.basename(path),
+                                "lba": b // SECTOR, "offset_bytes": b,
+                                "partition_size_bytes": sz,
+                                "filesystem": kind,
+                                "uuid": _u[EXT_F["uuid"]:EXT_F["uuid"] + 16].hex(),
+                                "label": ext_name,
+                                "files": f_, "bytes": wr,
+                                "symlinks_or_special_skipped": sk,
+                                "failed": fa, "excluded": dropped,
+                            })
                         print(f"            {f_:,} files, {human(wr)}"
                               + (f", {sk:,} symlinks or special files skipped" if sk else "")
                               + (f", {fa:,} FAILED" if fa else "")
@@ -1500,9 +1570,11 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(
         prog="qnxprobe.py",
-        description="Decide whether an extraction holds a QNX6 filesystem, "
-                    "by locating and validating the superblock rather than "
-                    "trusting a partition type byte.",
+        description="Read QNX6 and ext2/3/4 filesystems out of raw disk "
+                    "images: identify by superblock rather than trusting a "
+                    "partition type byte, list, and extract to a zip with a "
+                    "provenance manifest. No mounting, no admin rights, "
+                    "standard library only.",
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("image", nargs="*",
@@ -1539,7 +1611,8 @@ if __name__ == "__main__":
                     help="while extracting, emit one JSON progress object per line on "
                          "stderr, for a caller driving this as a subprocess. stdout, "
                          "the human readable report, is unchanged")
-    ap.add_argument("--version", action="version", version="qnxprobe 1.4")
+    ap.add_argument("--version", action="version",
+                    version=f"qnxprobe {QNXPROBE_VERSION}")
     args = ap.parse_args()
 
     if args.self_test:
@@ -1555,6 +1628,7 @@ if __name__ == "__main__":
         sys.exit("not found: " + ", ".join(missing))
 
     reporter = ProgressEmitter() if args.progress else None
+    manifest = []
     zf = None
     if args.extract:
         if os.path.exists(args.extract):
@@ -1567,9 +1641,18 @@ if __name__ == "__main__":
              list_depth=args.depth, list_max=args.list_max,
                  extract=args.extract, only=args.only, zf=zf,
                  do_triage=args.triage, exclude=args.exclude,
-                 reporter=reporter)
+                 reporter=reporter, manifest=manifest)
     finally:
         if zf is not None:
+            # The provenance record. For a standalone image the directory names
+            # are otherwise the only statement of where a file came from; this
+            # ties every volume back to the image by LBA and recorded volume id,
+            # so the extraction can be checked against any partition tool
+            # without trusting the names.
+            if manifest:
+                zf.writestr("volumes.json", json.dumps(
+                    {"written_by": f"qnxprobe {QNXPROBE_VERSION}",
+                     "volumes": manifest}, indent=2) + "\n")
             zf.close()
             print(f"\nwrote {args.extract}  "
                   f"({os.path.getsize(args.extract):,} bytes)")
