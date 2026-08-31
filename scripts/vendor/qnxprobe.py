@@ -27,7 +27,7 @@ Read-only throughout. Never writes to the image.
 """
 import os, re, struct, sys, datetime, json, time, uuid, zipfile
 
-QNXPROBE_VERSION = "1.8"
+QNXPROBE_VERSION = "1.9"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -213,6 +213,15 @@ def parse_mbr(fh):
     # partitions. Its own type string at bytes 3..11 (exFAT) or 82..90 (FAT32)
     # says it is a filesystem, not a partition table.
     if mbr[3:11] == b"EXFAT   " or mbr[82:90] == b"FAT32   " or mbr[54:62] == b"FAT16   ":
+        return None
+    # A QNX4 boot block can also end in 0x55AA (the dinit boot sector does).
+    # The QNX4 superblock is the NEXT sector: its first entry is the root
+    # directory inode, di_fname "/" and a directory mode, fs/qnx4/inode.c
+    # qnx4_checkroot() and qnx4_iget(). If that is what follows, this sector
+    # is a filesystem's boot block, not a partition table.
+    nxt = read_at(fh, 512, 64)
+    if (len(nxt) == 64 and nxt[0:2] == b"/\x00"
+            and (struct.unpack_from("<H", nxt, 50)[0] & 0o170000) == S_IFDIR):
         return None
     out = []
     for i in range(4):
@@ -728,6 +737,209 @@ class ExfatWalker:
     def read_file(self, node, size):
         clus, sz, _, contig = node
         yield self._read(clus, sz, contig)
+
+
+# ---------------------------------------------------------------------------
+# QNX4 (the QNX 4 filesystem, distinct from the qnx6 this tool is named for).
+#
+# QNX 4 shipped from 1990 and its filesystem is still met on older embedded
+# and industrial systems. Every constant and field offset below is read out of
+# the Linux kernel's own read-only qnx4 driver, the same sourcing as the qnx6
+# code above:
+#
+#   QNX4_SUPER_MAGIC 0x002f          include/uapi/linux/magic.h:54
+#   struct qnx4_inode_entry           include/uapi/linux/qnx4_fs.h:44
+#   struct qnx4_link_info             include/uapi/linux/qnx4_fs.h:63
+#   struct qnx4_xblk                  include/uapi/linux/qnx4_fs.h:71
+#   field widths (le16/le32/u8)       include/uapi/linux/qnxtypes.h
+#   union qnx4_directory_entry        fs/qnx4/qnx4.h:75
+#
+# The layout, in one paragraph. Blocks are 512 bytes and every block number
+# stored on disk is 1-based: block 1 is the boot block at offset 0, block 2
+# the superblock at offset 512. The superblock is four 64-byte inode entries,
+# RootDir/Inode/Boot/AltBoot; RootDir's name "/" doubles as the 0x002f magic
+# (fs/qnx4/inode.c qnx4_checkroot(), which also refuses to mount unless the
+# root directory carries a ".bitmap" entry). A directory's data is a run of
+# 64-byte entries: a name of up to 16 bytes is a full inode entry stored
+# inline, a longer name (up to 48) is a qnx4_link_info pointing at the real
+# inode entry by (block, index), conventionally inside the ".inodes" file
+# (fs/qnx4/dir.c, fs/qnx4/namei.c; the status byte at offset 63 says which:
+# 0x08 QNX4_FILE_LINK, else 0x01 QNX4_FILE_USED inline). A file's data is a
+# run of extents: the first lives in the inode, extents 2..n in a chain of
+# xblk blocks whose signature is "IamXblk" (fs/qnx4/inode.c qnx4_block_map()).
+# The kernel addresses an inode entry as ino = block * 8 + index, and the same
+# convention is used for the walker's node numbers, so root is inode 8
+# (QNX4_ROOT_INO * QNX4_INODES_PER_BLOCK, fs/qnx4/inode.c:233).
+#
+# Validated by round-trip against the Linux kernel driver itself: a fixture
+# populated with nested directories, a multi-extent file, a long name, a
+# symlink, an empty file and distinct modes, owners and mtimes was mounted
+# read-only with fs/qnx4 (kernel 7.0.0) and every name, mode, owner, size,
+# mtime, symlink target and byte of content the kernel reported was required
+# to match what this walker reads. The fixture generator is a separate
+# program, not this parser, and its skeleton follows Peter Waechtler's dinit
+# 0.1 (the Linux-side QNX4 formatter, GPL-2), a second, independent statement
+# of the same layout. Synthetic-only validation: no confirmed real QNX4
+# volume exists in the test corpus.
+# ---------------------------------------------------------------------------
+QNX4_BLOCK = 512
+QNX4_DIRENT = 64
+QNX4_ROOT_NODE = 8            # QNX4_ROOT_INO(1) * QNX4_INODES_PER_BLOCK(8)
+QNX4_F_USED, QNX4_F_LINK = 0x01, 0x08
+QNX4_XBLK_SIG = b"IamXblk"    # fs/qnx4/inode.c:110 checks these 7 bytes
+
+
+class Qnx4Walker:
+    """List and read files from a QNX4 filesystem, same interface as the
+    walkers above. A node is the kernel's inode number: block * 8 + index of
+    the 64-byte inode entry, blocks counted from the partition start."""
+
+    root = QNX4_ROOT_NODE
+
+    def __init__(self, fh, base):
+        self.fh, self.base = fh, base
+
+    def _raw(self, num):
+        blk, ndx = divmod(num, 8)
+        raw = read_at(self.fh,
+                      self.base + blk * QNX4_BLOCK + ndx * QNX4_DIRENT,
+                      QNX4_DIRENT)
+        return raw if len(raw) == QNX4_DIRENT else None
+
+    def inode(self, num):
+        return self._raw(num)
+
+    def entry(self, num):
+        raw = self._raw(num)
+        if not raw:
+            return None
+        mode = struct.unpack_from("<H", raw, 50)[0]      # di_mode
+        size = struct.unpack_from("<I", raw, 16)[0]      # di_size
+        mtime = struct.unpack_from("<I", raw, 36)[0]     # di_mtime
+        return mode, size, mtime
+
+    def _extents(self, raw):
+        """Yield (first_block_1based, size_in_blocks) per extent, following
+        the xblk chain exactly as fs/qnx4/inode.c qnx4_block_map() does."""
+        first_blk, first_sz = struct.unpack_from("<II", raw, 20)
+        nx = struct.unpack_from("<H", raw, 48)[0]        # di_num_xtnts
+        if nx >= 1 and first_blk and first_sz:
+            yield first_blk, first_sz
+        left = nx - 1
+        xblk = struct.unpack_from("<I", raw, 28)[0]      # di_xblk
+        seen = set()
+        while left > 0 and xblk and xblk not in seen:
+            seen.add(xblk)
+            buf = read_at(self.fh, self.base + (xblk - 1) * QNX4_BLOCK,
+                          QNX4_BLOCK)
+            if len(buf) < QNX4_BLOCK or buf[496:503] != QNX4_XBLK_SIG:
+                return                                   # not a valid xblk
+            for i in range(min(buf[8], 60)):             # xblk_num_xtnts
+                if left <= 0:
+                    return
+                b, s = struct.unpack_from("<II", buf, 16 + i * 8)
+                if b and s:
+                    yield b, s
+                left -= 1
+            xblk = struct.unpack_from("<I", buf, 0)[0]   # xblk_next_xblk
+
+    def listdir(self, num):
+        raw = self._raw(num)
+        if not raw:
+            return []
+        if (struct.unpack_from("<H", raw, 50)[0] & 0o170000) != S_IFDIR:
+            return []
+        size = struct.unpack_from("<I", raw, 16)[0]
+        out, done = [], 0
+        for blk, nblks in self._extents(raw):
+            for j in range(nblks):
+                if done >= size:
+                    break
+                sbnum = blk - 1 + j
+                buf = read_at(self.fh, self.base + sbnum * QNX4_BLOCK,
+                              QNX4_BLOCK)
+                if len(buf) < QNX4_BLOCK:
+                    break
+                for ix in range(8):
+                    e = buf[ix * QNX4_DIRENT:(ix + 1) * QNX4_DIRENT]
+                    if e[0] == 0 or not (e[63] & (QNX4_F_USED | QNX4_F_LINK)):
+                        continue                         # fs/qnx4/qnx4.h:94-97
+                    if e[63] & QNX4_F_LINK:
+                        name = e[0:48].split(b"\x00")[0]
+                        iblk = struct.unpack_from("<I", e, 48)[0]
+                        child = (iblk - 1) * 8 + e[52]   # fs/qnx4/namei.c:103
+                    else:
+                        name = e[0:16].split(b"\x00")[0]
+                        child = sbnum * 8 + ix
+                    name = name.decode("utf-8", "replace")
+                    if name not in (".", ".."):
+                        out.append((name, child))
+                done += QNX4_BLOCK
+        return out
+
+    def read_file(self, num, size):
+        raw = self._raw(num)
+        if not raw:
+            return
+        left = size
+        for blk, nblks in self._extents(raw):
+            if left <= 0:
+                return
+            off = self.base + (blk - 1) * QNX4_BLOCK
+            avail = min(nblks * QNX4_BLOCK, left)
+            pos = 0
+            while pos < avail:
+                take = min(1 << 20, avail - pos)
+                buf = read_at(self.fh, off + pos, take)
+                if len(buf) < take:
+                    buf += bytes(take - len(buf))
+                yield buf
+                pos += take
+            left -= avail
+
+
+def identify_qnx4(fh, base, size=None):
+    """Return ("qnx4", lines) if a QNX4 filesystem starts at base, else None.
+
+    Mirrors what the kernel itself requires to mount (fs/qnx4/inode.c
+    qnx4_checkroot and qnx4_iget): the superblock's RootDir entry must be
+    named "/" with a directory mode and a sane first extent, and the root
+    directory's first extent must carry a ".bitmap" entry. Two bytes of "/"
+    alone would be a coincidence; the resolved .bitmap name is not.
+    """
+    sb = read_at(fh, base + QNX4_BLOCK, QNX4_DIRENT)
+    if len(sb) < QNX4_DIRENT or sb[0:2] != b"/\x00":
+        return None
+    if (struct.unpack_from("<H", sb, 50)[0] & 0o170000) != S_IFDIR:
+        return None
+    first_blk, first_sz = struct.unpack_from("<II", sb, 20)
+    if not (1 <= first_blk and 1 <= first_sz <= 65536):
+        return None
+    bitmap = None
+    for j in range(first_sz):
+        buf = read_at(fh, base + (first_blk - 1 + j) * QNX4_BLOCK, QNX4_BLOCK)
+        if len(buf) < QNX4_BLOCK:
+            break
+        for ix in range(8):
+            e = buf[ix * QNX4_DIRENT:(ix + 1) * QNX4_DIRENT]
+            if e[0:8] == b".bitmap\x00":                 # strcmp in checkroot
+                bitmap = e
+                break
+        if bitmap:
+            break
+    if bitmap is None:
+        return None
+    bsize = struct.unpack_from("<I", bitmap, 16)[0]      # .bitmap di_size, bytes
+    total = bsize * 8         # one bit per block, fs/qnx4/inode.c:142 (statfs)
+    mtime = struct.unpack_from("<I", sb, 36)[0]          # RootDir di_mtime
+    return "qnx4", [
+        f"root dir     block {first_blk:,}, {first_sz} block(s), "
+        f"modified {stamp(mtime)}",
+        f"volume       {total:,} blocks of 512 ({human(total * QNX4_BLOCK)}) "
+        f"per the .bitmap",
+        "layout       64-byte inode entries inline in directories; names over "
+        "16 bytes linked via .inodes",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -1676,6 +1888,8 @@ def walker_for(kind, fh, base, size=None):
         return ExfatWalker(fh, base)
     if kind == "efs":
         return EfsWalker(fh, base)
+    if kind == "qnx4":
+        return Qnx4Walker(fh, base)
     if kind == "etfs" and size is not None:
         P = etfs_pagesize(fh, base, size)
         return EtfsWalker(fh, base, size, P) if P else None
@@ -1807,6 +2021,16 @@ def identify_fs(fh, base, size=None):
             size = os.fstat(fh.fileno()).st_size - base
         except OSError:
             size = 0
+
+    # QNX4 first: its acceptance is structural (root inode "/", directory
+    # mode, a resolved .bitmap entry), while the ext test below is a bare
+    # 2-byte magic at offset 1080, which on a QNX4 volume falls inside
+    # .bitmap data where any bit pattern can occur. The more specific test
+    # runs first so a chance pattern cannot shadow the real format.
+    q4 = identify_qnx4(fh, base, size)
+    if q4:
+        return q4
+
     sb = read_at(fh, base + EXT_SB_OFF, 1024)
     if len(sb) == 1024 and _e(sb, "magic", 2) == EXT_MAGIC:
         bs = 1024 << _e(sb, "log_block_size")
@@ -1949,7 +2173,8 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
     with open(path, "rb") as fh:
         parts = parse_mbr(fh)
         if parts is None:
-            print("  MBR      no 0x55AA signature at offset 510")
+            print("  MBR      none (no 0x55AA signature at offset 510, or "
+                  "sector 0 is a filesystem's own boot sector)")
         else:
             gpt_prot = any(t == 0xEE for _, t, _, _ in parts)
             print(f"  MBR      valid, {len(parts)} entries"
@@ -2287,7 +2512,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                     except Exception as exc:
                         print(f"        could not extract: {exc}")
 
-                if kind in ("fat32", "exfat", "etfs", "efs") and wanted:
+                if kind in ("fat32", "exfat", "etfs", "efs", "qnx4") and wanted:
                     if do_list:
                         print(f"        CONTENTS  (depth {list_depth})")
                         try:
@@ -2741,6 +2966,157 @@ def self_test():
             ok = False
         print(f"  [{mark}] a flipped imagefs byte breaks the image checksum")
 
+        # QNX4. The root name, the .bitmap name and the xblk signature are
+        # spelled here as independent literals, deliberately NOT read from the
+        # code under test, for the same circularity reason as TRUE_MAGIC_LE
+        # above. Change these only to the values in the Linux kernel's
+        # fs/qnx4 driver and include/uapi/linux/qnx4_fs.h.
+        TRUE_QNX4_ROOT = b"/\x00"          # fs/qnx4/inode.c qnx4_checkroot
+        TRUE_QNX4_BITMAP = b".bitmap"      # fs/qnx4/inode.c QNX4_BMNAME
+        TRUE_QNX4_XBLK = b"IamXblk"        # fs/qnx4/inode.c:110
+        if QNX4_XBLK_SIG != TRUE_QNX4_XBLK:
+            print(f"  [FAIL] QNX4_XBLK_SIG {QNX4_XBLK_SIG!r} != {TRUE_QNX4_XBLK!r}")
+            ok = False
+
+        # A synthetic QNX4 image: superblock at block 2, root dir at block 3
+        # carrying .bitmap, a short-named file, a long name linked through
+        # .inodes, and a two-extent file resolved through an "IamXblk" block.
+        def _q4_ino(name, size, xblk1, xsz1, xblk, nx, mode, mtime, status):
+            e = bytearray(64)
+            e[0:16] = name[:16].ljust(16, b"\x00")
+            struct.pack_into("<I", e, 16, size)
+            struct.pack_into("<II", e, 20, xblk1, xsz1)
+            struct.pack_into("<I", e, 28, xblk)
+            struct.pack_into("<I", e, 36, mtime)
+            struct.pack_into("<H", e, 48, nx)
+            struct.pack_into("<H", e, 50, mode)
+            e[63] = status
+            return bytes(e)
+
+        q4_pay = b"qnx4 self-test payload\n"
+        q4_long = b"content behind a link entry\n"
+        q4_multi = bytes(((i * 31 + 7) & 0xFF) for i in range(700))
+        q4 = bytearray(512 * 12)
+        # block 2: RootDir "/" (dir at block 3, 1 block) + .inodes entry
+        q4[512:512 + 64] = _q4_ino(TRUE_QNX4_ROOT.rstrip(b"\x00"), 512, 3, 1,
+                                   0, 1, S_IFDIR | 0o755, 1712000000, 0x21)
+        q4[512 + 64:512 + 128] = _q4_ino(b"", 512, 4, 1, 0, 1,
+                                         0o100444, 1712000000, 0x11)
+        # block 3: the root directory
+        root = bytearray(512)
+        root[0:64] = _q4_ino(TRUE_QNX4_BITMAP, 64, 5, 1, 0, 1,
+                             0o100444, 1712000000, 0x01)
+        root[64:128] = _q4_ino(b"selftest.txt", len(q4_pay), 6, 1, 0, 1,
+                               0o100644, 1712000001, 0x01)
+        lnk = bytearray(64)
+        lnk[0:48] = b"a_longer_name_than_sixteen.txt".ljust(48, b"\x00")
+        struct.pack_into("<I", lnk, 48, 4)     # inode at block 4, index 1
+        lnk[52] = 1
+        lnk[63] = 0x08                          # QNX4_FILE_LINK
+        root[128:192] = bytes(lnk)
+        root[192:256] = _q4_ino(b"multi.bin", len(q4_multi), 8, 1, 9, 2,
+                                0o100644, 1712000003, 0x01)
+        q4[1024:1536] = bytes(root)
+        # block 4: .inodes (signature slot, then the long name's inode)
+        q4[1536:1536 + 16] = b"IamTHE.inodeFILE"
+        q4[1536 + 64:1536 + 128] = _q4_ino(b"a_longer_name_th", len(q4_long),
+                                           7, 1, 0, 1, 0o100600, 1712000002,
+                                           0x01)
+        # blocks 5..8: bitmap bytes, two file payloads, first half of multi
+        q4[2048:2048 + 64] = b"\xff" * 3 + b"\x00" * 61
+        q4[2560:2560 + len(q4_pay)] = q4_pay
+        q4[3072:3072 + len(q4_long)] = q4_long
+        q4[3584:3584 + 512] = q4_multi[:512]
+        # block 9: the xblk carrying the second extent (block 10)
+        xb = bytearray(512)
+        xb[8] = 1
+        struct.pack_into("<I", xb, 12, 1)
+        struct.pack_into("<II", xb, 16, 10, 1)
+        xb[496:496 + 7] = TRUE_QNX4_XBLK
+        q4[4096:4608] = bytes(xb)
+        q4[4608:4608 + len(q4_multi) - 512] = q4_multi[512:]
+        qp = os.path.join(d, "qnx4.img")
+        open(qp, "wb").write(bytes(q4))
+
+        with open(qp, "rb") as fh:
+            det = identify_qnx4(fh, 0, len(q4))
+            kind = det[0] if det else None
+            got = got_long = got_multi = b""
+            if kind == "qnx4":
+                w = walker_for("qnx4", fh, 0, len(q4))
+                kids = dict(w.listdir(w.root))
+                for nm, dest in (("selftest.txt", "got"),
+                                 ("a_longer_name_than_sixteen.txt", "got_long"),
+                                 ("multi.bin", "got_multi")):
+                    node = kids.get(nm)
+                    if node is not None:
+                        data = b"".join(w.read_file(node, w.entry(node)[1]))
+                        if dest == "got":
+                            got = data
+                        elif dest == "got_long":
+                            got_long = data
+                        else:
+                            got_multi = data
+        good = (kind == "qnx4" and got == q4_pay and got_long == q4_long
+                and got_multi == q4_multi)
+        mark = "PASS" if good else "FAIL"
+        if not good:
+            ok = False
+        print(f"  [{mark}] synthetic QNX4: root, .bitmap, link entry, "
+              f"two-extent xblk file all read: kind={kind}")
+
+        # Sabotage: break the .bitmap name and detection must refuse, exactly
+        # as the kernel refuses to mount without it (qnx4_checkroot).
+        sab = bytearray(q4)
+        sab[1024:1024 + 7] = b".botmap"
+        sp_ = os.path.join(d, "qnx4_sab.img")
+        open(sp_, "wb").write(bytes(sab))
+        with open(sp_, "rb") as fh:
+            det = identify_qnx4(fh, 0, len(sab))
+        mark = "PASS" if det is None else "FAIL"
+        if det is not None:
+            ok = False
+        print(f"  [{mark}] a broken .bitmap name is declined, as the kernel "
+              f"declines it")
+
+        # A QNX4 boot block ending 0x55AA must not parse as an MBR (the same
+        # shared-magic hazard as FAT above), and must still identify as qnx4.
+        mbrish = bytearray(q4)
+        mbrish[446 + 4] = 0x83
+        struct.pack_into("<II", mbrish, 446 + 8, 1, 8)
+        mbrish[510:512] = b"\x55\xaa"
+        mp = os.path.join(d, "qnx4_mbr.img")
+        open(mp, "wb").write(bytes(mbrish))
+        with open(mp, "rb") as fh:
+            r = parse_mbr(fh)
+            det = identify_qnx4(fh, 0, len(mbrish))
+        goodm = r is None and det is not None
+        mark = "PASS" if goodm else "FAIL"
+        if not goodm:
+            ok = False
+        print(f"  [{mark}] parse_mbr declines a QNX4 boot block ending 0x55AA")
+
+        # Mutual declines: qnx4 fires on none of the other synthetic images,
+        # and none of the other detectors fires on the qnx4 image.
+        for path, label in ((c, "random"), (fp, "fat32"), (xp, "exfat"),
+                            (ep, "etfs"), (efp, "efs"), (a, "qnx6 le"),
+                            (b, "qnx6 be"), (ip, "ifs")):
+            sz = os.path.getsize(path)
+            with open(path, "rb") as fh:
+                det = identify_qnx4(fh, 0, sz)
+            mark = "PASS" if det is None else "FAIL"
+            if det is not None:
+                ok = False
+            print(f"  [{mark}] QNX4 declines the {label} image")
+        with open(qp, "rb") as fh:
+            others = (identify_fat(fh, 0), identify_etfs(fh, 0, len(q4)),
+                      identify_efs(fh, 0, len(q4)), identify_ifs(fh, 0))
+        mark = "PASS" if all(o is None for o in others) else "FAIL"
+        if not all(o is None for o in others):
+            ok = False
+        print(f"  [{mark}] FAT, exFAT, ETFS, EFS and IFS all decline the "
+              f"qnx4 image")
+
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"
               if ok else
@@ -2817,10 +3193,10 @@ getting the files out, without mounting:
 
 listing contents:
   --list walks each filesystem it identified and prints the tree. It handles
-  qnx6, ext2/3/4, FAT32, exFAT, the QNX flash filesystems ETFS and EFS, and
-  QNX IFS boot images, follows qnx6 long filenames and ext4 extent trees, and
-  reads only. --depth sets how far down it goes and --list-max caps the number
-  of entries per filesystem so a large volume cannot flood the terminal.
+  qnx6, QNX4, ext2/3/4, FAT32, exFAT, the QNX flash filesystems ETFS and EFS,
+  and QNX IFS boot images, follows qnx6 long filenames and ext4 extent trees,
+  and reads only. --depth sets how far down it goes and --list-max caps the
+  number of entries per filesystem so a large volume cannot flood the terminal.
 
 what it reports:
   Every superblock copy it can find, grouped into generations by serial. The
@@ -2854,7 +3230,9 @@ what it reports:
   target machine, startup code size, compression method), then the image
   filesystem is decompressed and listed and extracted like any other, with the
   image checksum reported as a decode self-check. The QNX flash filesystems
-  ETFS and EFS are recognised too, and listed and extracted in full. Anything
+  ETFS and EFS are recognised too, and listed and extracted in full, and so is
+  QNX4, the filesystem of QNX 4 systems, which the MBR type bytes 0x4d/0x4e/
+  0x4f announce but never prove. Anything
   else is reported as its leading bytes plus any ASCII magic,
   so there is a lead to follow rather than a guess. On a 2024 BMW
   MGU image that turned twelve partitions all marked 0x83 "Linux" into ten
@@ -2967,6 +3345,38 @@ what it checks, and where the constants come from:
   QSSL_F3S boot record with a valid F3S revision. Neither fired on the u-boot,
   boot_fs or ext partitions of the two vehicle images tested.
 
+  For QNX4, the filesystem of QNX 4 (distinct from qnx6):
+  QNX4_SUPER_MAGIC       0x002f   linux/include/uapi/linux/magic.h:54
+  struct qnx4_inode_entry         linux/include/uapi/linux/qnx4_fs.h:44
+  struct qnx4_link_info           linux/include/uapi/linux/qnx4_fs.h:63
+  struct qnx4_xblk ("IamXblk")    linux/include/uapi/linux/qnx4_fs.h:71
+  field widths                    linux/include/uapi/linux/qnxtypes.h
+  directory entry union           linux/fs/qnx4/qnx4.h:75
+
+  The 0x002f magic is simply the "/" name of the root directory inode at the
+  start of the superblock, which is block 1, 512 bytes into the volume. The
+  walk follows the kernel's own read-only driver: inline 64-byte inode
+  entries for names up to 16 bytes, link entries resolving longer names
+  (up to 48) through the .inodes file, and extents 2..n of a file through
+  the "IamXblk" chain that fs/qnx4/inode.c qnx4_block_map() follows.
+  Detection requires what the kernel itself requires to mount: the "/" root
+  inode with a directory mode, and a ".bitmap" entry in the root directory
+  (fs/qnx4/inode.c qnx4_checkroot). A QNX4 boot block can end in 0x55AA, so
+  the MBR parser declines a sector whose following sector is a QNX4 root
+  superblock, the same shared-magic rule applied to FAT above.
+
+  The QNX4 reader was validated by round-trip against the Linux kernel
+  driver itself: a fixture populated with nested directories, a multi-extent
+  file, a name over 16 bytes, a symlink, an empty file and distinct modes,
+  owners and mtimes was mounted read-only with fs/qnx4 on kernel 7.0.0, and
+  every path, type, permission, owner, size, mtime, symlink target and byte
+  of file content the kernel reported matched what this walker reads, 15 of
+  15 entries. The fixture was written by a separate generator program, not
+  by this parser, so the two sides are independent. Synthetic-only
+  validation: no confirmed real QNX4 volume exists in the test corpus, and
+  the one candidate partition (a Ford Sync G4 slot named boot_fs) turned out
+  to carry a RAW0 container, not QNX4.
+
   --list walks qnx6 through the same block resolution the kernel uses in
   qnx6_block_map(), including multi-level indirect trees and long filenames
   held out of line in the Longfile tree, and walks ext through its extent
@@ -2983,7 +3393,7 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(
         prog="qnxprobe.py",
-        description="Read QNX6, ETFS, EFS, ext2/3/4, FAT32 and exFAT "
+        description="Read QNX6, QNX4, ETFS, EFS, ext2/3/4, FAT32 and exFAT "
                     "filesystems, and QNX IFS boot images, out of raw disk "
                     "images: identify each by its own on-disk structure rather "
                     "than trusting a partition type byte, list, and extract to a "
@@ -3001,7 +3411,7 @@ if __name__ == "__main__":
                          "the detector reports both ways, then delete them")
     ap.add_argument("--list", action="store_true",
                     help="walk each filesystem found and list its contents "
-                         "(qnx6, ext2/3/4, FAT32, exFAT, ETFS and EFS)")
+                         "(qnx6, qnx4, ext2/3/4, FAT32, exFAT, ETFS and EFS)")
     ap.add_argument("--depth", type=int, default=2, metavar="N",
                     help="how deep to walk with --list (default: 2)")
     ap.add_argument("--list-max", type=int, default=400, metavar="N",
