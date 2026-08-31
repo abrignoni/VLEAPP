@@ -612,7 +612,8 @@ def _extract_image_volumes(probe, image_path, staged_zip, exclude=None):
 class FileSeekerRaw(FileSeekerZip):
     """Read a raw disk image by extracting its volumes to a zip first.
 
-    Vehicle head units run QNX6 and ext filesystems. Neither mounts here without
+    Vehicle head units run QNX6 and ext filesystems, and removable media in a
+    vehicle is FAT or exFAT. None of them mounts here without
     administrator rights, and no filesystem type The Sleuth Kit supports can walk
     QNX6 at all, so a raw head unit image is otherwise unreadable by this tool.
     scripts/vendor/qnxprobe.py reads both directly from the image.
