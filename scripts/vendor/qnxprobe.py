@@ -27,7 +27,7 @@ Read-only throughout. Never writes to the image.
 """
 import os, re, struct, sys, datetime, json, time, uuid, zipfile
 
-QNXPROBE_VERSION = "1.9"
+QNXPROBE_VERSION = "1.10"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -73,6 +73,15 @@ def sb_slots(fh, base, label, sized_regions):
         total = head[1]["num_blocks"] * head[1]["blocksize"]
         if 0 < total < (1 << 42):
             ends.append(total)
+            # Where the kernel itself reads the second superblock: block
+            # sb_num_blocks + (QNX6_BOOTBLOCK_SIZE + QNX6_SUPERBLOCK_AREA) /
+            # blocksize, fs/qnx6/inode.c qnx6_fill_super, with the area 0x1000
+            # from include/linux/qnx6_fs.h. The region-size candidates above
+            # reach the same place only when the partition is exactly
+            # BOOTBLOCK + area + volume + area long; this reaches it when the
+            # partition is larger, or when there is no partition at all.
+            second = BOOTBLOCK_SIZE + 0x1000 + total
+            rels += [second, second + 0xE00]
     for e in ends:
         rels += [e - 0x1000, e - 0x200]
 
@@ -223,6 +232,18 @@ def parse_mbr(fh):
     if (len(nxt) == 64 and nxt[0:2] == b"/\x00"
             and (struct.unpack_from("<H", nxt, 50)[0] & 0o170000) == S_IFDIR):
         return None
+    # A qnx6 boot block can end in 0x55AA as well. On qnxmount's qnx6
+    # reference image sector 0 is x86 boot code, and bytes 446..478 of that
+    # code parse as two partitions starting 1.5 and 1.8 TB into a 400 KB file.
+    # Accepting them costs the whole filesystem: the qnx6 at offset 0 then has
+    # no region to be listed or extracted from, and the end-of-volume
+    # superblock, the active generation, is never probed. The Linux driver
+    # never reads sector 0; it reads the superblock at QNX6_BOOTBLOCK_SIZE
+    # (fs/qnx6/inode.c qnx6_fill_super). A consistent superblock there means
+    # this sector is that filesystem's boot block, not a partition table.
+    q6 = check(fh, BOOTBLOCK_SIZE)
+    if q6 and not q6[2]:
+        return None
     out = []
     for i in range(4):
         ent = mbr[446 + i * 16: 446 + (i + 1) * 16]
@@ -230,6 +251,16 @@ def parse_mbr(fh):
         start, cnt = struct.unpack("<II", ent[8:16])
         if t and cnt:
             out.append((i + 1, t, start, cnt))
+    # Whatever else ends in 0x55AA: a table none of whose partitions begins
+    # inside the image is not describing this image, so the bytes at 446 are
+    # code or data. The boot indicator byte is deliberately not a test: neither
+    # util-linux's libfdisk nor The Sleuth Kit rejects a table on its value.
+    try:
+        size = os.fstat(fh.fileno()).st_size
+    except (OSError, AttributeError, ValueError):
+        size = None
+    if out and size and all(start * SECTOR >= size for _, _, start, _ in out):
+        return None
     return out
 
 
@@ -2706,6 +2737,64 @@ def self_test():
             if got != want:
                 ok = False
             print(f"  [{mark}] {label}: detected={got}, expected={want}")
+
+        # positive 3: no partition table, but sector 0 is boot code ending in
+        # 0x55AA, the shape of qnxmount's qnx6 reference image. Two superblock
+        # copies: serial 1 at 0x2000 and serial 2 where the kernel puts the
+        # second copy, 0x2000 + 0x1000 + num_blocks * blocksize (fs/qnx6/inode.c
+        # qnx6_fill_super). The junk at 446..510 is deterministic and parses as
+        # entries with non-zero type and count starting far past the image.
+        img3 = bytearray(64 * 1024)
+        img3[0:446] = bytes(((i * 11 + 5) & 0xFF) for i in range(446))
+        img3[446:510] = bytes(((i * 13 + 7) & 0xFF) for i in range(64))
+        img3[510:512] = b"\x55\xaa"
+
+        def q6sb(o, serial, free_inodes):
+            img3[o:o + 4] = TRUE_MAGIC_LE
+            struct.pack_into("<Q", img3, o + 8, serial)
+            struct.pack_into("<I", img3, o + 16, 1521471625)
+            struct.pack_into("<I", img3, o + 20, 1712222868)
+            struct.pack_into("<H", img3, o + 28, 4)
+            struct.pack_into("<H", img3, o + 30, 3)
+            struct.pack_into("<I", img3, o + 48, 1024)        # blocksize
+            struct.pack_into("<I", img3, o + 52, 48)          # num_inodes
+            struct.pack_into("<I", img3, o + 56, free_inodes)
+            struct.pack_into("<I", img3, o + 60, 48)          # num_blocks, 48 KiB
+            struct.pack_into("<I", img3, o + 64, 40)          # free_blocks
+        q6sb(0x2000, 1, 46)
+        q6sb(0x2000 + 0x1000 + 48 * 1024, 2, 30)              # 0xF000
+        p3 = os.path.join(d, "qnx6_bootblock.img"); open(p3, "wb").write(img3)
+
+        # and the same junk sector on an image holding no filesystem at all
+        junk = bytearray(64 * 1024)
+        junk[0:512] = img3[0:512]
+        pj = os.path.join(d, "junk_mbr.img"); open(pj, "wb").write(junk)
+
+        import io, contextlib
+        with open(p3, "rb") as fh:
+            got3 = parse_mbr(fh)
+        with open(a, "rb") as fh:
+            gota = parse_mbr(fh)
+        with open(pj, "rb") as fh:
+            gotj = parse_mbr(fh)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            main(p3)
+        rep = buf.getvalue()
+        listed = ("CONFIRMED qnx6 filesystem on whole image" in rep
+                  and "ACTIVE   serial 2" in rep and "PREVIOUS serial 1" in rep)
+        for label, cond in (
+                ("qnx6 boot block ending in 0x55AA is not read as a partition table",
+                 got3 is None),
+                ("the real MBR on the positive_le image still parses",
+                 gota == [(1, 0xb1, 2048, 8192)]),
+                ("a 0x55AA sector whose entries all start past the image end is declined",
+                 gotj is None),
+                ("the boot-block image reports as a whole-image volume, serial 2 active",
+                 listed)):
+            if not cond:
+                ok = False
+            print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
 
         # FAT and exFAT detection, both ways, from synthetic boot sectors. The
         # type strings are written as literals here, deliberately not by
