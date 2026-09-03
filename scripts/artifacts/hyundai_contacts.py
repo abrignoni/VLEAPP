@@ -5,10 +5,10 @@ __artifacts_v2__ = {
         "author": "Nixy Camacho, @pmpulkownik",
         "version": "0.3",
         "creation_date": "2023-06-09",
-        "last_update_date": "2026-09-02",
+        "last_update_date": "2026-09-03",
         "requirements": "none",
         "category": "Hyundai Vehicles",
-        "notes": "Extracts contacts per device and derives device Bluetooth MAC address directly from the database filename (MC_{mac}.db).",
+        "notes": "Extracts contacts per device and derives device Bluetooth MAC address directly from the database filename (MC_{mac}.db). Validated against a single Hyundai/Kia head unit from an extraction that could not be shared publicly, so no test fixture accompanies this artifact.",
         "paths": ('*/bluetooth/DB_BMS/MC_*.db*',),
         "output_types": "standard",
         "artifact_icon": "users",
@@ -41,6 +41,13 @@ def _format_mac_from_filename(filename):
 
 
 def _present_columns(cursor, table, wanted):
+    """
+    The wanted columns this table actually carries, in the order given.
+
+    Firmware versions differ in what these tables hold, and a SELECT naming a
+    column the table lacks fails the whole statement. Selecting only what is
+    present costs the absent column rather than every contact on that phone.
+    """
     try:
         cursor.execute(f'PRAGMA table_info({table})')
         present = {row[1] for row in cursor.fetchall()}
