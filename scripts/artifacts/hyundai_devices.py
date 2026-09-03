@@ -43,9 +43,9 @@ def hyundaiDevices(context):
                 mac_addr = match.group(1).decode('ascii', 'replace').upper()
                 raw_name = match.group(2)
                 try:
-                    dev_name = raw_name.decode('utf-8').strip()
+                    dev_name = raw_name.decode('utf-8').strip().strip('\x00\x01\x02\x03\x04\x05')
                 except UnicodeDecodeError:
-                    dev_name = raw_name.decode('latin-1', 'replace').strip()
+                    dev_name = raw_name.decode('latin-1', 'replace').strip().strip('\x00\x01\x02\x03\x04\x05')
 
                 if dev_name and (mac_addr, dev_name) not in data_list:
                     data_list.append((mac_addr, dev_name))

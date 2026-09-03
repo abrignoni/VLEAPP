@@ -19,7 +19,14 @@ import os
 import re
 import sqlite3
 from datetime import datetime, timezone
-from scripts.ilapfuncs import artifact_processor, convert_unix_ts_to_utc, open_sqlite_db_readonly
+
+from scripts.ilapfuncs import (artifact_processor, convert_unix_ts_to_utc, logfunc,
+                               open_sqlite_db_readonly)
+
+# Ordered as queried. A column missing from a phone's database is reported empty
+# rather than costing that phone every row -- see _present_columns.
+_CALL_COLUMNS = ('date', 'date_sort', '_id', 'given_name', 'family_name', 'phone_number',
+                 'calltype', 'duration', 'numberType')
 
 
 def _format_mac_from_filename(filename):
@@ -34,6 +41,21 @@ def _format_mac_from_filename(filename):
     if len(clean_hex) == 12:
         return ':'.join(clean_hex[i:i + 2] for i in range(0, 12, 2)).upper()
     return raw_mac.upper()
+
+
+def _present_columns(cursor, table, wanted):
+    try:
+        cursor.execute(f'PRAGMA table_info({table})')
+        present = {row[1] for row in cursor.fetchall()}
+    except sqlite3.Error:
+        return []
+    return [column for column in wanted if column in present]
+
+
+def _value(record, column):
+    """The stored value, or '' when the column is absent or NULL."""
+    value = record.get(column)
+    return '' if value is None else value
 
 
 def _ts(value):
@@ -63,66 +85,65 @@ def hyundaiCallHistory(context):
 
     for file_found in context.get_files_found():
         file_found = str(file_found)
-        if not file_found.endswith('.db'):
+        if os.path.isdir(file_found) or not file_found.endswith('.db'):
             continue
 
-        source_paths.append(file_found)
         device_mac = _format_mac_from_filename(file_found)
         db_filename = os.path.basename(file_found)
 
         db = open_sqlite_db_readonly(file_found)
+        if db is None:
+            continue
         cursor = db.cursor()
 
+        columns = _present_columns(cursor, 'bluetooth_callhistory', _CALL_COLUMNS)
+        if not columns:
+            logfunc(f"{db_filename}: no bluetooth_callhistory table, skipped")
+            db.close()
+            continue
+
+        statement = f'SELECT {", ".join(columns)} FROM bluetooth_callhistory'
+        if 'date' in columns:
+            statement += ' ORDER BY date DESC'
+
         try:
-            cursor.execute('''
-                SELECT 
-                    date,
-                    date_sort,
-                    _id,
-                    given_name,
-                    family_name,
-                    phone_number,
-                    calltype,
-                    duration,
-                    numberType
-                FROM bluetooth_callhistory
-                ORDER BY date DESC
-            ''')
-
-            for row in cursor.fetchall():
-                (
-                    call_date,
-                    date_sort,
-                    rec_id,
-                    given_name,
-                    family_name,
-                    phone_number,
-                    calltype,
-                    duration,
-                    number_type
-                ) = row
-
-                name_parts = [str(p).strip() for p in (given_name, family_name) if p]
-                full_name = ' '.join(name_parts) if name_parts else ''
-
-                data_list.append((
-                    _ts(call_date),
-                    _ts(date_sort),
-                    device_mac,
-                    rec_id,
-                    full_name,
-                    given_name if given_name is not None else '',
-                    family_name if family_name is not None else '',
-                    phone_number if phone_number is not None else '',
-                    calltype if calltype is not None else '',
-                    duration if duration is not None else '',
-                    number_type if number_type is not None else '',
-                    db_filename
-                ))
-        except sqlite3.Error:
-            pass
+            cursor.execute(statement)
+            rows = cursor.fetchall()
+        except sqlite3.Error as ex:
+            logfunc(f"{db_filename}: reading bluetooth_callhistory failed, skipped")
+            logfunc(f" - {str(ex)}")
+            db.close()
+            continue
 
         db.close()
+        source_paths.append(file_found)
+
+        missing = [column for column in _CALL_COLUMNS if column not in columns]
+        if missing:
+            logfunc(f"{db_filename}: reported without {', '.join(missing)}")
+
+        for row in rows:
+            record = dict(zip(columns, row))
+            given_name = _value(record, 'given_name')
+            family_name = _value(record, 'family_name')
+
+            name_parts = [str(p).strip() for p in (given_name, family_name) if p]
+            full_name = ' '.join(name_parts) if name_parts else ''
+
+            data_list.append((
+                _ts(record.get('date')),
+                _ts(record.get('date_sort')),
+                device_mac,
+                _value(record, '_id'),
+                full_name,
+                given_name,
+                family_name,
+                _value(record, 'phone_number'),
+                _value(record, 'calltype'),
+                _value(record, 'duration'),
+                _value(record, 'numberType'),
+                db_filename
+            ))
 
     data_headers = (
         ('Date (UTC)', 'datetime'),
@@ -133,11 +154,10 @@ def hyundaiCallHistory(context):
         'First Name',
         'Last Name',
         ('Phone Number', 'phonenumber'),
-        'Call Type',
-        'Duration (sec)',
-        'Number Type',
+        'Call Type (as stored)',
+        'Duration (as stored)',
+        'Number Type (as stored)',
         'Source Database'
     )
 
-    source_repr = os.path.dirname(source_paths[0]) if source_paths else ''
-    return data_headers, data_list, context.get_relative_path(source_repr)
+    return data_headers, data_list, '\n'.join(source_paths)
