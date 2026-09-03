@@ -5,10 +5,10 @@ __artifacts_v2__ = {
         "author": "Nixy Camacho, @pmpulkownik",
         "version": "0.3",
         "creation_date": "2023-06-09",
-        "last_update_date": "2026-09-02",
+        "last_update_date": "2026-09-03",
         "requirements": "none",
         "category": "Hyundai Vehicles",
-        "notes": "Parses binary structured records from wireless_dev_list.dat to extract paired device MAC addresses and friendly names.",
+        "notes": "Parses binary structured records from wireless_dev_list.dat to extract paired device MAC addresses and friendly names. Validated against a single Hyundai/Kia head unit from an extraction that could not be shared publicly, so no test fixture accompanies this artifact. The friendly name runs to the next control byte in the record.",
         "paths": ('*/wireless_dev_list.dat',),
         "output_types": "standard",
         "artifact_icon": "bluetooth",
@@ -18,11 +18,14 @@ __artifacts_v2__ = {
 import re
 from scripts.ilapfuncs import artifact_processor
 
-# Matches: MAC address (17 ASCII chars + null), optional repeated MAC, and the friendly name string
+# Matches: MAC address (17 ASCII chars + null), optional repeated MAC, and the friendly
+# name. The name runs to the next control byte: the record delimits it the same way it
+# delimits the MAC, so a trailing or embedded control byte ends the name rather than
+# travelling into the report.
 _RECORD_RE = re.compile(
     rb'([0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5})\x00'
     rb'(?:[0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5}\x00)?'
-    rb'([^\x00\r\n\t]+)'
+    rb'([^\x00-\x1f\x7f]+)'
 )
 
 
@@ -43,9 +46,9 @@ def hyundaiDevices(context):
                 mac_addr = match.group(1).decode('ascii', 'replace').upper()
                 raw_name = match.group(2)
                 try:
-                    dev_name = raw_name.decode('utf-8').strip().strip('\x00\x01\x02\x03\x04\x05')
+                    dev_name = raw_name.decode('utf-8').strip()
                 except UnicodeDecodeError:
-                    dev_name = raw_name.decode('latin-1', 'replace').strip().strip('\x00\x01\x02\x03\x04\x05')
+                    dev_name = raw_name.decode('latin-1', 'replace').strip()
 
                 if dev_name and (mac_addr, dev_name) not in data_list:
                     data_list.append((mac_addr, dev_name))
