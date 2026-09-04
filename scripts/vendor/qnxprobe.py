@@ -27,7 +27,7 @@ Read-only throughout. Never writes to the image.
 """
 import os, re, struct, sys, datetime, json, time, uuid, zipfile
 
-QNXPROBE_VERSION = "1.10"
+QNXPROBE_VERSION = "1.12"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -103,11 +103,41 @@ def report_generations(copies, sized_regions, how_of):
     return order, gens
 
 
+# read_at() is the only path from a walker to the image, so a short answer from
+# it is the one signal that a read reached past the end of the file. The walkers
+# pad a short block with zeros, which is right for a sector an acquisition could
+# not read and hides a cut image completely; this tally lets extract_to_zip()
+# tell the two apart, per file, without each walker having to know.
+EOF_SHORTFALL = {"bytes": 0}
+
+
 def read_at(fh, off, n):
     try:
-        fh.seek(off); return fh.read(n)
+        fh.seek(off); data = fh.read(n)
     except OSError:
         return b""
+    if len(data) < n:
+        EOF_SHORTFALL["bytes"] += n - len(data)
+    return data
+
+
+def short_regions(size, sized_regions, skip=()):
+    """Regions the partition table describes that the file does not hold in full.
+
+    Returns [(label, start, region_size, missing)] for every region whose end
+    lies past the end of the file, missing being how many of its bytes are not
+    here; missing == region_size means the region begins past the end of the
+    file. A file that holds only the first segment of a split acquisition has
+    this shape, and nothing else in a probe can tell that case from a small disk.
+    """
+    out = []
+    for label, start, rsize in sized_regions:
+        if not rsize or label in skip:
+            continue
+        end = start + rsize
+        if end > size:
+            out.append((label, start, rsize, min(rsize, end - size)))
+    return out
 
 
 def ts(v):
@@ -1738,17 +1768,30 @@ class ProgressEmitter:
         self.stream.flush()
 
 
-def extract_to_zip(zf, w, volume, entries, log, progress=None):
+def extract_to_zip(zf, w, volume, entries, log, progress=None, may_be_short=False):
     """Stream each regular file into the open zipfile. Returns a tally.
 
-    progress, when given, is called after each file with
-    (volume, files_done, written_bytes, total_files, total_bytes). The totals
-    are exact rather than estimated: entries is already the full list for this
-    volume, so both are known before the first file is written.
+    Returns (files, written, skipped, failed, short). progress, when given, is
+    called after each file with (volume, files_done, written_bytes,
+    total_files, total_bytes). The totals are exact rather than estimated:
+    entries is already the full list for this volume, so both are known before
+    the first file is written.
+
+    A file whose blocks lie past the end of the image is a SHORT read: read_at()
+    answers a seek past the end of the file with empty bytes, so the walker
+    hands back fewer bytes than the inode says and raises nothing. Such a file
+    is counted in short, not in files, and logged. With may_be_short, which the
+    caller passes when it already knows this volume reaches past the end of the
+    image, each file is spooled before it is written so a short one can be
+    stored under a name that says how much of it is here. On a volume with no
+    reason to expect it the file streams straight into the zip; a short one
+    then keeps its name, and the count and the log still say it was short.
     """
+    import shutil
+    import tempfile
     total_files = sum(1 for _, _, size, _ in entries if size is not None)
     total_bytes = sum(size for _, _, size, _ in entries if size is not None)
-    files = written = skipped = failed = 0
+    files = written = skipped = failed = short = 0
     for path, ino, size, mtime in entries:
         arc = f"{volume}/{path}"
         if size is None:
@@ -1758,17 +1801,42 @@ def extract_to_zip(zf, w, volume, entries, log, progress=None):
             info = zipfile.ZipInfo(arc, date_time=_zip_time(mtime))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o100644 << 16
-            with zf.open(info, "w") as dst:
-                for chunk in w.read_file(ino, size):
-                    dst.write(chunk)
-            files += 1
-            written += size
+            got = 0
+            before = EOF_SHORTFALL["bytes"]
+            if may_be_short:
+                with tempfile.SpooledTemporaryFile(max_size=32 << 20) as spool:
+                    for chunk in w.read_file(ino, size):
+                        spool.write(chunk)
+                        got += len(chunk)
+                    got = min(got, max(size - (EOF_SHORTFALL["bytes"] - before), 0))
+                    if got < size:
+                        info.filename = f"{arc}.SHORT-{got}-of-{size}-bytes"
+                    spool.seek(0)
+                    with zf.open(info, "w") as dst:
+                        shutil.copyfileobj(spool, dst)
+            else:
+                with zf.open(info, "w") as dst:
+                    for chunk in w.read_file(ino, size):
+                        dst.write(chunk)
+                        got += len(chunk)
+                got = min(got, max(size - (EOF_SHORTFALL["bytes"] - before), 0))
+            # A walker pads a block the image ends inside with zeros, so the bytes
+            # it handed back are not the bytes that were there; the shortfall
+            # read_at() tallied while this file was read is.
+            if got < size:
+                short += 1
+                written += got
+                log.append(f"        SHORT {arc}: {got:,} of {size:,} bytes are in the "
+                           f"image, the rest lies past its end")
+            else:
+                files += 1
+                written += size
         except Exception as exc:
             failed += 1
             log.append(f"        could not extract {arc}: {exc}")
         if progress is not None:
             progress(volume, files, written, total_files, total_bytes)
-    return files, written, skipped, failed
+    return files, written, skipped, failed, short
 
 
 # ---------------------------------------------------------------------------
@@ -2268,6 +2336,42 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
             regions.append(("whole image", 0))
             vol_names[0] = volume_name(None, 0)
 
+        # A partition table describes a whole disk and the file may hold only
+        # the front of it. FTK Imager and its peers split a raw image into
+        # numbered segments (.001, .002, ...) and the first segment carries the
+        # table and the boot volumes, so it identifies cleanly and its front
+        # volumes read correctly while the volume holding the user data ends
+        # past the cut, where every read answers empty. Measured on a Ford Sync
+        # G4 image cut at 1,500 MB: the boot partitions extracted in full and
+        # the 28.8 GiB storage volume walked to 0 files with nothing raised.
+        # Say so here, before any volume is reported as empty.
+        short_by = {}                 # region start -> bytes past the end of the file
+        short = short_regions(size, sized_regions, skip=protective)
+        if short:
+            reach = max(st + rs for lab, st, rs in sized_regions if lab not in protective)
+            print("\n  IMAGE IS SHORTER THAN ITS PARTITION TABLE")
+            print(f"    the file holds {human(size)}; the partitions it describes "
+                  f"reach {human(reach)}")
+            for label, st, rs, missing in short:
+                short_by[st] = missing
+                if missing >= rs:
+                    where = "begins past the end of the file  (none of it is here)"
+                else:
+                    where = f"ends {human(missing)} past the end of the file  (partly here)"
+                print(f"    {label:<28} {where}")
+            print("    A raw image split into numbered segments (.001, .002, ...) has to be")
+            print("    joined before it is read; its first segment alone looks like this.")
+            print("    Each volume above is marked INCOMPLETE below, and a file on it that")
+            print("    reaches past the end is counted SHORT and stored under a name that")
+            print("    says how much of it is here, not as an extracted file.")
+
+        def missing_past_end(base, declared_end=None):
+            """Bytes of the volume at base that lie past the end of the file."""
+            missing = short_by.get(base, 0)
+            if declared_end is not None:
+                missing = max(missing, declared_end - size)
+            return max(missing, 0)
+
         # the two offsets the kernel itself probes, per region and whole-image
         print()
         for label, base in [("image start", 0)] + regions:
@@ -2429,7 +2533,9 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                     ents = collect(w, w.root)
                     ents, dropped = apply_exclude(ents, exclude)
                     log = []
-                    f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log, reporter)
+                    miss = missing_past_end(base, base + total)
+                    f_, wr, sk, fa, sh = extract_to_zip(zf, w, vol, ents, log, reporter,
+                                                            may_be_short=bool(miss))
                     if manifest is not None:
                         rsize = next((r[2] for r in sized_regions if r[1] == base), None)
                         manifest.append({
@@ -2441,14 +2547,19 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                             "superblock_serial": sb["serial"],
                             "files": f_, "bytes": wr,
                             "symlinks_or_special_skipped": sk,
-                            "failed": fa, "excluded": dropped,
+                            "failed": fa, "short": sh, "excluded": dropped,
                         })
                     print(f"        {f_:,} files, {human(wr)}"
                           + (f", {sk:,} symlinks or special files skipped" if sk else "")
                           + (f", {fa:,} FAILED" if fa else "")
+                          + (f", {sh:,} SHORT" if sh else "")
                           + (f", {dropped:,} excluded" if dropped else ""))
                     for line in log[:5]:
                         print(line)
+                    if miss:
+                        print(f"        INCOMPLETE: this volume reaches {human(miss)} past the end of the file")
+                        if manifest is not None:
+                            manifest[-1]["extends_past_image_by_bytes"] = miss
                 except Exception as exc:
                     print(f"        could not extract this filesystem: {exc}")
             print()
@@ -2520,7 +2631,9 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                         ents = collect(w, w.root)
                         ents, dropped = apply_exclude(ents, exclude)
                         log = []
-                        f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log, reporter)
+                        miss = missing_past_end(b)
+                        f_, wr, sk, fa, sh = extract_to_zip(zf, w, vol, ents, log, reporter,
+                                                                may_be_short=bool(miss))
                         if manifest is not None:
                             _u = read_at(fh, b + EXT_SB_OFF, 1024)
                             manifest.append({
@@ -2532,14 +2645,19 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                                 "label": ext_name,
                                 "files": f_, "bytes": wr,
                                 "symlinks_or_special_skipped": sk,
-                                "failed": fa, "excluded": dropped,
+                                "failed": fa, "short": sh, "excluded": dropped,
                             })
                         print(f"            {f_:,} files, {human(wr)}"
                               + (f", {sk:,} symlinks or special files skipped" if sk else "")
                               + (f", {fa:,} FAILED" if fa else "")
+                              + (f", {sh:,} SHORT" if sh else "")
                               + (f", {dropped:,} excluded" if dropped else ""))
                         for line in log[:5]:
                             print(line)
+                        if miss:
+                            print(f"            INCOMPLETE: this volume reaches {human(miss)} past the end of the file")
+                            if manifest is not None:
+                                manifest[-1]["extends_past_image_by_bytes"] = miss
                     except Exception as exc:
                         print(f"        could not extract: {exc}")
 
@@ -2559,7 +2677,9 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                             ents = collect(w, w.root)
                             ents, dropped = apply_exclude(ents, exclude)
                             log = []
-                            f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents, log, reporter)
+                            miss = missing_past_end(b)
+                            f_, wr, sk, fa, sh = extract_to_zip(zf, w, vol, ents, log, reporter,
+                                                                    may_be_short=bool(miss))
                             if manifest is not None:
                                 manifest.append({
                                     "volume": vol, "image": os.path.basename(path),
@@ -2567,14 +2687,19 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                                     "partition_size_bytes": sz, "filesystem": kind,
                                     "files": f_, "bytes": wr,
                                     "symlinks_or_special_skipped": sk,
-                                    "failed": fa, "excluded": dropped,
+                                    "failed": fa, "short": sh, "excluded": dropped,
                                 })
                             print(f"            {f_:,} files, {human(wr)}"
                                   + (f", {sk:,} symlinks or special files skipped" if sk else "")
                                   + (f", {fa:,} FAILED" if fa else "")
+                                  + (f", {sh:,} SHORT" if sh else "")
                                   + (f", {dropped:,} excluded" if dropped else ""))
                             for line in log[:5]:
                                 print(line)
+                            if miss:
+                                print(f"            INCOMPLETE: this volume reaches {human(miss)} past the end of the file")
+                                if manifest is not None:
+                                    manifest[-1]["extends_past_image_by_bytes"] = miss
                         except Exception as exc:
                             print(f"        could not extract: {exc}")
 
@@ -2606,8 +2731,9 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                                 ents = collect(w, w.root)
                                 ents, dropped = apply_exclude(ents, exclude)
                                 log = []
-                                f_, wr, sk, fa = extract_to_zip(zf, w, vol, ents,
-                                                                log, reporter)
+                                miss = missing_past_end(b)
+                                f_, wr, sk, fa, sh = extract_to_zip(zf, w, vol, ents, log, reporter,
+                                                                        may_be_short=bool(miss))
                                 if manifest is not None:
                                     manifest.append({
                                         "volume": vol, "image": os.path.basename(path),
@@ -2619,15 +2745,20 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                                         "image_checksum_balances": w.cksum_ok,
                                         "files": f_, "bytes": wr,
                                         "symlinks_or_special_skipped": sk,
-                                        "failed": fa, "excluded": dropped,
+                                        "failed": fa, "short": sh, "excluded": dropped,
                                     })
                                 print(f"            {f_:,} files, {human(wr)}"
                                       + (f", {sk:,} symlinks or special files skipped"
                                          if sk else "")
                                       + (f", {fa:,} FAILED" if fa else "")
+                                      + (f", {sh:,} SHORT" if sh else "")
                                       + (f", {dropped:,} excluded" if dropped else ""))
                                 for line in log[:5]:
                                     print(line)
+                                if miss:
+                                    print(f"            INCOMPLETE: this volume reaches {human(miss)} past the end of the file")
+                                    if manifest is not None:
+                                        manifest[-1]["extends_past_image_by_bytes"] = miss
                             except Exception as exc:
                                 print(f"        could not extract: {exc}")
                 print()
@@ -3205,6 +3336,73 @@ def self_test():
             ok = False
         print(f"  [{mark}] FAT, exFAT, ETFS, EFS and IFS all decline the "
               f"qnx4 image")
+
+        # A cut image. The first segment of a split acquisition (.001 of an
+        # FTK Imager raw set) carries the partition table and the boot volumes,
+        # so it identifies cleanly, and every volume past the cut reads as empty
+        # because read_at() answers a seek past the end of the file with empty
+        # bytes. Measured 2026-09-04 on a Ford Sync G4 image cut at 1,500 MB: the
+        # boot partitions extracted in full and the 28.8 GiB storage volume
+        # walked to 0 files with nothing raised. The probe has to say the file is
+        # shorter than its table, and a file whose blocks lie past the cut has to
+        # be counted SHORT and stored under a name that says so.
+        cut = os.path.join(d, "positive_le_cut.img")
+        with open(a, "rb") as src, open(cut, "wb") as dst:
+            dst.write(src.read(3 * 1024 * 1024))
+        reps = {}
+        for name, path in (("cut", cut), ("full", a)):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                main(path)
+            reps[name] = buf.getvalue()
+        after = reps["cut"].split("IMAGE IS SHORTER THAN ITS PARTITION TABLE", 1)
+        warned = len(after) == 2 and "MBR part 1" in after[1][:600]
+        quiet = "SHORTER THAN" not in reps["full"]
+        for label, cond in (
+                ("a 3 MiB cut of the 7 MiB positive image is reported shorter than "
+                 "its partition table, naming MBR part 1", warned),
+                ("the full positive image draws no such warning", quiet)):
+            if not cond:
+                ok = False
+            print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
+
+        # The qnx4 fixture behind an MBR whose partition reaches past the cut.
+        # multi.bin's second extent is qnx4 block 10 (offset 4608); the image
+        # ends there, after the xblk that points to it, so the walk still finds
+        # the file and its tail is past the end.
+        mimg = bytearray(2048 * SECTOR + 4608)
+        ent = bytearray(16)
+        ent[4] = 0x4d
+        struct.pack_into("<II", ent, 8, 2048, 32)      # 16 KiB declared, 4.5 KiB here
+        mimg[446:462] = ent
+        mimg[510:512] = b"\x55\xaa"
+        mimg[2048 * SECTOR:] = q4[:4608]
+        q4cut = os.path.join(d, "qnx4_behind_mbr_cut.img")
+        open(q4cut, "wb").write(bytes(mimg))
+        q4zip = os.path.join(d, "qnx4_cut.zip")
+        man = []
+        buf = io.StringIO()
+        with zipfile.ZipFile(q4zip, "w") as zf, contextlib.redirect_stdout(buf):
+            main(q4cut, extract=q4zip, zf=zf, manifest=man)
+        rep_q4 = buf.getvalue()
+        names = zipfile.ZipFile(q4zip).namelist()
+        vol = "p1_lba2048"
+        short_named = [n for n in names
+                       if n.startswith(f"{vol}/multi.bin.SHORT-512-of-700")]
+        entry = man[0] if man else {}
+        for label, cond in (
+                ("a file reaching past the cut is counted SHORT in the report and "
+                 "the manifest, beside the 3 whole files",
+                 "1 SHORT" in rep_q4 and entry.get("short") == 1
+                 and entry.get("files") == 3
+                 and entry.get("extends_past_image_by_bytes", 0) > 0),
+                ("the short file is stored under a name saying how much of it is "
+                 "here, and the whole files keep theirs",
+                 len(short_named) == 1 and f"{vol}/selftest.txt" in names
+                 and f"{vol}/multi.bin" not in names)):
+            if not cond:
+                ok = False
+            print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
 
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"

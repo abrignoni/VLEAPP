@@ -607,6 +607,61 @@ def _extract_image_volumes(probe, image_path, staged_zip, exclude=None):
         raise RuntimeError(
             f'qnxprobe could not extract any filesystem from {image_path}. '
             f'Exit {proc.returncode}. Last output:\n{detail}')
+    _warn_incomplete_volumes(staged_zip)
+
+
+def _warn_incomplete_volumes(staged_zip):
+    """Say in the run log when the reader found the image shorter than its volumes.
+
+    qnxprobe 1.12 records per volume, in volumes.json, how far the volume reaches
+    past the end of the image (extends_past_image_by_bytes) and how many of its
+    files were cut by that end (short). That is the whole difference between a
+    small disk and the first segment of a split one, and it sits in a zip the
+    examiner never opens, so repeat it here, where the run log is read. Returns
+    the incomplete volumes.
+    """
+    try:
+        with ZipFile(staged_zip) as archive:
+            volumes = json.loads(archive.read('volumes.json')).get('volumes', [])
+    except (KeyError, ValueError, OSError):
+        return []
+    incomplete = [v for v in volumes
+                  if v.get('extends_past_image_by_bytes') or v.get('short')]
+    if not incomplete:
+        return []
+    logfunc('WARNING: the image is shorter than the volumes it describes. Rows from '
+            'these volumes come from an incomplete read:')
+    for volume in incomplete:
+        past = volume.get('extends_past_image_by_bytes') or 0
+        logfunc(f"  {volume.get('volume')}: reaches {past:,} bytes past the end of the "
+                f"image, {volume.get('files', 0):,} files read whole, "
+                f"{volume.get('short', 0):,} cut short")
+    logfunc('  If this is the first segment of a split image (.001 beside .002), join '
+            'the segments and run the joined file.')
+    return incomplete
+
+
+def split_image_sibling(image_path):
+    """The next segment of a split image, when this file is one segment of it.
+
+    FTK Imager and its peers write a raw image as numbered segments (.001, .002,
+    ...) unless told to write one file, and the first segment alone carries the
+    partition table and the boot volumes, so it identifies cleanly and every
+    volume past the cut reads as empty. Measured on a Ford Sync G4 image cut at
+    1,500 MB: the boot partitions extracted in full and the 28.8 GiB storage
+    volume reported 0 files with nothing raised. A numbered suffix with the next
+    number sitting beside it is that case, and the answer is to join the
+    segments, not to read the first one.
+
+    Returns the path of the next segment, or None when the suffix is not a
+    number or no next segment is beside this file.
+    """
+    stem, dot, suffix = os.path.basename(image_path).rpartition('.')
+    if not dot or not stem or not (suffix.isascii() and suffix.isdigit()):
+        return None
+    following = str(int(suffix) + 1).zfill(len(suffix))
+    candidate = os.path.join(os.path.dirname(image_path), f'{stem}.{following}')
+    return candidate if os.path.isfile(candidate) else None
 
 
 class FileSeekerRaw(FileSeekerZip):
@@ -636,6 +691,13 @@ class FileSeekerRaw(FileSeekerZip):
     """
 
     def __init__(self, image_path, data_folder, exclude=None):
+        sibling = split_image_sibling(image_path)
+        if sibling:
+            raise ValueError(
+                f'{os.path.basename(image_path)} is one segment of a split image: '
+                f'{os.path.basename(sibling)} sits beside it. Reading the first segment '
+                f'alone reports every volume past the cut as empty. Join the segments '
+                f'(cat, or copy /b on Windows) and run the joined file.')
         self._stage_dir = tempfile.mkdtemp(prefix='vleapp_raw_')
         staged = False
         try:

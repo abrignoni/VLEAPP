@@ -224,6 +224,17 @@ def ValidateInput():
     elif os.path.isdir(i_path):
         ext_type = 'fs'
     else:
+        sibling = split_image_sibling(i_path)
+        if sibling:
+            tk_msgbox.showerror(
+                title='Error',
+                message=(f'{os.path.basename(i_path)} is one segment of a split image: '
+                         f'{os.path.basename(sibling)} sits beside it.\n\nReading the '
+                         'first segment alone reports every volume past the cut as '
+                         'empty. Join the segments (cat, or copy /b on Windows) and '
+                         'select the joined file.'),
+                parent=main_window)
+            return False, ext_type, None
         ext_type = Path(i_path).suffix[1:].lower()
         # A raw disk image has no type of its own, only a conventional extension,
         # so the suffix taken literally ('img', 'bin') matches no branch in
