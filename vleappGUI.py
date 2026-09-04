@@ -205,7 +205,7 @@ def scroll(event):
 # run needs is decided by reading the image, so this list only has to get the
 # file past type selection; an image named anything else is still reachable
 # from the command line with -t raw.
-RAW_IMAGE_SUFFIXES = ('img', 'bin', 'dd', 'raw')
+RAW_IMAGE_SUFFIXES = ('img', 'bin', 'dd', 'raw', '001')
 
 
 def ValidateInput():
@@ -575,10 +575,10 @@ def select_input(button_type):
         input_filename = tk_filedialog.askopenfilename(parent=main_window,
                                                        title='Select a file',
                                                        filetypes=(('All supported files',
-                                                                   '*.tar *.zip *.gz *.img *.bin *.dd *.raw *.iVa'),
+                                                                   '*.tar *.zip *.gz *.img *.bin *.dd *.raw *.001 *.iVa'),
                                                                   ('tar file', '*.tar'), ('zip file', '*.zip'),
                                                                   ('gz file', '*.gz'),
-                                                                  ('raw disk image', '*.img *.bin *.dd *.raw'),
+                                                                  ('raw disk image', '*.img *.bin *.dd *.raw *.001'),
                                                                   ('Berla iVe export', '*.iVa')))
     else:
         input_filename = tk_filedialog.askdirectory(parent=main_window, title='Select a folder')
