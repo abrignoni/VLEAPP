@@ -25,9 +25,9 @@ its fields checked for internal consistency before it is reported CONFIRMED.
 
 Read-only throughout. Never writes to the image.
 """
-import os, re, struct, sys, datetime, json, time, uuid, zipfile
+import os, re, struct, sys, datetime, json, time, uuid, zipfile, bisect, collections
 
-QNXPROBE_VERSION = "1.12"
+QNXPROBE_VERSION = "1.13"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -119,6 +119,189 @@ def read_at(fh, off, n):
     if len(data) < n:
         EOF_SHORTFALL["bytes"] += n - len(data)
     return data
+
+
+class SplitImageError(Exception):
+    """A numbered segment set that cannot be joined as it stands: a hole in
+    the numbering, no first segment beside the file given, or segments of the
+    same stem numbered with a different width."""
+
+
+def split_segments(path):
+    """The segment files of the split raw image that path belongs to, in order.
+
+    FTK Imager and its peers write a raw image as numbered segments (.001,
+    .002, ...) unless told to write one file. Handed any one of them, this finds
+    the rest beside it: same directory, same stem, a suffix of the same number
+    of digits. Returns [] when path is not that (the suffix is not all digits,
+    or no other segment of the set is beside it), so a lone first segment is
+    still read as the one file it is, and the short-image warning in main() is
+    what says so.
+
+    A set is joined only when it is whole from its first segment. A hole in the
+    numbering, a set whose lowest segment is not .000 or .001, and segments of
+    the same stem numbered with a different width are each refused with
+    SplitImageError naming what is missing or odd, rather than joined around:
+    a join with a gap reads every volume past it at the wrong offset and
+    answers wrong, not empty.
+    """
+    folder, name = os.path.split(os.path.abspath(path))
+    stem, dot, suffix = name.rpartition(".")
+    if not dot or not stem or not (suffix.isascii() and suffix.isdigit()):
+        return []
+    width = len(suffix)
+    present, other_width = {}, []
+    for entry in os.listdir(folder):
+        s, d, n = entry.rpartition(".")
+        if not (d and s == stem and n.isascii() and n.isdigit()):
+            continue
+        if not os.path.isfile(os.path.join(folder, entry)):
+            continue
+        if len(n) == width:
+            present[int(n)] = os.path.join(folder, entry)
+        else:
+            other_width.append(entry)
+    if len(present) < 2 and not other_width:
+        return []
+    if other_width:
+        raise SplitImageError(
+            f"{name} sits beside segments of the same stem numbered with a "
+            f"different number of digits ({', '.join(sorted(other_width)[:3])}"
+            f"{', ...' if len(other_width) > 3 else ''}). Not joined: check the "
+            f"numbering and rename the set to one width.")
+    first = min(present)
+    if first > 1:
+        raise SplitImageError(
+            f"{name} is one segment of a split image and the first segment, "
+            f"{stem}.{1:0{width}d}, is not beside it (the lowest here is "
+            f"{stem}.{first:0{width}d}). Put the whole set in one folder.")
+    run, n = [], first
+    while n in present:
+        run.append(present[n])
+        n += 1
+    if len(run) < len(present):
+        raise SplitImageError(
+            f"{name} is one segment of a split image with a hole in it: "
+            f"{stem}.{n:0{width}d} is missing while {stem}.{max(present):0{width}d} "
+            f"is here. Put the whole set in one folder; a set joined around a "
+            f"hole reads every volume past it at the wrong offset.")
+    return run
+
+
+class SegmentedImage:
+    """The numbered segments of a split raw image, read as one file.
+
+    Every walker reaches the image through read_at(), which only seeks and
+    reads, so this stands in for the file object: a byte offset is mapped onto
+    the segment that holds it and a read that crosses a segment boundary is
+    served from both sides. A read past the end of the last segment comes back
+    short, exactly as it does from one file, so read_at()'s shortfall tally and
+    the short-image warning keep their meaning on a set whose last segments are
+    missing (which no numbering check can see: the set simply ends early).
+
+    At most MAX_OPEN segment files are held open at once, least recently used
+    closed first, so a set of hundreds of segments does not exhaust the
+    process's file descriptors.
+    """
+    MAX_OPEN = 16
+
+    def __init__(self, paths):
+        self.paths = [os.fspath(p) for p in paths]
+        self.sizes = [os.path.getsize(p) for p in self.paths]
+        self.starts, total = [], 0
+        for s in self.sizes:
+            self.starts.append(total)
+            total += s
+        self.size = total
+        self.name = self.paths[0]
+        self._pos = 0
+        self._open = collections.OrderedDict()
+
+    def _handle(self, i):
+        fh = self._open.get(i)
+        if fh is None:
+            fh = open(self.paths[i], "rb")
+            self._open[i] = fh
+            while len(self._open) > self.MAX_OPEN:
+                self._open.popitem(last=False)[1].close()
+        else:
+            self._open.move_to_end(i)
+        return fh
+
+    def seek(self, offset, whence=0):
+        if whence == 0:
+            pos = offset
+        elif whence == 1:
+            pos = self._pos + offset
+        elif whence == 2:
+            pos = self.size + offset
+        else:
+            raise ValueError(f"invalid whence ({whence!r}, should be 0, 1 or 2)")
+        if pos < 0:
+            raise OSError(22, "Invalid argument")
+        self._pos = pos
+        return pos
+
+    def tell(self):
+        return self._pos
+
+    def read(self, n=-1):
+        if n is None or n < 0:
+            n = max(self.size - self._pos, 0)
+        out, pos = [], self._pos
+        while n > 0 and pos < self.size:
+            # bisect_right lands on the last segment starting at or before pos,
+            # which steps over any zero-length segment sharing that start
+            i = bisect.bisect_right(self.starts, pos) - 1
+            fh = self._handle(i)
+            fh.seek(pos - self.starts[i])
+            chunk = fh.read(min(n, self.starts[i] + self.sizes[i] - pos))
+            if not chunk:
+                break                  # the segment is shorter on disk than when measured
+            out.append(chunk)
+            pos += len(chunk)
+            n -= len(chunk)
+        self._pos = pos
+        return b"".join(out)
+
+    def close(self):
+        for fh in self._open.values():
+            fh.close()
+        self._open.clear()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+        return False
+
+
+def image_size(fh):
+    """Byte length of the image behind fh, one file or a joined segment set."""
+    size = getattr(fh, "size", None)
+    if size is not None:
+        return size
+    return os.fstat(fh.fileno()).st_size
+
+
+def open_image(path, segments=None):
+    """Open an image read-only: the one file, or every segment of the split
+    image it belongs to, joined. segments is split_segments(path) when the
+    caller already has it."""
+    if segments is None:
+        segments = split_segments(path)
+    if segments:
+        return SegmentedImage(segments)
+    return open(path, "rb")
+
+
+def describe_segment_sizes(sizes):
+    """'19 x 1,572,864,000 bytes, then 1,384,120,320 bytes' for the shape an
+    imaging tool writes; every size listed when they do not follow it."""
+    if len(sizes) > 1 and len(set(sizes[:-1])) == 1:
+        return f"{len(sizes) - 1} x {sizes[0]:,} bytes, then {sizes[-1]:,} bytes"
+    return ", ".join(f"{s:,}" for s in sizes) + " bytes"
 
 
 def short_regions(size, sized_regions, skip=()):
@@ -286,7 +469,7 @@ def parse_mbr(fh):
     # code or data. The boot indicator byte is deliberately not a test: neither
     # util-linux's libfdisk nor The Sleuth Kit rejects a table on its value.
     try:
-        size = os.fstat(fh.fileno()).st_size
+        size = image_size(fh)
     except (OSError, AttributeError, ValueError):
         size = None
     if out and size and all(start * SECTOR >= size for _, _, start, _ in out):
@@ -2117,7 +2300,7 @@ def identify_fs(fh, base, size=None):
     """
     if size is None:
         try:
-            size = os.fstat(fh.fileno()).st_size - base
+            size = image_size(fh) - base
         except OSError:
             size = 0
 
@@ -2260,16 +2443,28 @@ def volume_name(part_idx, lba, label=""):
 def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
          extract=None, only=None, zf=None, do_triage=False, exclude=None,
          reporter=None, manifest=None):
-    size = os.path.getsize(path)
+    segments = split_segments(path)      # a set that is not whole raises SplitImageError
+    image = open_image(path, segments)
+    size = image_size(image)
     print("=" * 78)
     print(path)
+    if segments:
+        print(f"  one segment of a split image: {len(segments)} segments joined, "
+              f"{os.path.basename(segments[0])} .. {os.path.basename(segments[-1])}")
+        print(f"    {describe_segment_sizes(image.sizes)}")
     print(f"  {size:,} bytes ({human(size)})")
     print("=" * 78)
+    # what volumes.json ties each volume to: the one file, or the first
+    # segment of the set, with every segment and its size beside it
+    image_rec = {"image": os.path.basename(segments[0] if segments else path)}
+    if segments:
+        image_rec["image_segments"] = [{"name": os.path.basename(p), "bytes": s}
+                                       for p, s in zip(image.paths, image.sizes)]
 
     candidates, regions, sized_regions, triage = [], [], [], []
     containers, protective = set(), set()
     vol_names = {}                    # byte offset -> canonical extract name
-    with open(path, "rb") as fh:
+    with image as fh:
         parts = parse_mbr(fh)
         if parts is None:
             print("  MBR      none (no 0x55AA signature at offset 510, or "
@@ -2539,7 +2734,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                     if manifest is not None:
                         rsize = next((r[2] for r in sized_regions if r[1] == base), None)
                         manifest.append({
-                            "volume": vol, "image": os.path.basename(path),
+                            "volume": vol, **image_rec,
                             "lba": base // SECTOR, "offset_bytes": base,
                             "partition_size_bytes": rsize,
                             "filesystem": "qnx6",
@@ -2637,7 +2832,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                         if manifest is not None:
                             _u = read_at(fh, b + EXT_SB_OFF, 1024)
                             manifest.append({
-                                "volume": vol, "image": os.path.basename(path),
+                                "volume": vol, **image_rec,
                                 "lba": b // SECTOR, "offset_bytes": b,
                                 "partition_size_bytes": sz,
                                 "filesystem": kind,
@@ -2682,7 +2877,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                                                                     may_be_short=bool(miss))
                             if manifest is not None:
                                 manifest.append({
-                                    "volume": vol, "image": os.path.basename(path),
+                                    "volume": vol, **image_rec,
                                     "lba": b // SECTOR, "offset_bytes": b,
                                     "partition_size_bytes": sz, "filesystem": kind,
                                     "files": f_, "bytes": wr,
@@ -2736,7 +2931,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                                                                         may_be_short=bool(miss))
                                 if manifest is not None:
                                     manifest.append({
-                                        "volume": vol, "image": os.path.basename(path),
+                                        "volume": vol, **image_rec,
                                         "lba": b // SECTOR, "offset_bytes": b,
                                         "partition_size_bytes": sz,
                                         "filesystem": "qnx_ifs",
@@ -3346,7 +3541,7 @@ def self_test():
         # walked to 0 files with nothing raised. The probe has to say the file is
         # shorter than its table, and a file whose blocks lie past the cut has to
         # be counted SHORT and stored under a name that says so.
-        cut = os.path.join(d, "positive_le_cut.img")
+        cut = os.path.join(d, "positive_le_cut.img.001")
         with open(a, "rb") as src, open(cut, "wb") as dst:
             dst.write(src.read(3 * 1024 * 1024))
         reps = {}
@@ -3404,6 +3599,111 @@ def self_test():
                 ok = False
             print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
 
+        # A split image, joined by the reader. FTK Imager and its peers write a
+        # raw image as numbered segments, and since 1.13 a run on any one of
+        # them reads the whole set. The qnx4 fixture behind an MBR, cut into
+        # three unequal, unaligned segments (one cut inside the gap before the
+        # partition, one inside a file's extent), must report and extract
+        # exactly as the one file does, from the .001 and from the .002, with
+        # no short-image warning. The byte level check comes first, reads at
+        # and across every boundary against the same slice of the one file
+        # through one open handle at a time, so the join is proven
+        # independently of any walker. A hole in the numbering, a set with no
+        # first segment and a set numbered at two widths are refused by name,
+        # and a lone first segment is still read as the one file it is.
+        whole = bytearray(2048 * SECTOR + len(q4))
+        ent = bytearray(16)
+        ent[4] = 0x4d
+        struct.pack_into("<II", ent, 8, 2048, -(-len(q4) // SECTOR))
+        whole[446:462] = ent
+        whole[510:512] = b"\x55\xaa"
+        whole[2048 * SECTOR:] = q4
+        whole = bytes(whole)
+        cuts = (1000 * SECTOR + 7, 2048 * SECTOR + 4700)
+        bounds = (0,) + cuts + (len(whole),)
+        seg = [os.path.join(d, f"qnx4_split.img.{i + 1:03d}") for i in range(3)]
+        for i, sp in enumerate(seg):
+            open(sp, "wb").write(whole[bounds[i]:bounds[i + 1]])
+        wp = os.path.join(d, "qnx4_split_whole.img")
+        open(wp, "wb").write(whole)
+        probes = [(c + k, 4096) for c in cuts for k in (-4096, -1, 0, 1)]
+        probes += [(off, n) for off in range(0, len(whole), 1234 * 7)
+                   for n in (1, 512, 4096)]
+        with SegmentedImage(seg) as si:
+            si.MAX_OPEN = 1                            # every crossing reopens
+            byte_exact = (si.size == len(whole)
+                          and all(read_at(si, off, n) == whole[off:off + n]
+                                  for off, n in probes)
+                          and read_at(si, len(whole) - 10, 100) == whole[-10:]
+                          and read_at(si, len(whole) + 5, 10) == b"")
+        whole_set = split_segments(seg[1]) == seg
+
+        def run_extract(path, tag):
+            zp = os.path.join(d, f"{tag}.zip")
+            man, buf = [], io.StringIO()
+            with zipfile.ZipFile(zp, "w") as zf, contextlib.redirect_stdout(buf):
+                main(path, extract="split.zip", zf=zf, manifest=man)
+            with zipfile.ZipFile(zp) as z:
+                files = {n: z.read(n) for n in z.namelist()}
+            rep = buf.getvalue()
+            return rep.split("=" * 78)[2], files, man, rep   # body after the header
+
+        w_body, w_files, w_man, _ = run_extract(wp, "split_whole")
+        s1_body, s1_files, s1_man, s1_rep = run_extract(seg[0], "split_first")
+        s2_body, s2_files, s2_man, s2_rep = run_extract(seg[1], "split_second")
+        os.remove(wp)                        # the three segments stay as the fixture
+        names = [os.path.basename(p) for p in seg]
+        sizes = [bounds[i + 1] - bounds[i] for i in range(3)]
+
+        def refusal(path):
+            try:
+                main(path)
+            except SplitImageError as exc:
+                return str(exc)
+            return ""
+        gap = [os.path.join(d, f"qnx4_gap.img.{n:03d}") for n in (1, 3)]
+        nofirst = [os.path.join(d, f"qnx4_nofirst.img.{n:03d}") for n in (2, 3)]
+        widths = [os.path.join(d, n) for n in ("qnx4_width.img.001", "qnx4_width.img.0002")]
+        for p in gap + nofirst + widths:
+            open(p, "wb").write(whole[:SECTOR])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            gap_msg, nofirst_msg, width_msg = (refusal(gap[0]), refusal(nofirst[0]),
+                                               refusal(widths[0]))
+        for p in gap + nofirst + widths:
+            os.remove(p)
+        for label, cond in (
+                ("reads at and across every segment boundary equal the one file, "
+                 "through one open handle at a time, and past the end read empty",
+                 byte_exact),
+                ("any segment names the whole set, in order", whole_set),
+                ("the split set reports and extracts exactly as the one file, from "
+                 "the .001 and from the .002",
+                 w_body == s1_body == s2_body and w_files == s1_files == s2_files
+                 and len(w_files) >= 3),
+                ("the joined run draws no short-image warning and names its segments",
+                 "SHORTER THAN" not in s1_rep and "SHORTER THAN" not in s2_rep
+                 and "3 segments joined" in s1_rep and "3 segments joined" in s2_rep),
+                ("volumes.json names the first segment as the image and lists every "
+                 "segment with its size; the one file carries no segment list",
+                 bool(s1_man) and bool(s2_man)
+                 and all(m["image"] == names[0]
+                         and [e["name"] for e in m["image_segments"]] == names
+                         and [e["bytes"] for e in m["image_segments"]] == sizes
+                         for m in s1_man + s2_man)
+                 and bool(w_man) and all("image_segments" not in m for m in w_man)),
+                ("a hole in the numbering is refused naming the missing segment",
+                 "qnx4_gap.img.002 is missing" in gap_msg),
+                ("a set with no first segment is refused naming it",
+                 "qnx4_nofirst.img.001" in nofirst_msg),
+                ("segments numbered at two widths are refused",
+                 "different number of digits" in width_msg),
+                ("a lone first segment is read as the one file it is",
+                 split_segments(cut) == [])):
+            if not cond:
+                ok = False
+            print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
+
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"
               if ok else
@@ -3435,6 +3735,9 @@ examples:
 
   # copy the logical files out into a zip, ready for a LEAPP tool
   qnxprobe.py --extract sync_g4.zip mmcblk0.img
+
+  # a split acquisition: name any one segment, the set beside it is joined
+  qnxprobe.py --extract sync_g4.zip mmcblk0.img.001
 
   # just one partition, by name or label
   qnxprobe.py --extract storage.zip --only storage mmcblk0.img
@@ -3746,13 +4049,23 @@ if __name__ == "__main__":
             sys.exit(f"refusing to overwrite an existing file: {args.extract}")
         zf = zipfile.ZipFile(args.extract, "w", zipfile.ZIP_DEFLATED,
                              allowZip64=True)
+    refused = []
     try:
         for p in args.image:
-            main(p, scan_limit_mib=args.scan_limit, do_list=args.list,
-             list_depth=args.depth, list_max=args.list_max,
-                 extract=args.extract, only=args.only, zf=zf,
-                 do_triage=args.triage, exclude=args.exclude,
-                 reporter=reporter, manifest=manifest)
+            try:
+                main(p, scan_limit_mib=args.scan_limit, do_list=args.list,
+                     list_depth=args.depth, list_max=args.list_max,
+                     extract=args.extract, only=args.only, zf=zf,
+                     do_triage=args.triage, exclude=args.exclude,
+                     reporter=reporter, manifest=manifest)
+            except SplitImageError as exc:
+                # a segment set that is not whole: said out loud and left
+                # unread, never joined around, and the exit status says so
+                print("=" * 78)
+                print(p)
+                print(f"  REFUSED: {exc}")
+                print("=" * 78)
+                refused.append(p)
     finally:
         if zf is not None:
             # The provenance record. For a standalone image the directory names
@@ -3767,3 +4080,5 @@ if __name__ == "__main__":
             zf.close()
             print(f"\nwrote {args.extract}  "
                   f"({os.path.getsize(args.extract):,} bytes)")
+    if refused:
+        sys.exit(1)
