@@ -625,6 +625,13 @@ def _warn_incomplete_volumes(staged_zip):
             volumes = json.loads(archive.read('volumes.json')).get('volumes', [])
     except (KeyError, ValueError, OSError):
         return []
+    segments = volumes[0].get('image_segments') if volumes else None
+    if segments:
+        # qnxprobe 1.13 lists every segment it joined, with its size, on each
+        # volume; the first volume's list is the set
+        logfunc(f"Read from {len(segments):,} segments joined in order, "
+                f"{segments[0].get('name')} .. {segments[-1].get('name')}, "
+                f"{sum(s.get('bytes', 0) for s in segments):,} bytes in all.")
     incomplete = [v for v in volumes
                   if v.get('extends_past_image_by_bytes') or v.get('short')]
     if not incomplete:
@@ -636,8 +643,8 @@ def _warn_incomplete_volumes(staged_zip):
         logfunc(f"  {volume.get('volume')}: reaches {past:,} bytes past the end of the "
                 f"image, {volume.get('files', 0):,} files read whole, "
                 f"{volume.get('short', 0):,} cut short")
-    logfunc('  If this is the first segment of a split image (.001 beside .002), join '
-            'the segments and run the joined file.')
+    logfunc('  If this is a numbered segment of a split image, the rest of the set is '
+            'not beside it: the reader joins every segment it finds in the same folder.')
     return incomplete
 
 
@@ -650,8 +657,10 @@ def split_image_sibling(image_path):
     volume past the cut reads as empty. Measured on a Ford Sync G4 image cut at
     1,500 MB: the boot partitions extracted in full and the 28.8 GiB storage
     volume reported 0 files with nothing raised. A numbered suffix with the next
-    number sitting beside it is that case, and the answer is to join the
-    segments, not to read the first one.
+    number sitting beside it is that case. Since qnxprobe 1.13 the reader joins
+    the set itself, so this only decides whether the run log says so; a set
+    with a hole in its numbering is refused by the reader, by name, and that
+    refusal reaches the log through _extract_image_volumes().
 
     Returns the path of the next segment, or None when the suffix is not a
     number or no next segment is beside this file.
@@ -682,6 +691,11 @@ class FileSeekerRaw(FileSeekerZip):
     keeps every staging and matching decision on the path the zip seeker already
     exercises on every run.
 
+    A split raw image (.001, .002, ...) is handed to the reader as it is: since
+    qnxprobe 1.13 it joins every segment beside the one named, in order, and
+    records the set in volumes.json, which _warn_incomplete_volumes() repeats
+    in the run log.
+
     The zip is written to a temporary directory and removed by cleanup(). An
     examiner who wants to keep it, which is worth doing for a large image because
     the extraction is the slow part, should run the vendored script directly:
@@ -693,11 +707,10 @@ class FileSeekerRaw(FileSeekerZip):
     def __init__(self, image_path, data_folder, exclude=None):
         sibling = split_image_sibling(image_path)
         if sibling:
-            raise ValueError(
-                f'{os.path.basename(image_path)} is one segment of a split image: '
-                f'{os.path.basename(sibling)} sits beside it. Reading the first segment '
-                f'alone reports every volume past the cut as empty. Join the segments '
-                f'(cat, or copy /b on Windows) and run the joined file.')
+            logfunc(f'{os.path.basename(image_path)} is one segment of a split image: '
+                    f'{os.path.basename(sibling)} sits beside it. The vendored reader '
+                    f'joins every segment of the set in order; the segments it read are '
+                    f'listed below.')
         self._stage_dir = tempfile.mkdtemp(prefix='vleapp_raw_')
         staged = False
         try:

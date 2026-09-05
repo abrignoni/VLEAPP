@@ -8,11 +8,12 @@ reads as empty with nothing raised. Measured on a Ford Sync G4 image cut at
 1,500 MB: the boot partitions extracted in full and the 28.8 GiB storage volume
 reported 0 files, 0 B, failed 0.
 
-Three things stand between that and a report: split_image_sibling() recognises
-a numbered segment with its successor beside it, FileSeekerRaw refuses such a
-file before it stages anything, and _warn_incomplete_volumes() repeats in the
-run log what qnxprobe 1.12 records in volumes.json when the image turns out to
-be shorter than the volumes it describes.
+Since qnxprobe 1.13 the reader joins every segment of the set beside the file
+it is given, so a split image is handed to it as it is. What VLEAPP adds is the
+run log: split_image_sibling() recognises a numbered segment with its successor
+beside it and FileSeekerRaw says the set will be joined, and
+_warn_incomplete_volumes() repeats what the reader recorded in volumes.json,
+the segments it joined and any volume the image turned out too short for.
 """
 import json
 import os
@@ -83,25 +84,42 @@ class TestSplitImageSibling(unittest.TestCase):
         self.assertIsNone(split_image_sibling(self.touch('.001')))
 
 
-class TestRawSeekerRefusesASegment(unittest.TestCase):
-    """The refusal happens before anything is staged or the reader is started."""
+class TestRawSeekerHandsASegmentToTheReader(unittest.TestCase):
+    """A segment with its successor beside it is read, and the log says so."""
 
     def setUp(self):
         self.folder = tempfile.mkdtemp(prefix='vleapp_test_split_')
         self.addCleanup(shutil.rmtree, self.folder, True)
 
-    def test_first_segment_with_successor_raises_before_staging(self):
+    def test_first_segment_with_successor_is_read_and_logged(self):
         first = os.path.join(self.folder, 'image.001')
         for name in ('image.001', 'image.002'):
             with open(os.path.join(self.folder, name), 'wb') as handle:
                 handle.write(b'x')
-        with mock.patch.object(scripts.search_files.tempfile, 'mkdtemp') as mkdtemp, \
-                mock.patch.object(scripts.search_files, '_extract_image_volumes') as extract:
-            with self.assertRaises(ValueError) as caught:
-                FileSeekerRaw(first, self.folder)
-        self.assertIn('image.002', str(caught.exception))
-        mkdtemp.assert_not_called()
-        extract.assert_not_called()
+        with mock.patch.object(scripts.search_files, '_extract_image_volumes') as extract, \
+                mock.patch.object(scripts.search_files.FileSeekerZip, '__init__',
+                                  return_value=None), \
+                mock.patch.object(scripts.search_files, 'logfunc') as logfunc:
+            seeker = FileSeekerRaw(first, self.folder)
+        self.addCleanup(shutil.rmtree, seeker._stage_dir, True)  # pylint: disable=protected-access
+        extract.assert_called_once()
+        self.assertEqual(extract.call_args.args[1], first)
+        logged = '\n'.join(str(call.args[0]) for call in logfunc.call_args_list)
+        self.assertIn('image.002 sits beside it', logged)
+        self.assertIn('joins every segment', logged)
+
+    def test_a_lone_image_draws_no_split_message(self):
+        image = os.path.join(self.folder, 'image.img')
+        with open(image, 'wb') as handle:
+            handle.write(b'x')
+        with mock.patch.object(scripts.search_files, '_extract_image_volumes'), \
+                mock.patch.object(scripts.search_files.FileSeekerZip, '__init__',
+                                  return_value=None), \
+                mock.patch.object(scripts.search_files, 'logfunc') as logfunc:
+            seeker = FileSeekerRaw(image, self.folder)
+        self.addCleanup(shutil.rmtree, seeker._stage_dir, True)  # pylint: disable=protected-access
+        logged = '\n'.join(str(call.args[0]) for call in logfunc.call_args_list)
+        self.assertNotIn('split image', logged)
 
 
 class TestIncompleteVolumeWarning(unittest.TestCase):
@@ -142,6 +160,22 @@ class TestIncompleteVolumeWarning(unittest.TestCase):
         with mock.patch.object(scripts.search_files, 'logfunc') as logfunc:
             self.assertEqual(_warn_incomplete_volumes(self.staged(manifest)), [])
         logfunc.assert_not_called()
+
+    def test_joined_segments_are_logged_from_the_manifest(self):
+        segments = [{'name': 'mmcblk0.img.001', 'bytes': 1572864000},
+                    {'name': 'mmcblk0.img.002', 'bytes': 1572864000},
+                    {'name': 'mmcblk0.img.003', 'bytes': 1384120320}]
+        manifest = {'written_by': 'qnxprobe 1.13', 'volumes': [
+            {'volume': 'p3_lba16384_dps_mfg', 'image': 'mmcblk0.img.001',
+             'image_segments': segments, 'files': 23, 'short': 0},
+            {'volume': 'p9_lba737280_storage', 'image': 'mmcblk0.img.001',
+             'image_segments': segments, 'files': 7362, 'short': 0}]}
+        with mock.patch.object(scripts.search_files, 'logfunc') as logfunc:
+            self.assertEqual(_warn_incomplete_volumes(self.staged(manifest)), [])
+        logged = '\n'.join(str(call.args[0]) for call in logfunc.call_args_list)
+        self.assertIn('3 segments joined in order, mmcblk0.img.001 .. mmcblk0.img.003, '
+                      '4,529,848,320 bytes in all', logged)
+        self.assertNotIn('WARNING', logged)
 
     def test_a_zip_without_a_manifest_stays_quiet(self):
         with mock.patch.object(scripts.search_files, 'logfunc') as logfunc:
