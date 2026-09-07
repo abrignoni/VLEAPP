@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "module_name": "pasDeGeo",
+    "artifact_name": "Ford - PAS Access Point List",
+    "function_name": "pasDeGeoApInfo",
+    "case_number": "caseSync4",
+    "number_of_columns": 5,
+    "number_of_rows": 0,
+    "total_data_size_bytes": 0,
+    "media_checkins": 0,
+    "media_embedded_checkins": 0,
+    "input_zip_path": "admin/test/cases/data/pasDeGeo/testdata.pasDeGeo.pasDeGeoApInfo.caseSync4.zip",
+    "start_time": "2026-09-07T01:51:03.393254+00:00",
+    "end_time": "2026-09-07T01:51:04.376293+00:00",
+    "run_time_seconds": 0.9531500339508057,
+    "last_commit": {
+      "hash": "6fb83bf942430b370d8faad64e96272af959af20",
+      "author_name": "TLane4N6",
+      "author_email": "trevor2230@gmail.com",
+      "date": "2026-09-06T21:25:34-04:00",
+      "message": "Update pasDeGeo.py"
+    }
+  },
+  "headers": [
+    "Timestamp",
+    "BSSID",
+    "SSID",
+    "Signal Strength",
+    "Log Filename"
+  ],
+  "data": []
+}

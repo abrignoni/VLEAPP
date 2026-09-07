@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "module_name": "pasDeGeo",
+    "artifact_name": "Ford - PAS Vehicle Speed",
+    "function_name": "pasDeGeoVSpeed",
+    "case_number": "caseSync4",
+    "number_of_columns": 3,
+    "number_of_rows": 4,
+    "total_data_size_bytes": 112,
+    "media_checkins": 0,
+    "media_embedded_checkins": 0,
+    "input_zip_path": "admin/test/cases/data/pasDeGeo/testdata.pasDeGeo.pasDeGeoVSpeed.caseSync4.zip",
+    "start_time": "2026-09-07T01:51:02.442039+00:00",
+    "end_time": "2026-09-07T01:51:03.391305+00:00",
+    "run_time_seconds": 0.9188501834869385,
+    "last_commit": {
+      "hash": "6fb83bf942430b370d8faad64e96272af959af20",
+      "author_name": "TLane4N6",
+      "author_email": "trevor2230@gmail.com",
+      "date": "2026-09-06T21:25:34-04:00",
+      "message": "Update pasDeGeo.py"
+    }
+  },
+  "headers": [
+    "Timestamp",
+    "Vehicle Speed",
+    "Log Filename"
+  ],
+  "data": [
+    [
+      1786106653,
+      "0",
+      "pas_debug.log.6.gz"
+    ],
+    [
+      1786448496,
+      "0",
+      "pas_debug.log.1.gz"
+    ],
+    [
+      1786035660,
+      "0",
+      "pas_debug.log.11"
+    ],
+    [
+      1786093507,
+      "0",
+      "pas_debug.log.11"
+    ]
+  ]
+}

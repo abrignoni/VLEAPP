@@ -4,7 +4,7 @@ __artifacts_v2__ = {
         "description": "Device location results (lat/long/alt/heading) from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Latitude/Longitude exposed for the KML map. Supports the PAS log timestamp format, Lon:/Lat: location format, plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "notes": "Latitude/Longitude exposed for the KML map. Supports the PAS log timestamp format, including single-digit month/day/hour values, and the Lon:/Lat: location format; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'], "artifact_icon": "map-pin",
     },
     "pasDeGeoSpeed": {
@@ -61,8 +61,9 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
         "notes": "Surfaces the make/model/VIN/platform the original only wrote to the device-info "
-                 "log. Supports the PAS log timestamp format, Lon:/Lat: location format, plain and gzip-compressed "
-                 "logs, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
+                 "log. Supports the PAS log timestamp format, including single-digit month/day/hour "
+                 "values; reads plain and gzip-compressed logs, skips directory paths, and continues "
+                 "past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "truck",
     },
 }
