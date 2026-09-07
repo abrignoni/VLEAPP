@@ -6,19 +6,19 @@
     "case_number": "caseSync4",
     "number_of_columns": 3,
     "number_of_rows": 84,
-    "total_data_size_bytes": 2874,
+    "total_data_size_bytes": 3966,
     "media_checkins": 0,
     "media_embedded_checkins": 0,
     "input_zip_path": "admin/test/cases/data/pasDeGeo/testdata.pasDeGeo.pasDeGeoTransm.caseSync4.zip",
-    "start_time": "2026-09-07T01:51:00.444970+00:00",
-    "end_time": "2026-09-07T01:51:01.409335+00:00",
-    "run_time_seconds": 0.9291703701019287,
+    "start_time": "2026-09-07T03:01:41.438174+00:00",
+    "end_time": "2026-09-07T03:01:42.387049+00:00",
+    "run_time_seconds": 0.9182469844818115,
     "last_commit": {
-      "hash": "6fb83bf942430b370d8faad64e96272af959af20",
-      "author_name": "TLane4N6",
-      "author_email": "trevor2230@gmail.com",
-      "date": "2026-09-06T21:25:34-04:00",
-      "message": "Update pasDeGeo.py"
+      "hash": "82f18ad6ede26cffafadd29ace9f6f596a0695ff",
+      "author_name": "Brigs",
+      "author_email": "abrignoni@gmail.com",
+      "date": "2026-09-06T22:06:35-04:00",
+      "message": "Add the pasDeGeo test fixtures, baselines and two notes corrections"
     }
   },
   "headers": [
@@ -28,422 +28,422 @@
   ],
   "data": [
     [
-      1786113498,
+      "2026-08-07 14:38:18.946",
       "Neutral",
       "pas_debug.log.3.gz"
     ],
     [
-      1786113502,
+      "2026-08-07 14:38:22.976",
       "Drive",
       "pas_debug.log.3.gz"
     ],
     [
-      1786114123,
+      "2026-08-07 14:48:43.530",
       "Neutral",
       "pas_debug.log.3.gz"
     ],
     [
-      1786114123,
+      "2026-08-07 14:48:43.585",
       "Reverse",
       "pas_debug.log.3.gz"
     ],
     [
-      1786114123,
+      "2026-08-07 14:48:43.619",
       "Neutral",
       "pas_debug.log.3.gz"
     ],
     [
-      1786114124,
+      "2026-08-07 14:48:44.415",
       "Parking",
       "pas_debug.log.3.gz"
     ],
     [
-      1786114841,
+      "2026-08-07 15:00:41.976",
       "Reverse",
       "pas_debug.log.3.gz"
     ],
     [
-      1786114851,
+      "2026-08-07 15:00:51.826",
       "Neutral",
       "pas_debug.log.3.gz"
     ],
     [
-      1786114851,
+      "2026-08-07 15:00:51.939",
       "Drive",
       "pas_debug.log.3.gz"
     ],
     [
-      1786102835,
+      "2026-08-07 11:40:35.035",
       "Reverse",
       "pas_debug.log.7.gz"
     ],
     [
-      1786102835,
+      "2026-08-07 11:40:35.096",
       "Neutral",
       "pas_debug.log.7.gz"
     ],
     [
-      1786102835,
+      "2026-08-07 11:40:35.834",
       "Parking",
       "pas_debug.log.7.gz"
     ],
     [
-      1786104941,
+      "2026-08-07 12:15:41.665",
       "Parking",
       "pas_debug.log.7.gz"
     ],
     [
-      1786106653,
+      "2026-08-07 12:44:13.454",
       "Parking",
       "pas_debug.log.6.gz"
     ],
     [
-      1786106746,
+      "2026-08-07 12:45:46.083",
       "Reverse",
       "pas_debug.log.6.gz"
     ],
     [
-      1786106765,
+      "2026-08-07 12:46:05.275",
       "Neutral",
       "pas_debug.log.6.gz"
     ],
     [
-      1786106765,
+      "2026-08-07 12:46:05.362",
       "Drive",
       "pas_debug.log.6.gz"
     ],
     [
-      1786107393,
+      "2026-08-07 12:56:33.465",
       "Neutral",
       "pas_debug.log.6.gz"
     ],
     [
-      1786107393,
+      "2026-08-07 12:56:33.504",
       "Reverse",
       "pas_debug.log.6.gz"
     ],
     [
-      1786107393,
+      "2026-08-07 12:56:33.546",
       "Neutral",
       "pas_debug.log.6.gz"
     ],
     [
-      1786107394,
+      "2026-08-07 12:56:34.353",
       "Parking",
       "pas_debug.log.6.gz"
     ],
     [
-      1786107404,
+      "2026-08-07 12:56:44.185",
       "Reverse",
       "pas_debug.log.6.gz"
     ],
     [
-      1786107404,
+      "2026-08-07 12:56:44.264",
       "Neutral",
       "pas_debug.log.6.gz"
     ],
     [
-      1786107404,
+      "2026-08-07 12:56:44.367",
       "Drive",
       "pas_debug.log.6.gz"
     ],
     [
-      1786108536,
+      "2026-08-07 13:15:36.385",
       "Neutral",
       "pas_debug.log.6.gz"
     ],
     [
-      1786108536,
+      "2026-08-07 13:15:36.446",
       "Reverse",
       "pas_debug.log.6.gz"
     ],
     [
-      1786108536,
+      "2026-08-07 13:15:36.472",
       "Neutral",
       "pas_debug.log.6.gz"
     ],
     [
-      1786108537,
+      "2026-08-07 13:15:37.262",
       "Parking",
       "pas_debug.log.6.gz"
     ],
     [
-      1786108669,
+      "2026-08-07 13:17:49.764",
       "Reverse",
       "pas_debug.log.6.gz"
     ],
     [
-      1786108677,
+      "2026-08-07 13:17:57.271",
       "Neutral",
       "pas_debug.log.6.gz"
     ],
     [
-      1786108677,
+      "2026-08-07 13:17:57.351",
       "Drive",
       "pas_debug.log.6.gz"
     ],
     [
-      1786118985,
+      "2026-08-07 16:09:45.826",
       "Neutral",
       "pas_debug.log.1.gz"
     ],
     [
-      1786118986,
+      "2026-08-07 16:09:46.626",
       "Parking",
       "pas_debug.log.1.gz"
     ],
     [
-      1786119137,
+      "2026-08-07 16:12:17.739",
       "Reverse",
       "pas_debug.log.1.gz"
     ],
     [
-      1786119137,
+      "2026-08-07 16:12:17.743",
       "Neutral",
       "pas_debug.log.1.gz"
     ],
     [
-      1786119137,
+      "2026-08-07 16:12:17.758",
       "Drive",
       "pas_debug.log.1.gz"
     ],
     [
-      1786119957,
+      "2026-08-07 16:25:57.882",
       "Reverse",
       "pas_debug.log.1.gz"
     ],
     [
-      1786119957,
+      "2026-08-07 16:25:57.915",
       "Neutral",
       "pas_debug.log.1.gz"
     ],
     [
-      1786119958,
+      "2026-08-07 16:25:58.741",
       "Parking",
       "pas_debug.log.1.gz"
     ],
     [
-      1786120011,
+      "2026-08-07 16:26:51.612",
       "Parking",
       "pas_debug.log.1.gz"
     ],
     [
-      1786448495,
+      "2026-08-11 11:41:35.566",
       "Parking",
       "pas_debug.log.1.gz"
     ],
     [
-      1786112987,
+      "2026-08-07 14:29:47.198",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786112990,
+      "2026-08-07 14:29:50.700",
       "Reverse",
       "pas_debug.log.4.gz"
     ],
     [
-      1786112990,
+      "2026-08-07 14:29:50.938",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786112993,
+      "2026-08-07 14:29:53.040",
       "Reverse",
       "pas_debug.log.4.gz"
     ],
     [
-      1786112993,
+      "2026-08-07 14:29:53.182",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786112994,
+      "2026-08-07 14:29:54.938",
       "Reverse",
       "pas_debug.log.4.gz"
     ],
     [
-      1786112995,
+      "2026-08-07 14:29:55.061",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786112998,
+      "2026-08-07 14:29:58.038",
       "Drive",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113011,
+      "2026-08-07 14:30:11.032",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113011,
+      "2026-08-07 14:30:11.968",
       "Reverse",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113014,
+      "2026-08-07 14:30:14.641",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113016,
+      "2026-08-07 14:30:16.601",
       "Drive",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113025,
+      "2026-08-07 14:30:25.588",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113025,
+      "2026-08-07 14:30:25.830",
       "Reverse",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113028,
+      "2026-08-07 14:30:28.600",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113029,
+      "2026-08-07 14:30:29.140",
       "Drive",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113164,
+      "2026-08-07 14:32:44.151",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113166,
+      "2026-08-07 14:32:46.548",
       "Reverse",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113168,
+      "2026-08-07 14:32:48.209",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113168,
+      "2026-08-07 14:32:48.417",
       "Drive",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113309,
+      "2026-08-07 14:35:09.486",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113310,
+      "2026-08-07 14:35:10.870",
       "Reverse",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113313,
+      "2026-08-07 14:35:13.507",
       "Neutral",
       "pas_debug.log.4.gz"
     ],
     [
-      1786113315,
+      "2026-08-07 14:35:15.476",
       "Drive",
       "pas_debug.log.4.gz"
     ],
     [
-      1786035322,
+      "2026-08-06 16:55:22.647",
       "Reverse",
       "pas_debug.log.11"
     ],
     [
-      1786035322,
+      "2026-08-06 16:55:22.766",
       "Neutral",
       "pas_debug.log.11"
     ],
     [
-      1786035323,
+      "2026-08-06 16:55:23.145",
       "Drive",
       "pas_debug.log.11"
     ],
     [
-      1786035476,
+      "2026-08-06 16:57:56.715",
       "Neutral",
       "pas_debug.log.11"
     ],
     [
-      1786035476,
+      "2026-08-06 16:57:56.756",
       "Reverse",
       "pas_debug.log.11"
     ],
     [
-      1786035476,
+      "2026-08-06 16:57:56.795",
       "Neutral",
       "pas_debug.log.11"
     ],
     [
-      1786035477,
+      "2026-08-06 16:57:57.620",
       "Parking",
       "pas_debug.log.11"
     ],
     [
-      1786035583,
+      "2026-08-06 16:59:43.941",
       "Parking",
       "pas_debug.log.11"
     ],
     [
-      1786035661,
+      "2026-08-06 17:01:01.368",
       "Reverse",
       "pas_debug.log.11"
     ],
     [
-      1786035661,
+      "2026-08-06 17:01:01.405",
       "Neutral",
       "pas_debug.log.11"
     ],
     [
-      1786035661,
+      "2026-08-06 17:01:01.502",
       "Drive",
       "pas_debug.log.11"
     ],
     [
-      1786036584,
+      "2026-08-06 17:16:24.283",
       "Neutral",
       "pas_debug.log.11"
     ],
     [
-      1786036584,
+      "2026-08-06 17:16:24.324",
       "Reverse",
       "pas_debug.log.11"
     ],
     [
-      1786036584,
+      "2026-08-06 17:16:24.363",
       "Neutral",
       "pas_debug.log.11"
     ],
     [
-      1786036585,
+      "2026-08-06 17:16:25.163",
       "Parking",
       "pas_debug.log.11"
     ],
     [
-      1786093503,
+      "2026-08-07 09:05:03.720",
       "Parking",
       "pas_debug.log.11"
     ],
     [
-      1786093561,
+      "2026-08-07 09:06:01.745",
       "Reverse",
       "pas_debug.log.11"
     ],
     [
-      1786093582,
+      "2026-08-07 09:06:22.866",
       "Neutral",
       "pas_debug.log.11"
     ],
     [
-      1786093583,
+      "2026-08-07 09:06:23.264",
       "Drive",
       "pas_debug.log.11"
     ]

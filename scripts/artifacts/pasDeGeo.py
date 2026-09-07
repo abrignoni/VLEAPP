@@ -2,57 +2,57 @@ __artifacts_v2__ = {
     "pasDeGeoDevLoc": {
         "name": "Ford - PAS Dev Loc Results",
         "description": "Device location results (lat/long/alt/heading) from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Latitude/Longitude exposed for the KML map. Supports the PAS log timestamp format, including single-digit month/day/hour values, and the Lon:/Lat: location format; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.4", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Latitude/Longitude exposed for the KML map. Supports the PAS log timestamp format, including single-digit month/day/hour values, and the Lon:/Lat: location format; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamps are the head unit's local clock as recorded. The line carries no zone, so they are reported as stored and are not UTC. Against the UTC the log publishes on its own lines, the clock ran 4 hours behind UTC on 405 of 412 comparisons in the tested logs. On a Sync Gen3 extraction the same check against received GPS UTC gave 4 hours on 38 of 51 pairs, 5 hours on 4 and 6 hours on 7, so the offset varies and has to be established per extraction from the VS_CLOCK_QUEUE lines that record it.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'], "artifact_icon": "map-pin",
     },
     "pasDeGeoSpeed": {
         "name": "Ford - PAS Road Speed Limits",
         "description": "Road speed limits from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.4", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamps are the head unit's local clock as recorded. The line carries no zone, so they are reported as stored and are not UTC. Against the UTC the log publishes on its own lines, the clock ran 4 hours behind UTC on 405 of 412 comparisons in the tested logs. On a Sync Gen3 extraction the same check against received GPS UTC gave 4 hours on 38 of 51 pairs, 5 hours on 4 and 6 hours on 7, so the offset varies and has to be established per extraction from the VS_CLOCK_QUEUE lines that record it.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "alert-triangle",
     },
     "pasDeGeoApInfo": {
         "name": "Ford - PAS Access Point List",
         "description": "Wi-Fi access points (BSSID/SSID/signal) from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.4", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamps are the head unit's local clock as recorded. The line carries no zone, so they are reported as stored and are not UTC. Against the UTC the log publishes on its own lines, the clock ran 4 hours behind UTC on 405 of 412 comparisons in the tested logs. On a Sync Gen3 extraction the same check against received GPS UTC gave 4 hours on 38 of 51 pairs, 5 hours on 4 and 6 hours on 7, so the offset varies and has to be established per extraction from the VS_CLOCK_QUEUE lines that record it.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "wifi",
     },
     "pasDeGeoVSpeed": {
         "name": "Ford - PAS Vehicle Speed",
         "description": "Vehicle speed readings from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.4", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamps are the head unit's local clock as recorded. The line carries no zone, so they are reported as stored and are not UTC. Against the UTC the log publishes on its own lines, the clock ran 4 hours behind UTC on 405 of 412 comparisons in the tested logs. On a Sync Gen3 extraction the same check against received GPS UTC gave 4 hours on 38 of 51 pairs, 5 hours on 4 and 6 hours on 7, so the offset varies and has to be established per extraction from the VS_CLOCK_QUEUE lines that record it.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "navigation",
     },
     "pasDeGeoTransm": {
         "name": "Ford - PAS Transmission Status",
         "description": "Transmission status readings from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.4", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamps are the head unit's local clock as recorded. The line carries no zone, so they are reported as stored and are not UTC. Against the UTC the log publishes on its own lines, the clock ran 4 hours behind UTC on 405 of 412 comparisons in the tested logs. On a Sync Gen3 extraction the same check against received GPS UTC gave 4 hours on 38 of 51 pairs, 5 hours on 4 and 6 hours on 7, so the offset varies and has to be established per extraction from the VS_CLOCK_QUEUE lines that record it.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "settings",
     },
     "pasDeGeoTemp": {
         "name": "Ford - PAS Outside Temperature",
         "description": "Outside air temperature readings from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.4", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamps are the head unit's local clock as recorded. The line carries no zone, so they are reported as stored and are not UTC. Against the UTC the log publishes on its own lines, the clock ran 4 hours behind UTC on 405 of 412 comparisons in the tested logs. On a Sync Gen3 extraction the same check against received GPS UTC gave 4 hours on 38 of 51 pairs, 5 hours on 4 and 6 hours on 7, so the offset varies and has to be established per extraction from the VS_CLOCK_QUEUE lines that record it.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "pasDeGeoOdometer": {
         "name": "Ford - PAS Odometer",
         "description": "Odometer readings from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.4", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamps are the head unit's local clock as recorded. The line carries no zone, so they are reported as stored and are not UTC. Against the UTC the log publishes on its own lines, the clock ran 4 hours behind UTC on 405 of 412 comparisons in the tested logs. On a Sync Gen3 extraction the same check against received GPS UTC gave 4 hours on 38 of 51 pairs, 5 hours on 4 and 6 hours on 7, so the offset varies and has to be established per extraction from the VS_CLOCK_QUEUE lines that record it.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "activity",
     },
     "pasDeGeoVehicle": {
@@ -72,7 +72,6 @@ import os
 import re
 import gzip
 import zlib
-from datetime import datetime, timezone
 
 from scripts.ilapfuncs import artifact_processor, logdevinfo, logfunc
 
@@ -92,13 +91,14 @@ def timeorder(line):
 
 
 def _ts(value):
-    value = (value or '').strip()
-    if not value:
-        return value
-    try:
-        return datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
-    except ValueError:
-        return value
+    """The log line's own clock reading, returned as recorded.
+
+    The PAS log writes the head unit's local clock and records no zone on the line, so
+    the value is not an instant and is not typed as one. Typing it would make the report
+    and the LAVA database read it as UTC, which is measurably wrong: see the artifact
+    notes for the offsets observed and for the log lines that record them.
+    """
+    return (value or '').strip()
 
 
 def _val(match):
@@ -218,7 +218,7 @@ def _parse(context):
 @artifact_processor
 def pasDeGeoDevLoc(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude', 'Altitude Ft', 'Heading',
+    headers = ('Timestamp', 'Latitude', 'Longitude', 'Altitude Ft', 'Heading',
                'Category', 'Subcategory', 'Log Filename')
     return headers, sect['dev'], context.get_relative_path(source_path)
 
@@ -226,42 +226,42 @@ def pasDeGeoDevLoc(context):
 @artifact_processor
 def pasDeGeoSpeed(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Road', 'Speed Limit', 'Log Filename')
+    headers = ('Timestamp', 'Road', 'Speed Limit', 'Log Filename')
     return headers, sect['speed'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def pasDeGeoApInfo(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'BSSID', 'SSID', 'Signal Strength', 'Log Filename')
+    headers = ('Timestamp', 'BSSID', 'SSID', 'Signal Strength', 'Log Filename')
     return headers, sect['apinfo'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def pasDeGeoVSpeed(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Vehicle Speed', 'Log Filename')
+    headers = ('Timestamp', 'Vehicle Speed', 'Log Filename')
     return headers, sect['vspeed'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def pasDeGeoTransm(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Transmission Status', 'Log Filename')
+    headers = ('Timestamp', 'Transmission Status', 'Log Filename')
     return headers, sect['transm'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def pasDeGeoTemp(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Temperature', 'Log Filename')
+    headers = ('Timestamp', 'Temperature', 'Log Filename')
     return headers, sect['outtemp'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def pasDeGeoOdometer(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Odometer', 'Log Filename')
+    headers = ('Timestamp', 'Odometer', 'Log Filename')
     return headers, sect['odometer'], context.get_relative_path(source_path)
 
 
