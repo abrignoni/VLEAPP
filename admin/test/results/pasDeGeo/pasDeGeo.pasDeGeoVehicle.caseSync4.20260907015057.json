@@ -1,0 +1,34 @@
+{
+  "metadata": {
+    "module_name": "pasDeGeo",
+    "artifact_name": "Ford - PAS Vehicle Info",
+    "function_name": "pasDeGeoVehicle",
+    "case_number": "caseSync4",
+    "number_of_columns": 2,
+    "number_of_rows": 1,
+    "total_data_size_bytes": 14,
+    "media_checkins": 0,
+    "media_embedded_checkins": 0,
+    "input_zip_path": "admin/test/cases/data/pasDeGeo/testdata.pasDeGeo.pasDeGeoVehicle.caseSync4.zip",
+    "start_time": "2026-09-07T01:50:57.559469+00:00",
+    "end_time": "2026-09-07T01:50:58.514914+00:00",
+    "run_time_seconds": 0.9202110767364502,
+    "last_commit": {
+      "hash": "6fb83bf942430b370d8faad64e96272af959af20",
+      "author_name": "TLane4N6",
+      "author_email": "trevor2230@gmail.com",
+      "date": "2026-09-06T21:25:34-04:00",
+      "message": "Update pasDeGeo.py"
+    }
+  },
+  "headers": [
+    "Field",
+    "Value"
+  ],
+  "data": [
+    [
+      "VIN",
+      "4BPHY4M57GP"
+    ]
+  ]
+}

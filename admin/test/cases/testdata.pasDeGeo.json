@@ -1,0 +1,94 @@
+{
+  "caseSync4": {
+    "description": "",
+    "maker": "",
+    "make_data": {
+      "input_data_path": "TestData.zip",
+      "os": "Windows-10-10.0.19045-SP0",
+      "timestamp": "2026-09-06T20:52:26.870133",
+      "last_commit": null
+    },
+    "artifacts": {
+      "pasDeGeoDevLoc": {
+        "search_patterns": [
+          "*/fordlogs/pas_debug.log*"
+        ],
+        "file_count": 13,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "pasDeGeoSpeed": {
+        "search_patterns": [
+          "*/fordlogs/pas_debug.log*"
+        ],
+        "file_count": 13,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "pasDeGeoApInfo": {
+        "search_patterns": [
+          "*/fordlogs/pas_debug.log*"
+        ],
+        "file_count": 13,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "pasDeGeoVSpeed": {
+        "search_patterns": [
+          "*/fordlogs/pas_debug.log*"
+        ],
+        "file_count": 13,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "pasDeGeoTransm": {
+        "search_patterns": [
+          "*/fordlogs/pas_debug.log*"
+        ],
+        "file_count": 13,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "pasDeGeoTemp": {
+        "search_patterns": [
+          "*/fordlogs/pas_debug.log*"
+        ],
+        "file_count": 13,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "pasDeGeoOdometer": {
+        "search_patterns": [
+          "*/fordlogs/pas_debug.log*"
+        ],
+        "file_count": 13,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "pasDeGeoVehicle": {
+        "search_patterns": [
+          "*/fordlogs/pas_debug.log*"
+        ],
+        "file_count": 13,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      }
+    }
+  }
+}
