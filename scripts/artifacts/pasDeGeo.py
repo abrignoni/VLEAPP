@@ -2,66 +2,67 @@ __artifacts_v2__ = {
     "pasDeGeoDevLoc": {
         "name": "Ford - PAS Dev Loc Results",
         "description": "Device location results (lat/long/alt/heading) from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Latitude/Longitude exposed for the KML map.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Latitude/Longitude exposed for the KML map. Supports the PAS log timestamp format, Lon:/Lat: location format, plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'], "artifact_icon": "map-pin",
     },
     "pasDeGeoSpeed": {
         "name": "Ford - PAS Road Speed Limits",
         "description": "Road speed limits from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "alert-triangle",
     },
     "pasDeGeoApInfo": {
         "name": "Ford - PAS Access Point List",
         "description": "Wi-Fi access points (BSSID/SSID/signal) from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "wifi",
     },
     "pasDeGeoVSpeed": {
         "name": "Ford - PAS Vehicle Speed",
         "description": "Vehicle speed readings from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "navigation",
     },
     "pasDeGeoTransm": {
         "name": "Ford - PAS Transmission Status",
         "description": "Transmission status readings from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "settings",
     },
     "pasDeGeoTemp": {
         "name": "Ford - PAS Outside Temperature",
         "description": "Outside air temperature readings from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "pasDeGeoOdometer": {
         "name": "Ford - PAS Odometer",
         "description": "Odometer readings from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "", "paths": ('*/fordlogs/pas_debug.log*',),
+        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
+        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "activity",
     },
     "pasDeGeoVehicle": {
         "name": "Ford - PAS Vehicle Info",
         "description": "Vehicle identity (VIN/make/model/platform) from a Ford pas_debug.log.",
-        "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2021-07-08",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford Vehicles",
+        "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
+        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
         "notes": "Surfaces the make/model/VIN/platform the original only wrote to the device-info "
-                 "log.", "paths": ('*/fordlogs/pas_debug.log*',),
+                 "log. Supports the PAS log timestamp format, Lon:/Lat: location format, plain and gzip-compressed "
+                 "logs, and continues past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "truck",
     },
 }
@@ -69,21 +70,24 @@ __artifacts_v2__ = {
 import os
 import re
 import gzip
+import zlib
 from datetime import datetime, timezone
 
-from scripts.ilapfuncs import artifact_processor, logdevinfo
+from scripts.ilapfuncs import artifact_processor, logdevinfo, logfunc
 
 _NUM = r"([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[eE]([+-]?\d+))?"
 _RE = {k: re.compile(f"({label}\\s*{_NUM})", re.IGNORECASE) for k, label in (
     ('lon1', 'Longitude ='), ('lat1', 'Latitude ='), ('alt1', 'Altitude ='),
     ('lon2', 'Lon ='), ('lat2', 'Lat ='), ('alt2', 'Alt ='), ('head', 'Heading ='),
     ('lon3', 'lon:'), ('lat3', 'lat:'), ('alt3', 'alt:'), ('head3', 'hd:'))}
+# The optional whitespace is intentional for inconsistent spacing in older PAS logs.
 
 
 def timeorder(line):
     month, day, yeartime = line.split('/', 3)[0], line.split('/', 3)[1], line.split('/', 3)[2]
-    year, time = yeartime.split(' ')[0], yeartime.split(' ')[1]
-    return f'{year}-{month}-{day} {time}'
+    year, time = yeartime.split(' ', 1)
+    hour, minute, second = time.split(':', 2)
+    return f'{year}-{int(month):02d}-{int(day):02d} {int(hour):02d}:{minute}:{second}'
 
 
 def _ts(value):
@@ -104,14 +108,13 @@ def _parse(context):
     sect = {k: [] for k in ('dev', 'speed', 'apinfo', 'vspeed', 'transm', 'outtemp', 'odometer',
                             'vehicle')}
     vins, platforms, make, model = [], [], '', ''
-    source_path = ''
+    source_paths = []
     for file_found in context.get_files_found():
         file_found = str(file_found)
 
         if not os.path.isfile(file_found):
             continue
 
-        source_path = file_found
         basename = os.path.basename(file_found)
         bssid, ts_link = '', ''
 
@@ -124,6 +127,7 @@ def _parse(context):
                 mode = 'r'
 
             with opener(file_found, mode, encoding='cp437') as f:
+                source_paths.append(file_found)
                 for line in f:
                     try:
                         if 'NAV_FRAMEWORK_IF' in line and 'dev_loc_results' in line \
@@ -195,7 +199,8 @@ def _parse(context):
                             model = line.strip().split(':')[-1].strip().replace('"', '')
                     except (IndexError, ValueError, TypeError):
                         continue
-        except (OSError, PermissionError, UnicodeError):
+        except (OSError, UnicodeError, EOFError, zlib.error) as e:
+            logfunc(f"Unable to read Ford PAS log: {file_found} ({type(e).__name__}: {e})")
             continue
 
     if make:
@@ -206,7 +211,7 @@ def _parse(context):
         sect['vehicle'].append(('VIN', vin))
     for pver in platforms:
         sect['vehicle'].append(('Platform Version', pver))
-    return sect, source_path
+    return sect, '\n'.join(source_paths)
 
 
 @artifact_processor
