@@ -4,46 +4,56 @@
     "artifact_name": "Ford - PAS Vehicle Speed",
     "function_name": "pasDeGeoVSpeed",
     "case_number": "caseSync4",
-    "number_of_columns": 3,
+    "number_of_columns": 5,
     "number_of_rows": 4,
-    "total_data_size_bytes": 164,
+    "total_data_size_bytes": 228,
     "media_checkins": 0,
     "media_embedded_checkins": 0,
     "input_zip_path": "admin/test/cases/data/pasDeGeo/testdata.pasDeGeo.pasDeGeoVSpeed.caseSync4.zip",
-    "start_time": "2026-09-07T03:01:38.606275+00:00",
-    "end_time": "2026-09-07T03:01:39.551848+00:00",
-    "run_time_seconds": 0.9097609519958496,
+    "start_time": "2026-09-08T00:01:59.820707+00:00",
+    "end_time": "2026-09-08T00:02:00.916847+00:00",
+    "run_time_seconds": 1.0656890869140625,
     "last_commit": {
-      "hash": "82f18ad6ede26cffafadd29ace9f6f596a0695ff",
+      "hash": "c41fbad6e3fc3a5c29d4095a6c15b85e5995d0cf",
       "author_name": "Brigs",
       "author_email": "abrignoni@gmail.com",
-      "date": "2026-09-06T22:06:35-04:00",
-      "message": "Add the pasDeGeo test fixtures, baselines and two notes corrections"
+      "date": "2026-09-06T23:05:28-04:00",
+      "message": "Report the PAS log timestamp as recorded, not as UTC"
     }
   },
   "headers": [
     "Timestamp",
+    "Timestamp UTC",
+    "UTC Offset Applied",
     "Vehicle Speed",
     "Log Filename"
   ],
   "data": [
     [
       "2026-08-07 12:44:13.267",
+      1786121053,
+      "-04:00",
       "0",
       "pas_debug.log.6.gz"
     ],
     [
       "2026-08-11 11:41:36.062",
+      1786462896,
+      "-04:00",
       "0",
       "pas_debug.log.1.gz"
     ],
     [
       "2026-08-06 17:01:00.314",
+      1786050060,
+      "-04:00",
       "0",
       "pas_debug.log.11"
     ],
     [
       "2026-08-07 09:05:07.702",
+      1786107907,
+      "-04:00",
       "0",
       "pas_debug.log.11"
     ]

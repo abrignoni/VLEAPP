@@ -4,25 +4,27 @@
     "artifact_name": "Ford - PAS Road Speed Limits",
     "function_name": "pasDeGeoSpeed",
     "case_number": "caseSync4",
-    "number_of_columns": 4,
+    "number_of_columns": 6,
     "number_of_rows": 0,
     "total_data_size_bytes": 0,
     "media_checkins": 0,
     "media_embedded_checkins": 0,
     "input_zip_path": "admin/test/cases/data/pasDeGeo/testdata.pasDeGeo.pasDeGeoSpeed.caseSync4.zip",
-    "start_time": "2026-09-07T03:01:42.387748+00:00",
-    "end_time": "2026-09-07T03:01:43.343099+00:00",
-    "run_time_seconds": 0.9252128601074219,
+    "start_time": "2026-09-08T00:02:04.275413+00:00",
+    "end_time": "2026-09-08T00:02:05.371254+00:00",
+    "run_time_seconds": 1.0677850246429443,
     "last_commit": {
-      "hash": "82f18ad6ede26cffafadd29ace9f6f596a0695ff",
+      "hash": "c41fbad6e3fc3a5c29d4095a6c15b85e5995d0cf",
       "author_name": "Brigs",
       "author_email": "abrignoni@gmail.com",
-      "date": "2026-09-06T22:06:35-04:00",
-      "message": "Add the pasDeGeo test fixtures, baselines and two notes corrections"
+      "date": "2026-09-06T23:05:28-04:00",
+      "message": "Report the PAS log timestamp as recorded, not as UTC"
     }
   },
   "headers": [
     "Timestamp",
+    "Timestamp UTC",
+    "UTC Offset Applied",
     "Road",
     "Speed Limit",
     "Log Filename"
