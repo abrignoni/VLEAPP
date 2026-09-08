@@ -10,15 +10,15 @@
     "media_checkins": 0,
     "media_embedded_checkins": 0,
     "input_zip_path": "admin/test/cases/data/pasDeGeo/testdata.pasDeGeo.pasDeGeoVehicle.caseSync4.zip",
-    "start_time": "2026-09-07T03:01:39.552400+00:00",
-    "end_time": "2026-09-07T03:01:40.492145+00:00",
-    "run_time_seconds": 0.9109539985656738,
+    "start_time": "2026-09-08T00:02:02.094642+00:00",
+    "end_time": "2026-09-08T00:02:03.184919+00:00",
+    "run_time_seconds": 1.0606050491333008,
     "last_commit": {
-      "hash": "82f18ad6ede26cffafadd29ace9f6f596a0695ff",
+      "hash": "c41fbad6e3fc3a5c29d4095a6c15b85e5995d0cf",
       "author_name": "Brigs",
       "author_email": "abrignoni@gmail.com",
-      "date": "2026-09-06T22:06:35-04:00",
-      "message": "Add the pasDeGeo test fixtures, baselines and two notes corrections"
+      "date": "2026-09-06T23:05:28-04:00",
+      "message": "Report the PAS log timestamp as recorded, not as UTC"
     }
   },
   "headers": [
