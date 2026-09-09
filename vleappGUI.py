@@ -201,11 +201,12 @@ def scroll(event):
     parent.event_generate('<MouseWheel>', delta=event.delta, when='now')
 
 
-# Extensions conventionally given to a raw disk image. Everything a raw image
-# run needs is decided by reading the image, so this list only has to get the
-# file past type selection; an image named anything else is still reachable
-# from the command line with -t raw.
-RAW_IMAGE_SUFFIXES = ('img', 'bin', 'dd', 'raw', '001')
+# Extensions conventionally given to a raw disk image, plus the one an
+# EnCase/EWF acquisition carries. Everything a raw image run needs is decided by
+# reading the image, so this list only has to get the file past type selection;
+# an image named anything else is still reachable from the command line with
+# -t raw. An .E01 is the first segment of its set and the reader joins the rest.
+RAW_IMAGE_SUFFIXES = ('img', 'bin', 'dd', 'raw', '001', 'e01')
 
 
 def ValidateInput():
@@ -577,10 +578,10 @@ def select_input(button_type):
         input_filename = tk_filedialog.askopenfilename(parent=main_window,
                                                        title='Select a file',
                                                        filetypes=(('All supported files',
-                                                                   '*.tar *.zip *.gz *.img *.bin *.dd *.raw *.001 *.iVa'),
+                                                                   '*.tar *.zip *.gz *.img *.bin *.dd *.raw *.001 *.E01 *.iVa'),
                                                                   ('tar file', '*.tar'), ('zip file', '*.zip'),
                                                                   ('gz file', '*.gz'),
-                                                                  ('raw disk image', '*.img *.bin *.dd *.raw *.001'),
+                                                                  ('raw disk image or acquisition', '*.img *.bin *.dd *.raw *.001 *.E01'),
                                                                   ('Berla iVe export', '*.iVa')))
     else:
         input_filename = tk_filedialog.askdirectory(parent=main_window, title='Select a folder')

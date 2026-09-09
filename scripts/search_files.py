@@ -694,7 +694,9 @@ class FileSeekerRaw(FileSeekerZip):
     A split raw image (.001, .002, ...) is handed to the reader as it is: since
     qnxprobe 1.13 it joins every segment beside the one named, in order, and
     records the set in volumes.json, which _warn_incomplete_volumes() repeats
-    in the run log.
+    in the run log. An EnCase/EWF acquisition (.E01 and its numbered segments)
+    is handed over the same way and joined the same way, through the ewfprobe
+    vendored beside the reader.
 
     The zip is written to a temporary directory and removed by cleanup(). An
     examiner who wants to keep it, which is worth doing for a large image because

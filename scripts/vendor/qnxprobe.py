@@ -27,7 +27,21 @@ Read-only throughout. Never writes to the image.
 """
 import os, re, struct, sys, datetime, json, time, uuid, zipfile, bisect, collections
 
-QNXPROBE_VERSION = "1.13"
+# ewfprobe is vendored beside this file (see vendored.json) so an EnCase/EWF
+# .E01 acquisition can be read as an ordinary image. It is optional: without it
+# everything else works exactly as before, and an .E01 is refused with a message
+# saying what is missing rather than being read as raw bytes, which would find
+# no filesystem and look like an empty image.
+try:
+    import ewfprobe
+except ImportError:                  # not on sys.path when imported as a module
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        import ewfprobe
+    except ImportError:
+        ewfprobe = None
+
+QNXPROBE_VERSION = "1.14"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -119,6 +133,40 @@ def read_at(fh, off, n):
     if len(data) < n:
         EOF_SHORTFALL["bytes"] += n - len(data)
     return data
+
+
+class ImageUnreadable(Exception):
+    """This tool cannot open the image, and the message says why."""
+
+
+EWF_SIGNATURE = b"EVF\x09\x0d\x0a\xff\x00"
+
+
+def _ewf_refused_by_reader(path):
+    """True when the vendored reader rejects a damaged acquisition rather than
+    returning something that would be walked as though it were an image."""
+    if ewfprobe is None:
+        return True
+    try:
+        ewfprobe.open_ewf(path)
+    except ewfprobe.EwfError:
+        return True
+    except Exception:
+        return False
+    return False
+
+
+def looks_like_ewf(path):
+    """True when the file begins with the EWF signature.
+
+    Checked here rather than in ewfprobe so an .E01 is still recognised, and
+    refused with a useful message, when the vendored reader is absent.
+    """
+    try:
+        with open(path, "rb") as fh:
+            return fh.read(8) == EWF_SIGNATURE
+    except OSError:
+        return False
 
 
 class SplitImageError(Exception):
@@ -282,13 +330,33 @@ def image_size(fh):
     size = getattr(fh, "size", None)
     if size is not None:
         return size
-    return os.fstat(fh.fileno()).st_size
+    try:
+        return os.fstat(fh.fileno()).st_size
+    except (AttributeError, OSError, ValueError):
+        # No file descriptor behind it. Anything seekable can still say where
+        # its end is, which is what a reader over a container answers to.
+        here = fh.tell()
+        try:
+            fh.seek(0, os.SEEK_END)
+            return fh.tell()
+        finally:
+            fh.seek(here)
 
 
 def open_image(path, segments=None):
     """Open an image read-only: the one file, or every segment of the split
     image it belongs to, joined. segments is split_segments(path) when the
     caller already has it."""
+    if looks_like_ewf(path):
+        if ewfprobe is None:
+            raise ImageUnreadable(
+                f"{os.path.basename(path)} is an EnCase/EWF (.E01) acquisition. "
+                f"Reading one needs ewfprobe.py beside this script; it is "
+                f"normally vendored here (see vendored.json) and is missing. "
+                f"Export the image to raw, or put ewfprobe.py back.")
+        # ewfprobe joins the segments of the set itself, from the format's own
+        # records rather than from the file names, and refuses an incomplete set.
+        return ewfprobe.open_ewf(path)
     if segments is None:
         segments = split_segments(path)
     if segments:
@@ -430,11 +498,12 @@ def parse_mbr(fh):
     mbr = read_at(fh, 0, 512)
     if len(mbr) < 512 or mbr[510:512] != b"\x55\xaa":
         return None
-    # A FAT or exFAT boot sector also ends in 0x55AA, and its boot code sits
-    # where MBR partition entries would be, so it parses as four nonsense
-    # partitions. Its own type string at bytes 3..11 (exFAT) or 82..90 (FAT32)
-    # says it is a filesystem, not a partition table.
-    if mbr[3:11] == b"EXFAT   " or mbr[82:90] == b"FAT32   " or mbr[54:62] == b"FAT16   ":
+    # A FAT, exFAT or NTFS boot sector also ends in 0x55AA, and its boot code
+    # sits where MBR partition entries would be, so it parses as four nonsense
+    # partitions. Its own type string at bytes 3..11 (exFAT, NTFS) or 82..90
+    # (FAT32) says it is a filesystem, not a partition table.
+    if (mbr[3:11] in (b"EXFAT   ", b"NTFS    ")
+            or mbr[82:90] == b"FAT32   " or mbr[54:62] == b"FAT16   "):
         return None
     # A QNX4 boot block can also end in 0x55AA (the dinit boot sector does).
     # The QNX4 superblock is the NEXT sector: its first entry is the root
@@ -1033,6 +1102,577 @@ QNX4_F_USED, QNX4_F_LINK = 0x01, 0x08
 QNX4_XBLK_SIG = b"IamXblk"    # fs/qnx4/inode.c:110 checks these 7 bytes
 
 
+# ---------------------------------------------------------------- NTFS
+# Field offsets and structure layouts below come from the Linux-NTFS project's
+# published NTFS documentation (Richard Russon and Yuval Fledel, "NTFS
+# Documentation", https://flatcap.github.io/linux-ntfs/ntfs/), which describes
+# the on-disk format independently of any implementation, and are confirmed
+# against a volume written by mkntfs. No NTFS implementation's source was read
+# for this: ntfs-3g and The Sleuth Kit are both under licences this file is not.
+
+NTFS_OEM = b"NTFS    "
+NTFS_ROOT = 5                       # the root directory is always MFT record 5
+NTFS_FILE = b"FILE"
+NTFS_INDX = b"INDX"
+
+# attribute types this walker reads
+NTFS_STANDARD_INFORMATION = 0x10
+NTFS_ATTRIBUTE_LIST       = 0x20
+NTFS_FILE_NAME            = 0x30
+NTFS_DATA                 = 0x80
+NTFS_INDEX_ROOT           = 0x90
+NTFS_INDEX_ALLOCATION     = 0xA0
+NTFS_END                  = 0xFFFFFFFF
+
+NTFS_ATTR_COMPRESSED = 0x0001
+NTFS_ATTR_ENCRYPTED  = 0x4000
+NTFS_ATTR_SPARSE     = 0x8000
+
+NTFS_MFT_IN_USE   = 0x0001
+NTFS_MFT_IS_DIR   = 0x0002
+
+# FILETIME counts 100 ns ticks from 1601-01-01 UTC; this is the gap to the Unix epoch.
+NTFS_EPOCH_DELTA = 11644473600
+
+
+class NtfsUnreadable(Exception):
+    """A file whose bytes this walker will not guess at (encrypted, or an
+    attribute shape it does not implement). Raised rather than returning short
+    data, because a short read here would be indistinguishable from a small file."""
+
+
+def ntfs_time(v):
+    """A FILETIME as Unix seconds, or 0 when it is unset or out of range."""
+    if not v:
+        return 0
+    sec = v / 10_000_000 - NTFS_EPOCH_DELTA
+    return sec if -12219292800 < sec < 253402300799 else 0
+
+
+def _ntfs_fixup(buf, per, name):
+    """Apply the update sequence array to a multi-sector record.
+
+    NTFS stamps the last two bytes of every sector of a record with one value
+    and keeps the real bytes in an array in the header, so a torn write is
+    detectable. The record cannot be parsed until they are put back.
+    """
+    if len(buf) < 8:
+        return None
+    if buf[0:4] != name:
+        return None
+    off, count = struct.unpack_from("<HH", buf, 4)
+    if count < 1 or off + count * 2 > len(buf):
+        return None
+    usn = buf[off:off + 2]
+    out = bytearray(buf)
+    for i in range(count - 1):
+        end = (i + 1) * per
+        if end > len(out):
+            break
+        if bytes(out[end - 2:end]) != usn:
+            return None                 # a sector that was not written with the rest
+        out[end - 2:end] = buf[off + 2 + i * 2: off + 4 + i * 2]
+    return bytes(out)
+
+
+def _ntfs_runs(data, offset, cluster_count):
+    """Decode a mapping-pair list into [(lcn or None, clusters)], in VCN order.
+
+    Each pair is a header byte giving the width of a length field and of an
+    offset field, then those two fields. The offset is signed and relative to
+    the previous run's start, and a zero-width offset means the run is sparse:
+    it occupies VCNs and no clusters, and reads as zeros.
+    """
+    runs, pos, lcn, seen = [], offset, 0, 0
+    while pos < len(data):
+        head = data[pos]
+        if head == 0:
+            break
+        len_size, off_size = head & 0x0F, head >> 4
+        pos += 1
+        if len_size == 0 or pos + len_size + off_size > len(data):
+            return None
+        length = int.from_bytes(data[pos:pos + len_size], "little", signed=False)
+        pos += len_size
+        if off_size:
+            delta = int.from_bytes(data[pos:pos + off_size], "little", signed=True)
+            pos += off_size
+            lcn += delta
+            runs.append((lcn, length))
+        else:
+            runs.append((None, length))     # sparse
+        seen += length
+        if cluster_count and seen > cluster_count + 1:
+            return None                      # the list describes more than the attribute holds
+    return runs
+
+
+class _NtfsAttr:
+    """One attribute of an MFT record, resident or not."""
+
+    __slots__ = ("type", "name", "flags", "resident", "value", "runs",
+                 "data_size", "alloc_size", "init_size", "comp_unit", "start_vcn")
+
+    def __init__(self, type_, name, flags, resident):
+        self.type, self.name, self.flags, self.resident = type_, name, flags, resident
+        self.value = b""
+        self.runs = []
+        self.data_size = self.alloc_size = self.init_size = 0
+        self.comp_unit = 0
+        self.start_vcn = 0
+
+    @property
+    def compressed(self):
+        return bool(self.flags & NTFS_ATTR_COMPRESSED) and self.comp_unit
+
+    @property
+    def encrypted(self):
+        return bool(self.flags & NTFS_ATTR_ENCRYPTED)
+
+
+class NtfsWalker:
+    """List and read files from an NTFS volume, same interface as the walkers
+    above. A node is the MFT record number, which is what a directory index
+    stores and what makes two names for one file resolve to one record.
+
+    What it reads: resident and non-resident $DATA, sparse runs, LZNT1
+    compressed data, attributes that overflow into other records through
+    $ATTRIBUTE_LIST, and directory indexes in both their resident ($INDEX_ROOT)
+    and allocated ($INDEX_ALLOCATION) forms, with the sector fixups applied.
+
+    What it does not read: an encrypted file's content, which needs a key the
+    volume does not hold. Those are listed with their recorded size and refuse
+    to be read rather than yielding the ciphertext as though it were the file.
+    Only the unnamed $DATA stream is the file's content; a named stream is
+    reported through named_streams() and never as a file of its own.
+    """
+
+    root = NTFS_ROOT
+
+    def __init__(self, fh, base):
+        self.fh, self.base = fh, base
+        boot = read_at(fh, base, 512)
+        if len(boot) < 512 or boot[3:11] != NTFS_OEM:
+            raise ValueError("not an NTFS boot sector")
+        self.bps = struct.unpack_from("<H", boot, 11)[0]
+        self.spc = boot[13]
+        if not self.bps or not self.spc:
+            raise ValueError("NTFS boot sector gives a zero sector or cluster size")
+        self.cluster = self.bps * self.spc
+        self.total_sectors = struct.unpack_from("<Q", boot, 40)[0]
+        self.mft_lcn = struct.unpack_from("<Q", boot, 48)[0]
+        self.mftmirr_lcn = struct.unpack_from("<Q", boot, 56)[0]
+        self.rec_size = self._sized(struct.unpack_from("<b", boot, 64)[0])
+        self.idx_size = self._sized(struct.unpack_from("<b", boot, 68)[0])
+        self.serial = struct.unpack_from("<Q", boot, 72)[0]
+        self.volume_size = self.total_sectors * self.bps
+        self._records = {}                       # record number -> attributes
+        self._mft_runs = None
+        self._mft_runs = self._read_mft_runs()
+
+    def _sized(self, raw):
+        """A size field that is a cluster count when positive and a power of two
+        byte count when negative, which is how a 1 KiB record fits a 4 KiB cluster."""
+        return raw * self.cluster if raw > 0 else 1 << (-raw)
+
+    # -- raw access --------------------------------------------------------
+    def _read_runs(self, runs, want, start=0):
+        """Bytes from a run list, sparse runs reading as the zeros they stand for."""
+        out = bytearray()
+        pos = 0
+        for lcn, count in runs:
+            span = count * self.cluster
+            if pos + span <= start:
+                pos += span
+                continue
+            skip = max(0, start - pos)
+            take = min(span - skip, want - len(out))
+            if lcn is None:
+                out += b"\x00" * take
+            else:
+                out += read_at(self.fh, self.base + lcn * self.cluster + skip, take)
+            pos += span
+            if len(out) >= want:
+                break
+        return bytes(out[:want])
+
+    def _read_mft_runs(self):
+        """The $MFT's own data runs, read from record 0, which sits at a cluster
+        the boot sector names. Every other record is then found through them."""
+        off = self.base + self.mft_lcn * self.cluster
+        raw = _ntfs_fixup(read_at(self.fh, off, self.rec_size), self.bps, NTFS_FILE)
+        if raw is None:
+            raise ValueError("the MFT's own record is unreadable")
+        attrs = self._parse_attrs(raw, follow_list=False)
+        for a in attrs:
+            if a.type == NTFS_DATA and not a.name and not a.resident:
+                return a.runs
+        raise ValueError("the MFT record carries no non-resident data attribute")
+
+    def _record(self, num):
+        """The attributes of one MFT record, cached."""
+        got = self._records.get(num)
+        if got is None:
+            off = num * self.rec_size
+            raw = self._read_runs(self._mft_runs, self.rec_size, off) if self._mft_runs \
+                else read_at(self.fh, self.base + self.mft_lcn * self.cluster + off,
+                             self.rec_size)
+            fixed = _ntfs_fixup(raw, self.bps, NTFS_FILE)
+            got = self._parse_attrs(fixed, self_ref=num) if fixed else []
+            self._records[num] = got
+        return got
+
+    def _parse_attrs(self, raw, follow_list=True, self_ref=None):
+        """Every attribute in one record, plus those its $ATTRIBUTE_LIST points at.
+
+        A record that runs out of room moves attributes into other records and
+        leaves a list saying where they went. Following it is what makes a very
+        fragmented file readable, since its run list is what overflowed.
+        """
+        if not raw or len(raw) < 0x30:
+            return []
+        first, flags = struct.unpack_from("<HH", raw, 0x14)
+        used = struct.unpack_from("<I", raw, 0x18)[0]
+        if not flags & NTFS_MFT_IN_USE:
+            return []
+        out, pos, limit = [], first, min(used or len(raw), len(raw))
+        while pos + 4 <= limit:
+            type_ = struct.unpack_from("<I", raw, pos)[0]
+            if type_ == NTFS_END:
+                break
+            if pos + 16 > limit:
+                break
+            length = struct.unpack_from("<I", raw, pos + 4)[0]
+            if length < 16 or pos + length > limit:
+                break
+            attr = self._parse_one(raw, pos, length)
+            if attr:
+                out.append(attr)
+            pos += length
+        out.append(_NtfsAttr(-1, "", flags, True))       # carries the record flags
+        if follow_list:
+            out.extend(self._follow_attribute_list(out, self_ref))
+        return out
+
+    def _parse_one(self, raw, pos, length):
+        type_ = struct.unpack_from("<I", raw, pos)[0]
+        nonres = raw[pos + 8]
+        name_len = raw[pos + 9]
+        name_off = struct.unpack_from("<H", raw, pos + 10)[0]
+        flags = struct.unpack_from("<H", raw, pos + 12)[0]
+        name = ""
+        if name_len:
+            end = pos + name_off + name_len * 2
+            if end <= pos + length:
+                name = raw[pos + name_off:end].decode("utf-16-le", "replace")
+        attr = _NtfsAttr(type_, name, flags, not nonres)
+        if not nonres:
+            vlen, voff = struct.unpack_from("<IH", raw, pos + 16)
+            if pos + voff + vlen > pos + length:
+                return None
+            attr.value = raw[pos + voff:pos + voff + vlen]
+            attr.data_size = vlen
+            return attr
+        start_vcn, last_vcn = struct.unpack_from("<QQ", raw, pos + 16)
+        run_off, comp = struct.unpack_from("<HH", raw, pos + 32)
+        alloc, real, init = struct.unpack_from("<QQQ", raw, pos + 40)
+        attr.start_vcn, attr.comp_unit = start_vcn, comp
+        attr.alloc_size, attr.data_size, attr.init_size = alloc, real, init
+        if run_off >= length:
+            return None
+        attr.runs = _ntfs_runs(raw[pos:pos + length], run_off,
+                               last_vcn - start_vcn + 1) or []
+        return attr
+
+    def _follow_attribute_list(self, attrs, self_ref=None):
+        """Attributes this record delegated to others, read from those records.
+
+        The list names every attribute of the file, including the ones that
+        stayed put, so it points back at this record too. Reading that one again
+        would count its attributes twice: measured on a 333-run file, the data
+        runs came out at 537 and the file read long and wrong.
+        """
+        extra, seen = [], set()
+        for a in attrs:
+            if a.type != NTFS_ATTRIBUTE_LIST:
+                continue
+            data = a.value if a.resident else self._read_runs(a.runs, a.data_size)
+            pos = 0
+            while pos + 26 <= len(data):
+                rec_len = struct.unpack_from("<H", data, pos + 4)[0]
+                if rec_len < 26 or pos + rec_len > len(data):
+                    break
+                ref = struct.unpack_from("<Q", data, pos + 16)[0] & 0xFFFFFFFFFFFF
+                if ref and ref != self_ref and ref not in seen:
+                    seen.add(ref)
+                pos += rec_len
+        for ref in seen:
+            off = ref * self.rec_size
+            raw = self._read_runs(self._mft_runs, self.rec_size, off)
+            fixed = _ntfs_fixup(raw, self.bps, NTFS_FILE)
+            if fixed:
+                extra.extend(a for a in self._parse_attrs(fixed, follow_list=False)
+                             if a.type not in (-1, NTFS_ATTRIBUTE_LIST))
+        return extra
+
+    # -- the walker surface ------------------------------------------------
+    def _data_attr(self, num, name=""):
+        """The named (or unnamed) $DATA attribute, with the runs of every piece
+        joined: a file whose run list overflowed carries one $DATA per VCN span."""
+        parts = [a for a in self._record(num)
+                 if a.type == NTFS_DATA and a.name == name]
+        if not parts:
+            return None
+        resident = [a for a in parts if a.resident]
+        if resident:
+            return resident[0]
+        parts.sort(key=lambda a: a.start_vcn)
+        head = parts[0]
+        joined = _NtfsAttr(NTFS_DATA, name, head.flags, False)
+        joined.comp_unit = head.comp_unit
+        joined.alloc_size = max(a.alloc_size for a in parts)
+        joined.data_size = max(a.data_size for a in parts)
+        joined.init_size = max(a.init_size for a in parts)
+        for a in parts:
+            joined.runs.extend(a.runs)
+        return joined
+
+    def volume_label(self):
+        """The volume label, from the $VOLUME_NAME attribute of record 3, or None
+        when the record cannot be read. An empty string means the volume has none."""
+        for a in self._record(3):
+            if a.type == 0x60 and a.resident:
+                return a.value.decode("utf-16-le", "replace")
+        return "" if self._record(3) else None
+
+    def _flags(self, num):
+        for a in self._record(num):
+            if a.type == -1:
+                return a.flags
+        return 0
+
+    def inode(self, num):
+        return num
+
+    def entry(self, num):
+        attrs = self._record(num)
+        if not attrs:
+            return None
+        is_dir = bool(self._flags(num) & NTFS_MFT_IS_DIR)
+        mtime = 0
+        for a in attrs:
+            if a.type == NTFS_STANDARD_INFORMATION and a.resident and len(a.value) >= 24:
+                mtime = ntfs_time(struct.unpack_from("<Q", a.value, 8)[0])
+                break
+        if is_dir:
+            return (S_IFDIR | 0o755, 0, mtime)
+        data = self._data_attr(num)
+        size = 0 if data is None else (len(data.value) if data.resident else data.data_size)
+        return (0o100644, size, mtime)
+
+    def named_streams(self, num):
+        """[(name, size)] for every alternate data stream on this record. A named
+        stream is content the file's own size does not account for, so it is worth
+        reporting; it is not listed as a file, because it has no name of its own."""
+        out = []
+        for a in self._record(num):
+            if a.type == NTFS_DATA and a.name:
+                out.append((a.name, len(a.value) if a.resident else a.data_size))
+        return out
+
+    def listdir(self, num):
+        """(name, record) for every entry of a directory index.
+
+        The index lives in $INDEX_ROOT while it is small and moves into
+        $INDEX_ALLOCATION blocks when it grows; both hold the same entry shape,
+        so both are walked with one reader.
+        """
+        out, seen = [], set()
+        root = alloc = None
+        for a in self._record(num):
+            if a.type == NTFS_INDEX_ROOT and a.name == "$I30":
+                root = a
+            elif a.type == NTFS_INDEX_ALLOCATION and a.name == "$I30":
+                alloc = a
+        if root is None:
+            return out
+        # $INDEX_ROOT: a small header, then the index header at 0x10
+        if len(root.value) >= 0x20:
+            self._index_entries(root.value, 0x10, out, seen)
+        if alloc is not None and alloc.runs:
+            total = alloc.data_size or alloc.alloc_size
+            step = self.idx_size
+            for off in range(0, total, step):
+                block = _ntfs_fixup(self._read_runs(alloc.runs, step, off),
+                                    self.bps, NTFS_INDX)
+                if block and len(block) >= 0x28:
+                    self._index_entries(block, 0x18, out, seen)
+        return out
+
+    def _index_entries(self, buf, header_off, out, seen):
+        """Append the entries of one index header. Entry offsets are relative to
+        the header, not to the record, which is why the caller passes its offset."""
+        if header_off + 16 > len(buf):
+            return
+        first, total = struct.unpack_from("<II", buf, header_off)
+        pos = header_off + first
+        end = min(header_off + total, len(buf))
+        while pos + 0x52 <= end:
+            ref, elen, klen, eflags = struct.unpack_from("<QHHH", buf, pos)
+            if elen < 0x10 or pos + elen > end:
+                break
+            if eflags & 0x02:                       # the last entry holds no name
+                break
+            rec = ref & 0xFFFFFFFFFFFF
+            if klen >= 0x42:
+                name_len = buf[pos + 0x50]
+                namespace = buf[pos + 0x51]
+                nstart = pos + 0x52
+                nend = nstart + name_len * 2
+                if nend <= pos + elen:
+                    name = buf[nstart:nend].decode("utf-16-le", "replace")
+                    # Namespace 2 is the 8.3 name of a file that also has a long
+                    # one, indexed beside it. Reporting both would list every such
+                    # file twice under two names. The root's index also carries an
+                    # entry for the root itself, which is a loop, not a child.
+                    if (namespace != 2 and name not in (".", "..")
+                            and (rec, name) not in seen):
+                        seen.add((rec, name))
+                        out.append((name, rec))
+            pos += elen
+
+    def read_file(self, num, size):
+        data = self._data_attr(num)
+        if data is None:
+            return
+        if data.resident:
+            yield data.value[:size] if size else data.value
+            return
+        if data.encrypted:
+            raise NtfsUnreadable("the file is encrypted and the volume holds no key")
+        want = size if size is not None else data.data_size
+        want = min(want, data.data_size) if data.data_size else want
+        if data.compressed:
+            yield from self._read_compressed(data, want)
+            return
+        # Everything past the initialized size reads as zero even though the
+        # clusters are allocated and still hold whatever was there before. A
+        # database that preallocates its file is the common case: two on this
+        # Windows volume differed from The Sleuth Kit's reading by exactly that
+        # tail until it was honoured. The stale bytes are slack, not content.
+        real = min(want, data.init_size) if data.init_size else 0
+        done = 0
+        while done < real:
+            chunk = self._read_runs(data.runs, min(1 << 20, real - done), done)
+            if not chunk:
+                break
+            yield chunk
+            done += len(chunk)
+        while done < want:
+            take = min(1 << 20, want - done)
+            yield b"\x00" * take
+            done += take
+
+    def _read_compressed(self, data, want):
+        """A compressed $DATA is stored in units of 2**comp_unit clusters. A unit
+        whose runs are shorter than the unit is compressed and inflated with
+        LZNT1; one stored at full length was left uncompressed."""
+        unit = (1 << data.comp_unit) * self.cluster
+        vcn_per_unit = 1 << data.comp_unit
+        produced = 0
+        # index the run list by VCN so a unit's clusters can be found
+        table, vcn = [], 0
+        for lcn, count in data.runs:
+            table.append((vcn, lcn, count))
+            vcn += count
+        total_vcn = vcn
+        for start in range(0, total_vcn, vcn_per_unit):
+            if produced >= want:
+                break
+            raw = self._unit_bytes(table, start, vcn_per_unit)
+            if raw is None:                       # wholly sparse unit
+                out = b"\x00" * unit
+            elif len(raw) >= unit:
+                out = raw[:unit]
+            else:
+                out = _lznt1_decompress(raw, unit)
+            take = min(len(out), want - produced)
+            yield out[:take]
+            produced += take
+
+    def _unit_bytes(self, table, start_vcn, count):
+        """The stored bytes of one compression unit, or None if it is all sparse.
+        A compressed unit occupies fewer clusters than the unit, and the rest of
+        its VCN span is a sparse run, so the stored length is what says so."""
+        out, any_real = bytearray(), False
+        for vcn, lcn, span in table:
+            lo, hi = max(vcn, start_vcn), min(vcn + span, start_vcn + count)
+            if lo >= hi:
+                continue
+            if lcn is None:
+                continue
+            any_real = True
+            out += read_at(self.fh, self.base + (lcn + (lo - vcn)) * self.cluster,
+                           (hi - lo) * self.cluster)
+        return bytes(out) if any_real else None
+
+
+def _lznt1_decompress(src, limit):
+    """Inflate an LZNT1 stream, the compression NTFS applies to a $DATA unit.
+
+    The format is a series of chunks, each a 16-bit header giving its stored
+    length and whether it is compressed, then either the literal bytes or a
+    stream of flag bytes where each bit says whether the next item is a literal
+    or a back reference. The split of a back reference into length and offset
+    bits widens as the output grows, which is what the shifting below tracks.
+    Described in the Linux-NTFS documentation, "Compressed files".
+    """
+    out = bytearray()
+    pos = 0
+    while pos + 2 <= len(src) and len(out) < limit:
+        header = struct.unpack_from("<H", src, pos)[0]
+        pos += 2
+        if header == 0:
+            break
+        size = (header & 0x0FFF) + 1
+        if pos + size > len(src):
+            break
+        chunk, pos = src[pos:pos + size], pos + size
+        if not header & 0x8000:                    # stored, not compressed
+            out += chunk
+            continue
+        start = len(out)
+        i = 0
+        while i < len(chunk) and len(out) - start < 4096:
+            flags = chunk[i]
+            i += 1
+            for bit in range(8):
+                if i >= len(chunk) or len(out) - start >= 4096:
+                    break
+                if not flags & (1 << bit):
+                    out.append(chunk[i])
+                    i += 1
+                    continue
+                if i + 2 > len(chunk):
+                    i = len(chunk)
+                    break
+                pair = struct.unpack_from("<H", chunk, i)[0]
+                i += 2
+                produced = len(out) - start
+                shift = 12
+                while shift > 4 and produced > (1 << (16 - shift)):
+                    shift -= 1
+                length = (pair & ((1 << shift) - 1)) + 3
+                delta = (pair >> shift) + 1
+                if delta > produced:
+                    return bytes(out)
+                src_pos = len(out) - delta
+                for _ in range(length):
+                    out.append(out[src_pos])
+                    src_pos += 1
+    return bytes(out[:limit])
+
+
 class Qnx4Walker:
     """List and read files from a QNX4 filesystem, same interface as the
     walkers above. A node is the kernel's inode number: block * 8 + index of
@@ -1580,6 +2220,12 @@ def print_tree(w, num, depth, maxdepth, budget, indent=0, pad=6):
         col = max(12, 44 - 2 * indent)
         shown = "" if isdir else f"{human(size):>11}"
         print(f"{' '*pad}{'  '*indent}{kind} {name:<{col}} {shown}  {_fmt_time(mtime)}")
+        # A file can carry content its own size does not account for. NTFS calls
+        # those alternate data streams; the walker that has them says so here,
+        # because nothing else in the listing would show that the bytes exist.
+        for sname, ssize in (getattr(w, "named_streams", lambda _n: [])(ino) or []):
+            print(f"{' '*pad}{'  '*indent}     stream {sname:<{max(6, col - 7)}} "
+                  f"{human(ssize):>11}")
         if isdir and depth < maxdepth:
             print_tree(w, ino, depth + 1, maxdepth, budget, indent + 1, pad)
 
@@ -2168,6 +2814,8 @@ def walker_for(kind, fh, base, size=None):
         return Fat32Walker(fh, base)
     if kind == "exfat":
         return ExfatWalker(fh, base)
+    if kind == "ntfs":
+        return NtfsWalker(fh, base)
     if kind == "efs":
         return EfsWalker(fh, base)
     if kind == "qnx4":
@@ -2254,6 +2902,44 @@ def identify_efs(fh, base, size):
         f"boot record  QSSL_F3S at +0x{boot['sig_at']:x}",
         f"root         logical unit {boot['root'][0]}, extent {boot['root'][1]}",
     ]
+
+
+def identify_ntfs(fh, base):
+    """Return ("ntfs", lines) for an NTFS volume at base, else None.
+
+    NTFS names itself in bytes 3..11 of its boot sector, and the geometry that
+    follows has to be self-consistent for the volume to be readable at all, so
+    both are required rather than the name alone.
+    """
+    b = read_at(fh, base, 512)
+    if len(b) < 512 or b[3:11] != NTFS_OEM or b[510:512] != b"\x55\xaa":
+        return None
+    bps = struct.unpack_from("<H", b, 11)[0]
+    spc = b[13]
+    if bps not in (512, 1024, 2048, 4096) or spc not in (1, 2, 4, 8, 16, 32, 64, 128):
+        return None
+    sectors = struct.unpack_from("<Q", b, 40)[0]
+    mft = struct.unpack_from("<Q", b, 48)[0]
+    mirr = struct.unpack_from("<Q", b, 56)[0]
+    serial = struct.unpack_from("<Q", b, 72)[0]
+    if not sectors or not mft:
+        return None
+    lines = [
+        f"bytes/sector {bps}   sectors/cluster {spc}",
+        f"volume       {human(sectors * bps)} ({sectors:,} sectors)",
+        f"$MFT         cluster {mft:,}   $MFTMirr cluster {mirr:,}",
+        f"serial       {serial:016x}",
+    ]
+    try:
+        w = NtfsWalker(fh, base)
+    except (ValueError, OSError, struct.error) as exc:
+        lines.append(f"walk         not possible: {exc}")
+        return "ntfs", lines
+    lines.append(f"record size  {w.rec_size} bytes   index block {w.idx_size} bytes")
+    label = w.volume_label()
+    if label is not None:
+        lines.append(f"label        {label or '(none)'}")
+    return "ntfs", lines
 
 
 def identify_fat(fh, base):
@@ -2352,6 +3038,10 @@ def identify_fs(fh, base, size=None):
     if ifs:
         return "QNX IFS boot image", ifs
 
+    ntfs = identify_ntfs(fh, base)
+    if ntfs:
+        return ntfs
+
     fat = identify_fat(fh, base)
     if fat:
         return fat
@@ -2448,18 +3138,31 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
     size = image_size(image)
     print("=" * 78)
     print(path)
+    ewf_parts = [] if segments else list(getattr(image, "paths", []) or [])
     if segments:
         print(f"  one segment of a split image: {len(segments)} segments joined, "
               f"{os.path.basename(segments[0])} .. {os.path.basename(segments[-1])}")
         print(f"    {describe_segment_sizes(image.sizes)}")
+    elif len(ewf_parts) > 1:
+        print(f"  an EWF acquisition of {len(ewf_parts)} segments, joined by the "
+              f"reader: {os.path.basename(ewf_parts[0])} .. "
+              f"{os.path.basename(ewf_parts[-1])}")
+    elif ewf_parts:
+        print("  an EWF acquisition of one segment")
     print(f"  {size:,} bytes ({human(size)})")
     print("=" * 78)
     # what volumes.json ties each volume to: the one file, or the first
     # segment of the set, with every segment and its size beside it
     image_rec = {"image": os.path.basename(segments[0] if segments else path)}
-    if segments:
-        image_rec["image_segments"] = [{"name": os.path.basename(p), "bytes": s}
-                                       for p, s in zip(image.paths, image.sizes)]
+    if segments or ewf_parts:
+        # A joined raw set records its own segment sizes; a reader over a
+        # container need not, so they are measured here rather than required.
+        parts = list(image.paths)
+        part_sizes = getattr(image, "sizes", None)
+        if part_sizes is None:
+            part_sizes = [os.path.getsize(q) for q in parts]
+        image_rec["image_segments"] = [{"name": os.path.basename(q), "bytes": s}
+                                       for q, s in zip(parts, part_sizes)]
 
     candidates, regions, sized_regions, triage = [], [], [], []
     containers, protective = set(), set()
@@ -2856,7 +3559,7 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
                     except Exception as exc:
                         print(f"        could not extract: {exc}")
 
-                if kind in ("fat32", "exfat", "etfs", "efs", "qnx4") and wanted:
+                if kind in ("fat32", "exfat", "ntfs", "etfs", "efs", "qnx4") and wanted:
                     if do_list:
                         print(f"        CONTENTS  (depth {list_depth})")
                         try:
@@ -2977,6 +3680,51 @@ def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
         else:
             print("  VERDICT: no QNX6 superblock found.")
     print()
+
+
+def _ntfs_fixture_check(image_gz, listing):
+    """Walk the committed NTFS fixture and compare every file against the
+    hashes an independent reader recorded from the same image.
+
+    Returns (matched, expected, missing, different). The image is decompressed
+    in memory: the walker takes anything with seek and read, so no temporary
+    file is written and nothing outside this process is touched.
+    """
+    import gzip, hashlib, io
+    with gzip.open(image_gz, "rb") as gz:
+        img = io.BytesIO(gz.read())
+    want = {}
+    with open(listing, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            digest, path = line.split("  ", 1)
+            want[path] = digest
+    w = NtfsWalker(img, 0)
+    matched = missing = different = 0
+    have = {}
+    for path, ino, size, _mtime in collect(w, w.root):
+        have[path] = (ino, size)
+    for path, digest in want.items():
+        got = have.get(path)
+        if got is None:
+            missing += 1
+            continue
+        h = hashlib.sha256()
+        read = 0
+        try:
+            for chunk in w.read_file(got[0], got[1]):
+                h.update(chunk)
+                read += len(chunk)
+        except NtfsUnreadable:
+            different += 1
+            continue
+        if read == got[1] and h.hexdigest() == digest:
+            matched += 1
+        else:
+            different += 1
+    return matched, len(want), missing, different
 
 
 def self_test():
@@ -3704,6 +4452,184 @@ def self_test():
                 ok = False
             print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
 
+        # An EnCase/EWF acquisition is read through the vendored ewfprobe. The
+        # case that matters is the negative one: an .E01 must never be opened as
+        # raw bytes, because a container read that way holds no filesystem the
+        # walkers can see and the run would report an empty image rather than
+        # say it could not read the container.
+        # This literal is deliberately NOT EWF_SIGNATURE. A fixture built from
+        # the constant it is meant to verify moves with it, so the check passes
+        # on a build whose signature is wrong. It is the EWF file signature from
+        # the format documentation, written out again here on purpose.
+        TRUE_EWF_SIG = b"\x45\x56\x46\x09\x0d\x0a\xff\x00"    # "EVF\t\r\n\xff\0"
+        if EWF_SIGNATURE != TRUE_EWF_SIG:
+            ok = False
+            print(f"  [FAIL] EWF_SIGNATURE is {EWF_SIGNATURE!r}, "
+                  f"expected {TRUE_EWF_SIG!r}")
+        ewf_fake = os.path.join(d, "fake.E01")
+        with open(ewf_fake, "wb") as fh:
+            fh.write(TRUE_EWF_SIG + b"\x01\x01\x00\x00\x00" + b"\x00" * 4096)
+        # Deliberately not named *.img: this is not an image, and the build
+        # workflow harvests the self-test's synthetic images by that glob to
+        # smoke-test the frozen executables.
+        not_ewf = os.path.join(d, "not_an_acquisition.dat")
+        with open(not_ewf, "wb") as fh:
+            fh.write(b"PK\x03\x04not an acquisition" + b"\x00" * 512)
+
+        def _opened_as_raw(path):
+            """True when open_image handed back a plain file over the container."""
+            try:
+                handle = open_image(path)
+            except Exception:
+                return False
+            try:
+                return isinstance(handle, io.IOBase) and not hasattr(handle, "media_size")
+            finally:
+                try:
+                    handle.close()
+                except Exception:
+                    pass
+
+        saved_reader = ewfprobe
+        try:
+            globals()["ewfprobe"] = None
+            try:
+                open_image(ewf_fake)
+                refused_without_reader = False
+            except ImageUnreadable as exc:
+                refused_without_reader = "ewfprobe" in str(exc)
+            except Exception:
+                refused_without_reader = False
+        finally:
+            globals()["ewfprobe"] = saved_reader
+
+        for label, cond in (
+                ("the EWF signature is recognised, and other bytes are not",
+                 looks_like_ewf(ewf_fake) and not looks_like_ewf(not_ewf)),
+                ("an .E01 is never opened as raw bytes",
+                 not _opened_as_raw(ewf_fake)),
+                ("a file that is not an acquisition still opens normally",
+                 _opened_as_raw(not_ewf)),
+                ("without the vendored reader an .E01 is refused, saying what "
+                 "is missing", refused_without_reader),
+                ("with the reader present a damaged acquisition is refused by "
+                 "it, not read",
+                 saved_reader is None or _ewf_refused_by_reader(ewf_fake))):
+            if not cond:
+                ok = False
+            print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
+
+        # ---- NTFS ----------------------------------------------------
+        # A boot sector built by hand, so identification is tested against bytes
+        # this file did not read from a volume it also wrote.
+        ntfs_boot = bytearray(512)
+        ntfs_boot[3:11] = b"NTFS    "
+        struct.pack_into("<H", ntfs_boot, 11, 512)        # bytes per sector
+        ntfs_boot[13] = 8                                 # sectors per cluster
+        struct.pack_into("<Q", ntfs_boot, 40, 100000)     # total sectors
+        struct.pack_into("<Q", ntfs_boot, 48, 4)          # $MFT cluster
+        struct.pack_into("<Q", ntfs_boot, 56, 2)          # $MFTMirr cluster
+        struct.pack_into("<b", ntfs_boot, 64, -10)        # 1024-byte records
+        struct.pack_into("<b", ntfs_boot, 68, -12)        # 4096-byte index blocks
+        ntfs_boot[510:512] = b"\x55\xaa"
+        ntfs_img = os.path.join(d, "ntfs_boot.img")
+        open(ntfs_img, "wb").write(bytes(ntfs_boot) + b"\x00" * (1 << 20))
+        with open(ntfs_img, "rb") as nfh:
+            ntfs_named = identify_ntfs(nfh, 0)
+            ntfs_declined_by_mbr = parse_mbr(nfh) is None
+        bad_boot = bytearray(ntfs_boot)
+        bad_boot[13] = 7                                  # not a power of two
+        bad_img = os.path.join(d, "ntfs_bad.img")
+        open(bad_img, "wb").write(bytes(bad_boot) + b"\x00" * 4096)
+        with open(bad_img, "rb") as nfh:
+            ntfs_refused = identify_ntfs(nfh, 0) is None
+
+        # A mapping-pair list worked out by hand from the documented encoding.
+        # 0x31: a one-byte length and a three-byte offset, so 8 clusters at LCN
+        # 0x0C0000. 0x11: one and one, length 4 and offset 0xF8, which is -8
+        # SIGNED, so the next run starts BEFORE the last one, at 786,424. Read
+        # unsigned it would land at 786,680, which is the whole point of the
+        # case. 0x01: a length and no offset at all, which is a sparse run.
+        run_bytes = (
+            "3108" + "00000c"      # 8 clusters at LCN 0x0c0000
+            + "1104" + "f8"        # 4 more, offset -8, so LCN 786,424
+            + "0105"               # 5 clusters with no offset at all: sparse
+            + "00")                # end of list
+        runs = _ntfs_runs(bytes.fromhex(run_bytes), 0, 0)
+        runs_ok = runs == [(786432, 8), (786424, 4), (None, 5)]
+
+        # A real LZNT1 chunk lifted out of a volume written by mkntfs and
+        # ntfs-3g, with the plaintext it has to produce written out here rather
+        # than taken from the decoder.
+        lz_hex = (
+            "62b10061206c696e6520740068617420726570650061747320616e642000736f"
+            "20636f6d7072006573736573207765f86c6c0affab5f055f055f055f05ff5f05"
+            "5f055f055f055f055f055f055f05ff5f055f055f055f055f055f055f055f05ff"
+            "5f055f055f055f055f055f055f055f05ff5f05af02af02af02af02af02af02af"
+            "02ffaf02af02af02af02af02af02af02af02ffaf02af02af02af02af02af02af"
+            "02af02ffaf02af02af02af02af02af02af02af02ffaf02af02af02af02af02af"
+            "02af02af02ffaf02af02af02af02af02af02af02af02ffaf02af02af02af02af"
+            "02af02af02af02ffaf02af02af02af02af02af02af02af02ffaf02af02af02af"
+            "02af02af02af02af02ffaf02af02af02af02af02af02af02af02ffaf02af02af"
+            "02af02af02af02af02af02ffaf02af02af02af02af02af02af02af02ffaf02af"
+            "02af02af02af02af02af02af02ffaf02af02af02af02af02af02af02af0207af"
+            "02af02a402")
+        lz_chunk = bytes.fromhex(lz_hex)
+        lz_line = b"a line that repeats and so compresses well\n"
+        lz_ok = (_lznt1_decompress(lz_chunk, 4096)
+                 == (lz_line * (4096 // len(lz_line) + 2))[:4096])
+
+        # A record whose last sector was not written with the rest must be
+        # refused rather than parsed with the stamp still in it.
+        rec = bytearray(1024)
+        rec[0:4] = b"FILE"
+        struct.pack_into("<HH", rec, 4, 0x30, 3)          # usa at 0x30, two sectors
+        rec[0x30:0x32] = b"\xaa\x55"                      # the stamp
+        rec[0x32:0x36] = b"\x01\x02\x03\x04"             # what the sectors really hold
+        rec[510:512] = b"\xaa\x55"
+        rec[1022:1024] = b"\xaa\x55"
+        fixed = _ntfs_fixup(bytes(rec), 512, NTFS_FILE)
+        torn = bytearray(rec)
+        torn[1022:1024] = b"\x00\x00"                     # one sector missed the write
+        fixup_ok = (fixed is not None and fixed[510:512] == b"\x01\x02"
+                    and fixed[1022:1024] == b"\x03\x04"
+                    and _ntfs_fixup(bytes(torn), 512, NTFS_FILE) is None)
+
+        for label, cond in (
+                ("an NTFS boot sector is identified by its own geometry",
+                 bool(ntfs_named) and ntfs_named[0] == "ntfs"),
+                ("an NTFS boot sector is not read as a partition table",
+                 ntfs_declined_by_mbr),
+                ("a boot sector naming NTFS with impossible geometry is refused",
+                 ntfs_refused),
+                ("a run list decodes, including a run that steps backwards and "
+                 "a sparse one", runs_ok),
+                ("an LZNT1 chunk inflates to the bytes it was made from", lz_ok),
+                ("a record's sector fixups are applied, and a torn one is "
+                 "refused", fixup_ok)):
+            if not cond:
+                ok = False
+            print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
+
+        ntfs_fix = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "tests", "fixtures", "ntfs-fixture.img.gz")
+        ntfs_want = ntfs_fix[:-len(".img.gz")] + ".sha256"
+        if os.path.isfile(ntfs_fix) and os.path.isfile(ntfs_want):
+            got, want, missing, differ = _ntfs_fixture_check(ntfs_fix, ntfs_want)
+            cond = got and not missing and not differ
+            if not cond:
+                ok = False
+            print(f"  [{'PASS' if cond else 'FAIL'}] every file of the NTFS "
+                  f"fixture matches what an independent reader recorded "
+                  f"({got} of {want}"
+                  + (f", {missing} missing" if missing else "")
+                  + (f", {differ} different" if differ else "") + ")")
+        else:
+            # Said plainly rather than silently: a check that did not run is not
+            # a check that passed. The frozen executable carries no fixtures.
+            print("  [SKIP] the NTFS fixture is not beside this script, so the "
+                  "walk was not compared against it")
+
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"
               if ok else
@@ -3783,10 +4709,11 @@ getting the files out, without mounting:
 
 listing contents:
   --list walks each filesystem it identified and prints the tree. It handles
-  qnx6, QNX4, ext2/3/4, FAT32, exFAT, the QNX flash filesystems ETFS and EFS,
-  and QNX IFS boot images, follows qnx6 long filenames and ext4 extent trees,
-  and reads only. --depth sets how far down it goes and --list-max caps the
-  number of entries per filesystem so a large volume cannot flood the terminal.
+  qnx6, QNX4, ext2/3/4, FAT32, exFAT, NTFS, the QNX flash filesystems ETFS and
+  EFS, and QNX IFS boot images, follows qnx6 long filenames and ext4 extent
+  trees, and reads only. --depth sets how far down it goes and --list-max caps
+  the number of entries per filesystem so a large volume cannot flood the
+  terminal. An NTFS listing also names any alternate data stream it finds.
 
 what it reports:
   Every superblock copy it can find, grouped into generations by serial. The
@@ -3983,7 +4910,7 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(
         prog="qnxprobe.py",
-        description="Read QNX6, QNX4, ETFS, EFS, ext2/3/4, FAT32 and exFAT "
+        description="Read QNX6, QNX4, ETFS, EFS, ext2/3/4, FAT32, exFAT and NTFS "
                     "filesystems, and QNX IFS boot images, out of raw disk "
                     "images: identify each by its own on-disk structure rather "
                     "than trusting a partition type byte, list, and extract to a "
@@ -4001,7 +4928,7 @@ if __name__ == "__main__":
                          "the detector reports both ways, then delete them")
     ap.add_argument("--list", action="store_true",
                     help="walk each filesystem found and list its contents "
-                         "(qnx6, qnx4, ext2/3/4, FAT32, exFAT, ETFS and EFS)")
+                         "(qnx6, qnx4, ext2/3/4, FAT32, exFAT, NTFS, ETFS and EFS)")
     ap.add_argument("--depth", type=int, default=2, metavar="N",
                     help="how deep to walk with --list (default: 2)")
     ap.add_argument("--list-max", type=int, default=400, metavar="N",
@@ -4058,8 +4985,8 @@ if __name__ == "__main__":
                      extract=args.extract, only=args.only, zf=zf,
                      do_triage=args.triage, exclude=args.exclude,
                      reporter=reporter, manifest=manifest)
-            except SplitImageError as exc:
-                # a segment set that is not whole: said out loud and left
+            except (SplitImageError, ImageUnreadable) as exc:
+                # a segment set that is not whole, or an image this tool cannot open: said out loud and left
                 # unread, never joined around, and the exit status says so
                 print("=" * 78)
                 print(p)
