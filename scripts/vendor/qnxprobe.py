@@ -41,7 +41,7 @@ except ImportError:                  # not on sys.path when imported as a module
     except ImportError:
         ewfprobe = None
 
-QNXPROBE_VERSION = "1.17"
+QNXPROBE_VERSION = "1.18"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -1710,9 +1710,16 @@ APFS_ROOT_INO   = 2             # ROOT_DIR_INO_NUM
 # are its volumes. A node is the volume's index in the high bits and the
 # file-system object id in the low ones; the container is a value no volume can
 # produce.
-APFS_VOL_SHIFT  = 56
+# A file-system object id is 60 bits, because the record type takes the top
+# four of the 64-bit key field. The sealed system volume of macOS 11 and later
+# uses ids near the top of that range (0x0FFFFFFF...), so a narrower field
+# silently drops every one of its directory entries. A walker node is a plain
+# Python integer with no width to run out of, so the volume index simply sits
+# above the full 60 bits, and the container sentinel is put where no volume and
+# object id can reach it.
+APFS_VOL_SHIFT  = 60
 APFS_OID_MASK   = (1 << APFS_VOL_SHIFT) - 1
-APFS_CONTAINER  = 1 << 62
+APFS_CONTAINER  = 1 << 127
 APFS_BTREE_INFO = 40            # a root node carries btree_info_t at its end
 
 APFS_OBJ_TYPE_MASK = 0x0000FFFF
@@ -1724,6 +1731,20 @@ APFS_OBJECT_TYPE_FS            = 0x000D
 APFS_BTNODE_ROOT     = 0x0001
 APFS_BTNODE_LEAF     = 0x0002
 APFS_BTNODE_FIXED_KV = 0x0004
+
+# btree_info sits in the last 40 bytes of a root node and declares the tree's
+# own shape. BTREE_HASHED marks the integrity-checked tree of a sealed volume,
+# where an index node's value carries a hash after the child pointer.
+APFS_BTREE_INFO      = 40
+APFS_BTREE_HASHED    = 0x00000080
+APFS_BTREE_PHYSICAL  = 0x00000010
+
+# A sealed volume keeps its file extents in a tree of its own, keyed by the
+# stream id and the offset within the file, instead of as records in the
+# file-system tree. The volume superblock names it; the offset below was found
+# by looking for the field that resolves to a physical B-tree root, and the
+# reader checks that it is one before using it rather than trusting the offset.
+APFS_FEXT_TREE_OFF   = 1032
 
 # record types, the high four bits of a file-system key's object id
 APFS_TYPE_INODE       = 3
@@ -1783,11 +1804,17 @@ def _apfs_fletcher_ok(block):
 class _ApfsBtree:
     """One B-tree, read through whatever resolves an object id to a block."""
 
-    def __init__(self, vol, root_block, physical=False):
+    def __init__(self, vol, root_block, physical=False, base_oid=0):
         # An object map's own tree points at blocks; the file-system tree points
         # at virtual object ids that the volume's map has to turn into blocks.
         # Reading the map itself therefore cannot go through the map.
+        #
+        # base_oid is for the sealed system volume of macOS 11 and later, whose
+        # tree stores each child pointer relative to the tree's own root id
+        # rather than as the id itself. Left at zero the arithmetic is a no-op,
+        # so an ordinary tree is unaffected.
         self.vol, self.root_block, self.physical = vol, root_block, physical
+        self.base_oid = base_oid
         self._leaves_cache = None
         self._leaf_keys = []
 
@@ -1852,7 +1879,10 @@ class _ApfsBtree:
             return
         for _key, val in recs:
             oid = struct.unpack_from("<Q", val, 0)[0]
-            child = oid if self.physical else self.vol.resolve(oid)
+            # A sealed volume's index value is the child pointer followed by a
+            # hash, so it is longer than eight bytes; the pointer itself still
+            # sits at the front, and base_oid is what makes it an object id.
+            child = oid if self.physical else self.vol.resolve(oid + self.base_oid)
             if child is not None:
                 self._collect_leaves(child, key_of, out, depth + 1)
 
@@ -1933,6 +1963,7 @@ class ApfsWalker:
             raise ValueError("the container names no readable volume")
         self._state = {}
         self._current = None
+        self._fext = None
         self._open_volume(0)
 
     # -- volumes -----------------------------------------------------------
@@ -1953,10 +1984,24 @@ class ApfsWalker:
             root_block = omap.get(root_oid)
             if root_block is None:
                 raise ValueError(f"volume {index}'s file-system tree is not in its map")
+            # A sealed system volume declares its tree hashed, in the
+            # btree_info that sits in the last 40 bytes of the root node, and
+            # stores its child pointers relative to the tree's own root id.
+            # Reading that declaration is what decides it: the alternative is
+            # keying on a macOS version, which the volume does not carry.
+            root_node = self.block(root_block)
+            sealed = False
+            if len(root_node) >= APFS_BTREE_INFO:
+                bt_flags = struct.unpack_from(
+                    "<I", root_node, len(root_node) - APFS_BTREE_INFO)[0]
+                sealed = bool(bt_flags & APFS_BTREE_HASHED)
             got = {
                 "omap": omap,
                 "tree": None,
                 "root_block": root_block,
+                "base_oid": root_oid if sealed else 0,
+                "sealed": sealed,
+                "fext": self._read_fext(sb) if sealed else None,
                 # A directory record's key carries the name's length alone, or a
                 # length and a hash together, and the volume decides which.
                 # Reading the wrong shape puts bytes of hash on the front of
@@ -1970,13 +2015,16 @@ class ApfsWalker:
         self._current = index
         self._volume_omap = got["omap"]
         if got["tree"] is None:
-            got["tree"] = _ApfsBtree(self, got["root_block"])
+            got["tree"] = _ApfsBtree(self, got["root_block"],
+                                     base_oid=got["base_oid"])
         self._tree = got["tree"]
         self._inodes = got["inodes"]
         self._hashed_names = got["hashed"]
         self.case_insensitive = got["case_insensitive"]
         self.volume_name = self.volumes[index][2]
         self.fs_root_block = got["root_block"]
+        self.sealed = got["sealed"]
+        self._fext = got["fext"]
 
     def _split(self, node):
         """(volume index, object id) for a walker node."""
@@ -2090,8 +2138,53 @@ class ApfsWalker:
         size = struct.unpack_from("<Q", blob, 0)[0] if blob and len(blob) >= 8 else 0
         return size, (private or oid)
 
+    def _read_fext(self, sb):
+        """{stream id: [(logical, block, length)]} from a sealed volume's own
+        extent tree, or None when the field does not name one.
+
+        The tree is keyed by (stream id, offset within the file) and its value
+        is a length with flags and a physical block, the same pair a file
+        extent record carries in an ordinary volume. It is read once: a sealed
+        system volume has a few hundred thousand extents and a descent per file
+        would walk the tree once per file.
+        """
+        if len(sb) < APFS_FEXT_TREE_OFF + 8:
+            return None
+        oid = struct.unpack_from("<Q", sb, APFS_FEXT_TREE_OFF)[0]
+        if not oid:
+            return None
+        try:
+            node = self.block(oid)
+        except Exception:                            # pylint: disable=broad-except
+            return None
+        if len(node) < self.block_size:
+            return None
+        flags = struct.unpack_from("<H", node, APFS_OBJ_HDR)[0]
+        info = struct.unpack_from("<I", node, len(node) - APFS_BTREE_INFO)[0]
+        # The field is only believed when what it points at is a physical
+        # B-tree root. Anything else and the offset is wrong for this volume,
+        # which must read as "no extent tree" rather than as whatever sits there.
+        if not (flags & APFS_BTNODE_ROOT) or not (info & APFS_BTREE_PHYSICAL):
+            return None
+        out = {}
+        tree = _ApfsBtree(self, oid, physical=True)
+        for key, val in tree.search(
+                (0, 0), lambda k: struct.unpack_from("<QQ", k, 0)
+                if len(k) >= 16 else (0, 0)):
+            if len(key) < 16 or len(val) < 16:
+                continue
+            stream, logical = struct.unpack_from("<QQ", key, 0)
+            len_flags, phys = struct.unpack_from("<QQ", val, 0)
+            out.setdefault(stream, []).append(
+                (logical, phys, len_flags & 0x00FFFFFFFFFFFFFF))
+        for runs in out.values():
+            runs.sort()
+        return out
+
     def _extents(self, private_id):
         """[(logical offset, block, length)] for a stream, in order."""
+        if self._fext is not None:
+            return self._fext.get(private_id, [])
         out = []
         for key, val in self._records(private_id, APFS_TYPE_FILE_EXTENT):
             if len(key) < 16 or len(val) < 16:
@@ -2241,6 +2334,17 @@ class ApfsWalker:
             return
         stream_size, private = self._dstream(oid)
         want = stream_size if size is None else min(size, stream_size or size)
+        # A file that says it holds bytes and has no extent anywhere must not
+        # read as an empty file. On a sealed volume the extents live in their
+        # own tree, and if that tree is not found this is the shape the failure
+        # takes: every uncompressed file comes back zero bytes, which an
+        # extraction would write out as a real empty file and nothing would say
+        # otherwise.
+        if want and private and not self._extents(private):
+            raise ApfsUnreadable(
+                f"the file says it holds {want:,} bytes and no extent records "
+                f"for it were found" + (", which is what a sealed volume looks "
+                "like when its extent tree was not read" if self.sealed else ""))
         done = 0
         while done < want:
             chunk = self._read_stream(private, want)[done:done + (1 << 20)]
@@ -5915,6 +6019,81 @@ def self_test():
         torn[100] ^= 0x01
         checksum_ok = _apfs_fletcher_ok(bytes(good)) and not _apfs_fletcher_ok(bytes(torn))
 
+        # A sealed system volume's tree, built by hand: a root that declares
+        # itself hashed and a leaf under it, with the child pointer stored
+        # RELATIVE to the tree's root id the way macOS 11 and later write it.
+        # The root id, the relative pointer and the id they must add up to are
+        # written out separately here on purpose, so the test cannot agree with
+        # the code by sharing its arithmetic.
+        SEALED_ROOT_OID = 437419        # the tree's own id
+        SEALED_REL      = 3108          # what the index node stores
+        SEALED_CHILD    = 440527        # 437419 + 3108, stated, not computed
+        if SEALED_ROOT_OID + SEALED_REL != SEALED_CHILD:
+            raise AssertionError("the sealed-tree test constants disagree")
+
+        def _apfs_node(level, flags, records, root_info=None):
+            """One B-tree node laid out the way records() reads it."""
+            node = bytearray(4096)
+            struct.pack_into("<HHI", node, APFS_OBJ_HDR, flags, level, len(records))
+            struct.pack_into("<HH", node, APFS_OBJ_HDR + 8, 0, len(records) * 8)
+            toc_at = APFS_OBJ_HDR + 24
+            keys_at = toc_at + len(records) * 8
+            ends_at = 4096 - (APFS_BTREE_INFO if flags & APFS_BTNODE_ROOT else 0)
+            koff, voff = 0, 0
+            for i, (k, v) in enumerate(records):
+                voff += len(v)
+                struct.pack_into("<HHHH", node, toc_at + i * 8,
+                                 koff, len(k), voff, len(v))
+                node[keys_at + koff:keys_at + koff + len(k)] = k
+                node[ends_at - voff:ends_at - voff + len(v)] = v
+                koff += len(k)
+            if root_info is not None:
+                struct.pack_into("<I", node, 4096 - APFS_BTREE_INFO, root_info)
+            return bytes(node)
+
+        leaf_key = struct.pack("<Q", (APFS_TYPE_DIR_REC << 60) | 7)
+        leaf = _apfs_node(0, APFS_BTNODE_LEAF, [(leaf_key, b"leafvalue")])
+        # An index value in a hashed tree is the child pointer and then a hash,
+        # so it is forty bytes where an ordinary one is eight.
+        index_val = struct.pack("<Q", SEALED_REL) + bytes(range(32))
+        root = _apfs_node(1, APFS_BTNODE_ROOT | 0x0008 | 0x0010,
+                          [(struct.pack("<Q", 0), index_val)],
+                          root_info=APFS_BTREE_HASHED)
+
+        class _SealedVol:
+            """Only what a B-tree asks of a volume: blocks, and id to block."""
+            fixed_key_size = fixed_val_size = 0
+
+            def block(self, n):
+                return {10: root, 20: leaf}.get(n, bytes(4096))
+
+            def resolve(self, oid):
+                return {SEALED_CHILD: 20}.get(oid)
+
+        _sv = _SealedVol()
+        sealed_found = _ApfsBtree(_sv, 10, base_oid=SEALED_ROOT_OID).leaves(_apfs_fs_key)
+        sealed_blind = _ApfsBtree(_sv, 10).leaves(_apfs_fs_key)
+        # Read as a plain tree the pointer names an id the map does not hold, so
+        # nothing is found. That is the shape of the defect this guards.
+        sealed_ok = (sealed_found == [((7, APFS_TYPE_DIR_REC), 20)]
+                     and sealed_blind == [])
+
+        # The declaration is what marks the tree, and it is read from the
+        # btree_info in the root node's last forty bytes.
+        plain_root = _apfs_node(1, APFS_BTNODE_ROOT, [(struct.pack("<Q", 0), b"")],
+                                root_info=0x00000042)
+        sealed_flag_ok = (
+            struct.unpack_from("<I", root, 4096 - APFS_BTREE_INFO)[0] & APFS_BTREE_HASHED
+            and not struct.unpack_from("<I", plain_root, 4096 - APFS_BTREE_INFO)[0]
+            & APFS_BTREE_HASHED)
+
+        # A sealed volume's object ids run to sixty bits, so a walker node has
+        # to carry one whole beside its volume index.
+        _big = (5 << APFS_VOL_SHIFT) | 0x0FFFFFFF00001234
+        wide_oid_ok = (_big >> APFS_VOL_SHIFT == 5
+                       and _big & APFS_OID_MASK == 0x0FFFFFFF00001234
+                       and _big != APFS_CONTAINER)
+
         for label, cond in (
                 ("an APFS container superblock is identified by its own geometry",
                  bool(apfs_named) and apfs_named[0] == "apfs"),
@@ -5923,7 +6102,13 @@ def self_test():
                 ("a file-system key splits into an object id and a record type",
                  fs_key_ok),
                 ("a block's Fletcher-64 checksum is checked, and a torn one fails",
-                 checksum_ok)):
+                 checksum_ok),
+                ("a sealed volume's tree declares itself hashed in its btree_info",
+                 bool(sealed_flag_ok)),
+                ("a sealed volume's child pointer is followed relative to the "
+                 "tree's root id", sealed_ok),
+                ("a walker node carries a whole sixty-bit object id beside its "
+                 "volume index", wide_oid_ok)):
             if not cond:
                 ok = False
             print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
