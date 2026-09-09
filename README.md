@@ -33,7 +33,7 @@ $ python vleapp.py -t <fs | zip | tar | gz | file | raw | iva> -i <path_to_extra
 
 `raw` reads a disk image, or an EnCase/EWF `.E01` acquisition and the segments beside
 it, without mounting and without administrator rights: its QNX6, QNX4, ext2/3/4, FAT32,
-exFAT or NTFS volumes and QNX IFS boot images are read directly. `iva` reads a Berla iVe
+exFAT, NTFS, HFS+ or APFS volumes and QNX IFS boot images are read directly. `iva` reads a Berla iVe
 export as it stands.
 
 ### GUI

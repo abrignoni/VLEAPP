@@ -2,8 +2,8 @@
 
 For maintainers, and for whoever ports this to the other LEAPP cores.
 
-`-t raw` takes a raw disk image and reads its QNX6, QNX4, ETFS, EFS, ext2/3/4, FAT32 and exFAT
-volumes, and QNX IFS boot images, without
+`-t raw` takes a raw disk image and reads its QNX6, QNX4, ETFS, EFS, ext2/3/4, FAT32, exFAT,
+NTFS, HFS+ and APFS volumes, and QNX IFS boot images, without
 mounting it and without administrator rights. Vehicle head units need it: the Ford
 Sync units are QNX6, the BMW MGU is ext4, and no filesystem type The Sleuth Kit
 supports can walk QNX6 at all, so those images were previously unreadable here.

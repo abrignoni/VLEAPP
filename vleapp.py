@@ -154,7 +154,7 @@ def main():
                               "'fs' for a folder containing extracted files with normal paths and names, "
                               "'tar', 'zip', or 'gz' for compressed packages containing files with normal names, "
                               "'file' for a single file input, "
-                              "'raw' for a raw disk image or an EnCase/EWF (.E01) acquisition, whose QNX6, QNX4, ETFS, EFS, ext, FAT32, exFAT or NTFS volumes and QNX IFS boot images are read without mounting, "
+                              "'raw' for a raw disk image or an EnCase/EWF (.E01) acquisition, whose QNX6, QNX4, ETFS, EFS, ext, FAT32, exFAT, NTFS, HFS+ or APFS volumes and QNX IFS boot images are read without mounting, "
                               "'iva' for a Berla iVe .iVa export."))
     parser.add_argument('-o', '--output_path', required=False, action="store",
                         help='Path to base output folder (this must exist)')

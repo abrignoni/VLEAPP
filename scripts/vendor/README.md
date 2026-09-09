@@ -17,8 +17,8 @@ once and went stale on the first re-vendor, because prose is checked by nobody
 and the manifest is checked on every push.
 
 
-Reads QNX6, QNX4, ext2/3/4, FAT32, exFAT, NTFS, the QNX flash filesystems ETFS
-and EFS, and QNX IFS boot images out of a raw image, without mounting and with no
+Reads QNX6, QNX4, ext2/3/4, FAT32, exFAT, NTFS, HFS+, APFS, the QNX flash
+filesystems ETFS and EFS, and QNX IFS boot images out of a raw image, without mounting and with no
 administrator rights. Python 3 standard library only, so vendoring it adds no
 dependency to requirements.txt.
 
