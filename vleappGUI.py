@@ -216,6 +216,14 @@ def scroll(event):
 # -t raw. An .E01 is the first segment of its set and the reader joins the rest.
 RAW_IMAGE_SUFFIXES = ('img', 'bin', 'dd', 'raw', '001', 'e01')
 
+# The file dialog names extensions, and an extension says nothing about what is
+# inside: a .dd can hold any of these or nothing this reads. The command line
+# spells the list out in its -t help, so a GUI user should not have to go and
+# find that out from a terminal.
+RAW_IMAGE_FILESYSTEMS = ('QNX6, QNX4, ETFS, EFS, ext2/3/4, FAT32, exFAT, NTFS, '
+                         'HFS+, APFS, QNX IFS')
+RAW_IMAGE_LABEL = f'Raw disk image or acquisition ({RAW_IMAGE_FILESYSTEMS})'
+
 
 def ValidateInput():
     '''Returns tuple (success, extraction_type)'''
@@ -675,7 +683,7 @@ def select_input(button_type):
                                                                    '*.tar *.zip *.gz *.img *.bin *.dd *.raw *.001 *.E01 *.iVa'),
                                                                   ('tar file', '*.tar'), ('zip file', '*.zip'),
                                                                   ('gz file', '*.gz'),
-                                                                  ('raw disk image or acquisition', '*.img *.bin *.dd *.raw *.001 *.E01'),
+                                                                  (RAW_IMAGE_LABEL, '*.img *.bin *.dd *.raw *.001 *.E01'),
                                                                   ('Berla iVe export', '*.iVa')))
     else:
         input_filename = tk_filedialog.askdirectory(parent=main_window, title='Select a folder')
@@ -984,7 +992,7 @@ leapps_logo_label.bind("<Button-1>", lambda e: open_website("https://leapps.org"
 ### Input output selection
 input_frame = ttk.LabelFrame(
     main_window,
-    text=' Select the file (tar/zip/gz) or directory containing the data to be parsed: ')
+    text=(' Select the file or directory containing the data to be parsed  (tar, zip, gz, raw image, .E01 acquisition, Berla iVe .iVa, or a folder): '))
 input_frame.pack(padx=14, pady=2, fill='x')
 input_entry = ttk.Entry(input_frame)
 input_entry.pack(side='left', padx=5, pady=4, fill='x', expand=True)
