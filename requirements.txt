@@ -1,7 +1,7 @@
 beautifulsoup4==4.8.2
 ijson
 openpyxl
-packaging==20.1
+packaging==24.1
 pillow
 PyCryptodome
 PyMuPDF
