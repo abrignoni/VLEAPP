@@ -42,7 +42,7 @@ except ImportError:                  # not on sys.path when imported as a module
     except ImportError:
         ewfprobe = None
 
-QNXPROBE_VERSION = "1.24"
+QNXPROBE_VERSION = "1.25"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -633,6 +633,24 @@ def _fmt_time(v):
             v, datetime.timezone.utc).strftime("%Y-%m-%d")
     except (OverflowError, OSError, ValueError):
         return "-"
+
+
+def _fmt_reading(recorded):
+    """A file's modified reading from a walker that keeps readings, as text.
+
+    FAT32 and exFAT store a wall clock and no zone, so ``entry()`` gives them an
+    mtime of 0 and the readings arrive through listdir_records() instead. A
+    listing prints the reading as stored, marked so it cannot be read as an
+    instant, and prints nothing rather than 1970-01-01 when there is none. exFAT
+    also stores a UTC offset beside each stamp; it is shown and not applied, the
+    stance GLEAPP takes on the same field, since one writer has been measured
+    and a listing should not assert an instant from it.
+    """
+    when = (recorded or {}).get("modified")
+    if not when:
+        return ""
+    off = recorded.get("modified utc offset")
+    return f"modified {when} (as stored, {'offset ' + off + ' not applied' if off else 'no zone'})"
 
 
 class Qnx6Walker:
@@ -4520,7 +4538,12 @@ class EfsWalker:
 
 
 def print_tree(w, num, depth, maxdepth, budget, indent=0, pad=6):
-    for name, ino in w.listdir(num):
+    # A walker that keeps readings rather than instants (FAT32, exFAT) is listed
+    # through listdir_records(), so the reading is printed and not the 0 that
+    # entry() returns for its mtime, which _fmt_time() shows as 1970-01-01.
+    readings = hasattr(w, "listdir_records")
+    listing = w.listdir_records(num) if readings else [(n, i, None) for n, i in w.listdir(num)]
+    for name, ino, recorded in listing:
         if budget[0] <= 0:
             print(f"{' '*pad}{'  '*indent}... listing truncated, raise --list-max")
             return
@@ -4533,7 +4556,8 @@ def print_tree(w, num, depth, maxdepth, budget, indent=0, pad=6):
         kind = "dir " if isdir else ("link" if mode & S_IFLNK == S_IFLNK else "file")
         col = max(12, 44 - 2 * indent)
         shown = "" if isdir else f"{human(size):>11}"
-        print(f"{' '*pad}{'  '*indent}{kind} {name:<{col}} {shown}  {_fmt_time(mtime)}")
+        when = _fmt_reading(recorded) if readings else _fmt_time(mtime)
+        print(f"{' '*pad}{'  '*indent}{kind} {name:<{col}} {shown}  {when}")
         # A file can carry content its own size does not account for. NTFS calls
         # those alternate data streams; the walker that has them says so here,
         # because nothing else in the listing would show that the bytes exist.
@@ -6380,6 +6404,48 @@ def _ntfs_times_check(image_gz):
     return failures, checked
 
 
+def _fat_listing_check(image_gz, wcls):
+    """print_tree() on a FAT32 or exFAT fixture prints each file's modified
+    reading as stored and never 1970-01-01, which is what the zero mtime
+    entry() returns for those walkers formats to. The zero is asserted first,
+    so the check proves the substitution and not the absence of a zero.
+    Returns (ok, detail)."""
+    import contextlib, gzip, io
+    with gzip.open(image_gz, "rb") as gz:
+        img = io.BytesIO(gz.read())
+    w = wcls(img, 0)
+    files = [(n, i, r) for n, i, r in w.listdir_records(w.root) if not (w.entry(i)[0] & S_IFDIR)]
+    if not files:
+        return False, "no files in the fixture"
+    if any(w.entry(i)[2] != 0 for _n, i, _r in files):
+        return False, "premise failed: entry() mtime is not 0, so the check proves nothing"
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        print_tree(w, w.root, 1, 3, [1000])
+    out = buf.getvalue()
+    if "1970-01-01" in out:
+        return False, "a zero mtime was printed as 1970-01-01"
+    missing = [n for n, _i, r in files
+               if r.get("modified") and f"modified {r['modified']} (as stored" not in out]
+    if missing:
+        return False, f"reading not printed for {missing[:3]}"
+    return True, f"{len(files)} files, readings printed as stored"
+
+
+def _ntfs_listing_check(image_gz):
+    """The control: an NTFS listing, whose times are instants, still prints a
+    date for a file. Returns (ok, detail)."""
+    import contextlib, gzip, io
+    with gzip.open(image_gz, "rb") as gz:
+        img = io.BytesIO(gz.read())
+    w = NtfsWalker(img, 0)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        print_tree(w, w.root, 1, 2, [5000])
+    line = next((l for l in buf.getvalue().splitlines() if " mid.txt" in l), "")
+    return ("2026-09-11" in line), (line.strip() or "dir/mid.txt not listed")
+
+
 def self_test():
     """Prove the detector reports BOTH ways before you trust a run.
 
@@ -8131,6 +8197,32 @@ def self_test():
                   f"({fgot} of {fwant}"
                   + (f", {fmiss} missing" if fmiss else "")
                   + (f", {fdiff} different" if fdiff else "") + ")" + fbroke)
+
+        for label, stem, wcls in (("FAT32", "fat32-deleted", Fat32Walker),
+                                  ("exFAT", "exfat-deleted", ExfatWalker)):
+            fix = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "tests", "fixtures", stem + ".img.gz")
+            if not os.path.isfile(fix):
+                print(f"  [SKIP] the {label} fixture is not beside this script, so "
+                      "its listing was not checked")
+                continue
+            try:
+                lok, ldetail = _fat_listing_check(fix, wcls)
+            except Exception as exc:                 # pylint: disable=broad-except
+                lok, ldetail = False, f"the check raised {type(exc).__name__}: {exc}"
+            if not lok:
+                ok = False
+            print(f"  [{'PASS' if lok else 'FAIL'}] a {label} listing prints each file's "
+                  f"modified reading as stored and never 1970-01-01 ({ldetail})")
+        if os.path.isfile(ntfs_fix):
+            try:
+                nok, ndetail = _ntfs_listing_check(ntfs_fix)
+            except Exception as exc:                 # pylint: disable=broad-except
+                nok, ndetail = False, f"the check raised {type(exc).__name__}: {exc}"
+            if not nok:
+                ok = False
+            print(f"  [{'PASS' if nok else 'FAIL'}] an NTFS listing still prints an "
+                  f"instant's date ({ndetail})")
 
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"
