@@ -31,10 +31,14 @@ https://twitter.com/TroySchnack/status/1266085323651444736?s=19
 $ python vleapp.py -t <fs | zip | tar | gz | file | raw | iva> -i <path_to_extraction> -o <path_for_report_output>
 ```
 
-`raw` reads a disk image, or an EnCase/EWF `.E01` acquisition and the segments beside
-it, without mounting and without administrator rights: its QNX6, QNX4, ext2/3/4, FAT32,
-exFAT, NTFS, HFS+ or APFS volumes and QNX IFS boot images are read directly. `iva` reads a Berla iVe
-export as it stands.
+`raw` reads a disk image (`.img`, `.dd`, `.bin`, or any numbered `.001` segment of
+a split set), or an EnCase/EWF `.E01` acquisition and the segments beside it, in
+place: no mounting and no administrator rights. Its NTFS, FAT32, exFAT, ext2/3/4,
+HFS+, APFS, QNX6, QNX4, ETFS, EFS and QNX IFS volumes are searched directly, and
+only the files an artifact asks for are read out of the image. The GUI picks
+`raw` on its own for those extensions. See `admin/docs/raw_image_input.md`.
+`iva` reads a Berla iVe export as it stands: the raw image inside it is read the
+same way, and the export's `Vehicle.json` is reported beside the vehicle data.
 
 ### GUI
 

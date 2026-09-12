@@ -21,11 +21,8 @@ Functions:
 """
 
 import time as timex
-import json
 import os
 import shutil
-import subprocess
-import sys
 import tarfile
 import struct
 import tempfile
@@ -506,241 +503,7 @@ class FileSeekerZip(FileSeekerBase):
         self.zip_file.close()
 
 
-def _format_duration(seconds):
-    seconds = int(max(0, seconds))
-    return f'{seconds // 3600:02d}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}'
-
-
-class _RawExtractProgress:
-    """Throttled progress lines for a raw image extraction, through logfunc.
-
-    Reading the volumes out of a head unit image runs for minutes with no output
-    between "artifact started" and the first row, which reads as a hang. The
-    vendored reader emits one JSON object per line on stderr while it works; this
-    turns those into a line an examiner can read, at most every `interval`
-    seconds.
-
-    The counts are the reader's own and are exact, not estimated: it knows the
-    full entry list for a volume before it writes the first file. Percent is
-    per volume, because that is what the reader reports and what an examiner
-    watching a multi volume image wants to see move. Rate and elapsed are
-    cumulative across the run.
-
-    The line is kept short enough to fit the GUI log pane without widening it.
-    """
-
-    def __init__(self, interval=10.0, clock=None, log=None):
-        self.interval = interval
-        self.clock = clock or timex.monotonic
-        self.log = log or logfunc
-        self.started = self.clock()
-        self.last_report = self.started
-        self.done_bytes = 0          # completed volumes
-        self.volumes = 0
-
-    def update(self, event):
-        """One decoded progress object from the reader."""
-        volume = event.get('volume', '?')
-        files, total_files = event.get('files', 0), event.get('total_files', 0)
-        written, total_bytes = event.get('bytes', 0), event.get('total_bytes', 0)
-        complete = total_files and files >= total_files
-        now = self.clock()
-        if not complete and now - self.last_report < self.interval:
-            return
-        self.last_report = now
-        elapsed = now - self.started
-        overall = self.done_bytes + written
-        parts = [f'Reading volumes: {volume}',
-                 f'{files:,}/{total_files:,} files' if total_files else f'{files:,} files']
-        if total_bytes:
-            parts.append(f'{100.0 * written / total_bytes:.0f}%')
-        if elapsed > 0:
-            parts.append(f'{overall / elapsed / (1 << 20):.1f} MiB/s')
-        parts.append(f'elapsed {_format_duration(elapsed)}')
-        if total_bytes and 0 < written < total_bytes and elapsed > 0 and overall > 0:
-            remaining = (total_bytes - written) / (overall / elapsed)
-            parts.append(f'~{_format_duration(remaining)} left on this volume')
-        self.log('  ' + '  '.join(parts))
-        if complete:
-            self.done_bytes += written
-            self.volumes += 1
-
-
-def _extract_image_volumes(probe, image_path, staged_zip, exclude=None):
-    """Run the vendored reader over a raw image, streaming its output to the log.
-
-    -u so the reader's stdout is unbuffered and its report arrives while it
-    works rather than in one block at the end. --progress puts machine readable
-    progress on stderr; stderr is merged into stdout here and the two are told
-    apart by the leading brace, which no report line has, so one stream is read
-    and there is no second pipe to deadlock on. The report names the partition
-    table, every filesystem confirmed and what was extracted; that belongs in
-    the run log, because it is the record of which volumes the rows came from.
-    """
-    cmd = [sys.executable, '-u', probe, '--progress', '--extract', staged_zip]
-    for text in (exclude or ()):
-        cmd += ['--exclude', text]
-    cmd.append(image_path)
-
-    logfunc(f'Reading volumes out of {os.path.basename(image_path)} with the '
-            f'vendored qnxprobe. This is the slow part of a raw image run.')
-    progress = _RawExtractProgress()
-    tail = []
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, text=True, bufsize=1)
-    for line in proc.stdout:
-        line = line.rstrip()
-        if not line:
-            continue
-        if line.lstrip().startswith('{'):
-            try:
-                progress.update(json.loads(line))
-                continue
-            except ValueError:
-                pass    # not ours after all, fall through and log it
-        logfunc(line)
-        tail.append(line)
-        del tail[:-20]
-    proc.wait()
-    if proc.returncode != 0 or not os.path.isfile(staged_zip):
-        detail = '\n'.join(tail) or 'no output'
-        raise RuntimeError(
-            f'qnxprobe could not extract any filesystem from {image_path}. '
-            f'Exit {proc.returncode}. Last output:\n{detail}')
-    _warn_incomplete_volumes(staged_zip)
-
-
-def _warn_incomplete_volumes(staged_zip):
-    """Say in the run log when the reader found the image shorter than its volumes.
-
-    qnxprobe 1.12 records per volume, in volumes.json, how far the volume reaches
-    past the end of the image (extends_past_image_by_bytes) and how many of its
-    files were cut by that end (short). That is the whole difference between a
-    small disk and the first segment of a split one, and it sits in a zip the
-    examiner never opens, so repeat it here, where the run log is read. Returns
-    the incomplete volumes.
-    """
-    try:
-        with ZipFile(staged_zip) as archive:
-            volumes = json.loads(archive.read('volumes.json')).get('volumes', [])
-    except (KeyError, ValueError, OSError):
-        return []
-    segments = volumes[0].get('image_segments') if volumes else None
-    if segments:
-        # qnxprobe 1.13 lists every segment it joined, with its size, on each
-        # volume; the first volume's list is the set
-        logfunc(f"Read from {len(segments):,} segments joined in order, "
-                f"{segments[0].get('name')} .. {segments[-1].get('name')}, "
-                f"{sum(s.get('bytes', 0) for s in segments):,} bytes in all.")
-    incomplete = [v for v in volumes
-                  if v.get('extends_past_image_by_bytes') or v.get('short')]
-    if not incomplete:
-        return []
-    logfunc('WARNING: the image is shorter than the volumes it describes. Rows from '
-            'these volumes come from an incomplete read:')
-    for volume in incomplete:
-        past = volume.get('extends_past_image_by_bytes') or 0
-        logfunc(f"  {volume.get('volume')}: reaches {past:,} bytes past the end of the "
-                f"image, {volume.get('files', 0):,} files read whole, "
-                f"{volume.get('short', 0):,} cut short")
-    logfunc('  If this is a numbered segment of a split image, the rest of the set is '
-            'not beside it: the reader joins every segment it finds in the same folder.')
-    return incomplete
-
-
-def split_image_sibling(image_path):
-    """The next segment of a split image, when this file is one segment of it.
-
-    FTK Imager and its peers write a raw image as numbered segments (.001, .002,
-    ...) unless told to write one file, and the first segment alone carries the
-    partition table and the boot volumes, so it identifies cleanly and every
-    volume past the cut reads as empty. Measured on a Ford Sync G4 image cut at
-    1,500 MB: the boot partitions extracted in full and the 28.8 GiB storage
-    volume reported 0 files with nothing raised. A numbered suffix with the next
-    number sitting beside it is that case. Since qnxprobe 1.13 the reader joins
-    the set itself, so this only decides whether the run log says so; a set
-    with a hole in its numbering is refused by the reader, by name, and that
-    refusal reaches the log through _extract_image_volumes().
-
-    Returns the path of the next segment, or None when the suffix is not a
-    number or no next segment is beside this file.
-    """
-    stem, dot, suffix = os.path.basename(image_path).rpartition('.')
-    if not dot or not stem or not (suffix.isascii() and suffix.isdigit()):
-        return None
-    following = str(int(suffix) + 1).zfill(len(suffix))
-    candidate = os.path.join(os.path.dirname(image_path), f'{stem}.{following}')
-    return candidate if os.path.isfile(candidate) else None
-
-
-class FileSeekerRaw(FileSeekerZip):
-    """Read a raw disk image by extracting its volumes to a zip first.
-
-    Vehicle head units run QNX6, QNX4, ETFS, EFS and ext filesystems and boot from QNX IFS
-    images, and removable media in a vehicle is FAT or exFAT. None of them mounts here without
-    administrator rights, and no filesystem type The Sleuth Kit supports can walk
-    QNX6 at all, so a raw head unit image is otherwise unreadable by this tool.
-    scripts/vendor/qnxprobe.py reads both directly from the image.
-
-    Working out which partitions hold which filesystem, and which superblock
-    generation is the current one, happens inside qnxprobe's own command line flow
-    rather than behind a callable seam. Reimplementing that here would duplicate
-    logic that then drifts from the vendored copy, which is the thing vendoring
-    with a hash guard exists to prevent. So this runs the vendored tool to produce
-    a zip of the logical files and then behaves exactly like a zip input, which
-    keeps every staging and matching decision on the path the zip seeker already
-    exercises on every run.
-
-    A split raw image (.001, .002, ...) is handed to the reader as it is: since
-    qnxprobe 1.13 it joins every segment beside the one named, in order, and
-    records the set in volumes.json, which _warn_incomplete_volumes() repeats
-    in the run log. An EnCase/EWF acquisition (.E01 and its numbered segments)
-    is handed over the same way and joined the same way, through the ewfprobe
-    vendored beside the reader.
-
-    The zip is written to a temporary directory and removed by cleanup(). An
-    examiner who wants to keep it, which is worth doing for a large image because
-    the extraction is the slow part, should run the vendored script directly:
-
-        python3 scripts/vendor/qnxprobe.py --extract volumes.zip IMAGE
-        python3 vleapp.py -t zip -i volumes.zip -o REPORT
-    """
-
-    def __init__(self, image_path, data_folder, exclude=None):
-        sibling = split_image_sibling(image_path)
-        if sibling:
-            logfunc(f'{os.path.basename(image_path)} is one segment of a split image: '
-                    f'{os.path.basename(sibling)} sits beside it. The vendored reader '
-                    f'joins every segment of the set in order; the segments it read are '
-                    f'listed below.')
-        self._stage_dir = tempfile.mkdtemp(prefix='vleapp_raw_')
-        staged = False
-        try:
-            staged_zip = os.path.join(self._stage_dir, 'qnx_volumes.zip')
-            probe = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 'vendor', 'qnxprobe.py')
-            if not os.path.isfile(probe):
-                raise FileNotFoundError(
-                    f'the vendored reader is missing: {probe}. Raw image input needs '
-                    'scripts/vendor/qnxprobe.py.')
-
-            _extract_image_volumes(probe, image_path, staged_zip, exclude)
-            FileSeekerZip.__init__(self, staged_zip, data_folder)
-            staged = True
-        finally:
-            # A failed or interrupted (Ctrl-C on a slow run) __init__ after mkdtemp
-            # never binds an object for cleanup() to reach, so remove the staging
-            # dir here; a successful build keeps it for cleanup() at end of run.
-            if not staged:
-                shutil.rmtree(self._stage_dir, ignore_errors=True)
-
-    def cleanup(self):
-        FileSeekerZip.cleanup(self)
-        shutil.rmtree(getattr(self, '_stage_dir', ''), ignore_errors=True)
-
-
-
-class FileSeekerIva(FileSeekerZip):
+class FileSeekerIva(FileSeekerBase):
     """Read a Berla iVe .iVa export directly.
 
     An .iVa is a ZIP holding another ZIP, which holds the vehicle's source
@@ -751,31 +514,30 @@ class FileSeekerIva(FileSeekerZip):
     of a direct run was empty.
 
     This reaches through the nesting itself. When the export carries a raw
-    image, that image is read with the vendored qnxprobe, which is the more
-    complete route: on the tested export it reaches a volume the vendor's own
-    extracted file set does not include. When no raw image is present, the
-    extracted file set is used as it stands. Either way Vehicle.json is staged
-    at the root so the export's acquisition record is reported alongside the
-    vehicle data.
+    image, that image is copied out to a temporary directory and read in place
+    by FileSeekerRaw (scripts/raw_image.py), which is the more complete route:
+    on the tested export it reaches a volume the vendor's own extracted file set
+    does not include. When no raw image is present, the extracted file set is
+    read by FileSeekerZip as it stands. Either way Vehicle.json from the top of
+    the export is staged as a member named Vehicle.json, so the export's
+    acquisition record is reported alongside the vehicle data.
 
-    Everything intermediate lands in a temporary directory and cleanup()
-    removes it. The unwrap script remains the way to KEEP the intermediate
-    zip, which makes re-runs cheap on a large export.
+    The image copy lives for the run, because it is read on demand, and
+    cleanup() removes it with the rest of the temporary directory. The unwrap
+    script remains the way to KEEP the intermediate files, which makes re-runs
+    cheap on a large export.
     """
 
     SOURCE_FILES_MEMBER = 'DCASourceFilesUpload.zip'
 
-    def __init__(self, iva_path, data_folder, exclude=None):
+    def __init__(self, iva_path, data_folder):
+        FileSeekerBase.__init__(self)
+        self.data_folder = data_folder
         self._stage_dir = tempfile.mkdtemp(prefix='vleapp_iva_')
+        self._inner = None
+        self._vehicle_json = None
         staged = False
         try:
-            probe = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 'vendor', 'qnxprobe.py')
-            if not os.path.isfile(probe):
-                raise FileNotFoundError(
-                    f'the vendored reader is missing: {probe}. .iVa input needs '
-                    'scripts/vendor/qnxprobe.py.')
-
             vehicle_json = None
             with ZipFile(iva_path) as outer:
                 names = outer.namelist()
@@ -820,32 +582,53 @@ class FileSeekerIva(FileSeekerZip):
                     with source.open(images[0]) as src, open(image_path, 'wb') as dst:
                         copyfileobj(src, dst, 16 << 20)
 
-            staged_zip = os.path.join(self._stage_dir, 'iva_volumes.zip')
             if image_path is not None:
-                _extract_image_volumes(probe, image_path, staged_zip, exclude)
-                os.remove(image_path)
+                # imported here rather than at the top: raw_image imports this
+                # module for FileSeekerBase and FileInfo
+                from scripts.raw_image import FileSeekerRaw  # pylint: disable=import-outside-toplevel
+                self._inner = FileSeekerRaw(image_path, data_folder)
                 os.remove(source_zip)
             else:
                 logfunc('The export carries no raw image; using the file set iVe '
                         'extracted.')
-                staged_zip = source_zip
+                self._inner = FileSeekerZip(source_zip, data_folder)
 
             if vehicle_json is not None:
-                with ZipFile(staged_zip, 'a') as add:
-                    add.writestr('Vehicle.json', vehicle_json)
-
-            FileSeekerZip.__init__(self, staged_zip, data_folder)
+                os.makedirs(data_folder, exist_ok=True)
+                dest = os.path.join(data_folder, 'Vehicle.json')
+                with open(dest, 'wb') as out:
+                    out.write(vehicle_json)
+                self._vehicle_json = dest
+                self._inner.file_infos[dest] = FileInfo('Vehicle.json', 0, 0)
             staged = True
         finally:
-            # A failed or interrupted (Ctrl-C on a slow run) __init__ after mkdtemp
-            # never binds an object for cleanup() to reach, so remove the staging
-            # dir here; a successful build keeps it for cleanup() at end of run.
+            # A failed or interrupted (Ctrl-C on a slow unpack) __init__ after mkdtemp
+            # never binds an object for cleanup() to reach, so release everything
+            # here; a successful build keeps the directory for cleanup() at end of run.
             if not staged:
+                if self._inner is not None:
+                    self._inner.cleanup()
                 shutil.rmtree(self._stage_dir, ignore_errors=True)
+        # the run reads these off the seeker it was handed
+        self.searched = self._inner.searched
+        self.copied = self._inner.copied
+        self.file_infos = self._inner.file_infos
+
+    def search(self, filepattern, return_on_first_hit=False, force=False):
+        found = list(self._inner.search(filepattern, force=force))
+        if self._vehicle_json is not None and self._vehicle_json not in found:
+            pat = _compile_pattern(normcase(filepattern))
+            if pat(normcase('root/Vehicle.json')) is not None:
+                found.append(self._vehicle_json)
+        if return_on_first_hit:
+            return found[0] if found else found
+        return found
 
     def cleanup(self):
-        FileSeekerZip.cleanup(self)
+        if self._inner is not None:
+            self._inner.cleanup()
         shutil.rmtree(getattr(self, '_stage_dir', ''), ignore_errors=True)
+
 
 class FileSeekerFile(FileSeekerBase):
     """

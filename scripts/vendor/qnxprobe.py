@@ -42,7 +42,7 @@ except ImportError:                  # not on sys.path when imported as a module
     except ImportError:
         ewfprobe = None
 
-QNXPROBE_VERSION = "1.25"
+QNXPROBE_VERSION = "1.27"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -764,6 +764,10 @@ class Qnx6Walker:
     root = QNX6_ROOT_INO
 
 
+class ExtUnreadable(Exception):
+    """An ext file this reader cannot hand back whole; the message says why."""
+
+
 class ExtWalker:
     def __init__(self, fh, base):
         self.fh, self.base = fh, base
@@ -792,28 +796,103 @@ class ExtWalker:
             return None
         return raw
 
+    def _runs(self, raw):
+        """[(logical block, block count, physical block or None)] in logical order.
+
+        A file's content is addressed by logical block; where a run's physical
+        block is None the run is an extent the kernel wrote as uninitialized,
+        which reads as zeros, and a logical range no run covers is a hole, which
+        also reads as zeros. Returns None for a file whose data lives inline in
+        the inode. Two layouts are read:
+
+        - the extent tree (EXT4_EXTENTS_FL), each leaf carrying its own logical
+          start (ee_block) and length, with bit 15 of the length marking an
+          uninitialized extent: linux/fs/ext4/ext4_extents.h;
+        - the classic block map of ext2 and ext3, twelve direct pointers then a
+          single, double and triple indirect block, a zero pointer being a
+          hole: linux/fs/ext2/ext2.h (i_block), linux/fs/ext4/ext4.h EXT4_*_BLOCK.
+
+        Reading the extents as a flat list of physical blocks, which this did
+        before, dropped every hole: a 32 KiB SQLite shared-memory file with two
+        written pages came back as 8 KiB, and its bytes in the wrong order.
+        """
+        flags = int.from_bytes(raw[32:36], "little")
+        if flags & 0x10000000:                                 # EXT4_INLINE_DATA_FL
+            return None
+        runs = []
+        if flags & 0x80000:                                    # EXT4_EXTENTS_FL
+            def walk(buf, off, depth_left=8):
+                if depth_left <= 0 or len(buf) < off + 12:
+                    return
+                if struct.unpack_from("<H", buf, off)[0] != 0xF30A:
+                    return
+                ent = struct.unpack_from("<H", buf, off + 2)[0]
+                depth = struct.unpack_from("<H", buf, off + 6)[0]
+                for i in range(ent):
+                    o = off + 12 + i * 12
+                    if len(buf) < o + 12:
+                        return
+                    if depth == 0:
+                        lblk = struct.unpack_from("<I", buf, o)[0]
+                        raw_len = struct.unpack_from("<H", buf, o + 4)[0]
+                        st = (struct.unpack_from("<I", buf, o + 8)[0]
+                              | struct.unpack_from("<H", buf, o + 6)[0] << 32)
+                        if raw_len > 0x8000:                   # uninitialized extent
+                            runs.append((lblk, raw_len - 0x8000, None))
+                        elif raw_len:
+                            runs.append((lblk, raw_len, st))
+                    else:
+                        leaf = (struct.unpack_from("<I", buf, o + 4)[0]
+                                | struct.unpack_from("<H", buf, o + 8)[0] << 32)
+                        walk(self._blk(leaf), 0, depth_left - 1)
+            walk(raw, 40)
+            runs.sort()
+            return runs
+
+        per = self.bs // 4                                      # pointers per indirect block
+
+        def add(lblk, phys):
+            if not phys:                                        # a zero pointer is a hole
+                return
+            if runs and runs[-1][2] is not None:
+                l0, n0, p0 = runs[-1]
+                if l0 + n0 == lblk and p0 + n0 == phys:
+                    runs[-1] = (l0, n0 + 1, p0)
+                    return
+            runs.append((lblk, 1, phys))
+
+        def indirect(block, level, lbase):
+            if not block:
+                return
+            buf = self._blk(block)
+            span = per ** (level - 1)                           # logical blocks per pointer
+            for i in range(min(per, len(buf) // 4)):
+                ptr = struct.unpack_from("<I", buf, 4 * i)[0]
+                if level == 1:
+                    add(lbase + i * span, ptr)
+                elif ptr:
+                    indirect(ptr, level - 1, lbase + i * span)
+
+        for i in range(12):
+            add(i, struct.unpack_from("<I", raw, 40 + 4 * i)[0])
+        indirect(struct.unpack_from("<I", raw, 88)[0], 1, 12)
+        indirect(struct.unpack_from("<I", raw, 92)[0], 2, 12 + per)
+        indirect(struct.unpack_from("<I", raw, 96)[0], 3, 12 + per + per * per)
+        return runs
+
     def _blocks(self, raw):
-        if not (int.from_bytes(raw[32:36], "little") & 0x80000):
-            return []                                   # not extent-mapped
-        def walk(buf, off):
-            if struct.unpack_from("<H", buf, off)[0] != 0xF30A:
-                return []
-            ent = struct.unpack_from("<H", buf, off + 2)[0]
-            depth = struct.unpack_from("<H", buf, off + 6)[0]
-            out = []
-            for i in range(ent):
-                o = off + 12 + i * 12
-                if depth == 0:
-                    st = (struct.unpack_from("<I", buf, o + 8)[0]
-                          | struct.unpack_from("<H", buf, o + 6)[0] << 32)
-                    ln = struct.unpack_from("<H", buf, o + 4)[0] & 0x7FFF
-                    out += list(range(st, st + ln))
-                else:
-                    leaf = (struct.unpack_from("<I", buf, o + 4)[0]
-                            | struct.unpack_from("<H", buf, o + 8)[0] << 32)
-                    out += walk(self._blk(leaf), 0)
-            return out
-        return walk(raw, 40)
+        """The physical blocks holding a directory's entries, in logical order.
+
+        Directories have no holes, so a run that reads as zeros is skipped.
+        """
+        runs = self._runs(raw)
+        if not runs:
+            return []
+        out = []
+        for _lblk, count, phys in runs:
+            if phys is not None:
+                out.extend(range(phys, phys + count))
+        return out
 
     def listdir(self, num):
         raw = self.inode(num)
@@ -846,19 +925,58 @@ class ExtWalker:
         return mode, size, struct.unpack_from("<I", raw, 16)[0]
 
     def read_file(self, num, size):
+        """Yield the file's bytes, exactly ``size`` of them, holes and all."""
         raw = self.inode(num)
         if not raw:
             return
+        runs = self._runs(raw)
+        if runs is None:
+            # Inline data keeps the first 60 bytes in the inode's block field and
+            # the rest in the system.data extended attribute, which is not read
+            # here. A short file is whole; a longer one is refused rather than
+            # handed back cut, because a cut file parses as a smaller one.
+            if size <= 60:
+                yield raw[40:40 + size]
+                return
+            raise ExtUnreadable(f"{size:,} bytes of inline data, of which only the 60 "
+                                "in the inode are read")
         left = size
-        for b in self._blocks(raw):
+        pos = 0                                                 # next logical block to deliver
+        for lblk, count, phys in runs:
             if left <= 0:
                 return
-            buf = self._blk(b)
-            if len(buf) < self.bs:
-                buf = buf + bytes(self.bs - len(buf))
-            take = min(self.bs, left)
-            yield buf[:take]
-            left -= take
+            if lblk > pos:                                      # a hole reads as zeros
+                for chunk in self._zeros(min(lblk - pos, -(-left // self.bs)) * self.bs, left):
+                    yield chunk
+                    left -= len(chunk)
+                pos = lblk
+            skip = pos - lblk                                   # an overlapping run, never expected
+            for i in range(skip, count):
+                if left <= 0:
+                    return
+                if phys is None:
+                    buf = bytes(self.bs)
+                else:
+                    buf = self._blk(phys + i)
+                    if len(buf) < self.bs:
+                        buf = buf + bytes(self.bs - len(buf))
+                take = min(self.bs, left)
+                yield buf[:take]
+                left -= take
+                pos += 1
+        if left > 0:                                            # a trailing hole
+            for chunk in self._zeros(left, left):
+                yield chunk
+                left -= len(chunk)
+
+    @staticmethod
+    def _zeros(n, cap):
+        """Zero bytes for a hole, at most cap, in pieces that do not sit in memory at once."""
+        n = min(n, cap)
+        while n > 0:
+            piece = min(n, 1 << 20)
+            yield bytes(piece)
+            n -= piece
 
     root = 2
 
@@ -5572,6 +5690,166 @@ def volume_name(part_idx, lba, label=""):
     return f"{stem}_{suffix}" if suffix else stem
 
 
+# The MBR type bytes that mark an extended partition container. main() keeps
+# the same tuple as a local; a consumer of volumes() needs it by name.
+EXT_PARTITION_TYPES = (0x05, 0x0f, 0x85)
+
+
+def partition_regions(fh, size):
+    """(regions, names, containers, protective) for an image, as main() sees them.
+
+    regions is [(label, base, size)] in report order: MBR primaries, then the
+    logical volumes found by walking the EBR chain, then GPT entries, or the
+    whole image as one region when no table is present. names maps a region's
+    byte offset to the directory an extraction uses (volume_name); containers
+    holds the labels of extended partition containers, which hold the logical
+    volumes and are not themselves volumes; protective holds the 0xEE entry a
+    GPT disk carries in its MBR.
+    """
+    regions, names = [], {}
+    containers, protective = set(), set()
+    parts = parse_mbr(fh)
+    if parts:
+        for idx, t, st, cnt in parts:
+            regions.append((f"MBR part {idx}", st * SECTOR, cnt * SECTOR))
+            names[st * SECTOR] = volume_name(idx, st)
+            if t in EXT_PARTITION_TYPES:
+                containers.add(f"MBR part {idx}")
+            if t == 0xEE:
+                protective.add(f"MBR part {idx}")
+        logical_idx = 4               # logical volumes number from 5, as OSes do
+        for idx, t, st, cnt in parts:
+            if t not in EXT_PARTITION_TYPES:
+                continue
+            base, cur, n = st, st, 0
+            while cur and n < 64:
+                ebr = read_at(fh, cur * SECTOR, 512)
+                if len(ebr) < 512 or ebr[510:512] != b"\x55\xaa":
+                    break
+                e1, e2 = ebr[446:462], ebr[462:478]
+                lst, lcnt = struct.unpack("<II", e1[8:16])
+                if lcnt:
+                    astart = cur + lst
+                    regions.append((f"logical @{astart}", astart * SECTOR, lcnt * SECTOR))
+                    logical_idx += 1
+                    names[astart * SECTOR] = volume_name(logical_idx, astart)
+                nxt = struct.unpack("<I", e2[8:12])[0]
+                cur = (base + nxt) if nxt else 0
+                n += 1
+    gpt = parse_gpt(fh)
+    if gpt:
+        for idx, name, _g, first, last in gpt:
+            sz = (last - first + 1) * SECTOR
+            regions.append((f"GPT part {idx} {name[:20]}", first * SECTOR, sz))
+            names[first * SECTOR] = volume_name(idx, first, name)
+    if not regions:
+        regions.append(("whole image", 0, size))
+        names[0] = volume_name(None, 0)
+    return regions, names, containers, protective
+
+
+def _ext_label(fh, base):
+    """An ext volume's label, or its last mount point when it has no label."""
+    sb = read_at(fh, base + EXT_SB_OFF, 1024)
+    lab = sb[EXT_F["volume_name"]:EXT_F["volume_name"] + 16]
+    lab = lab.split(b"\x00")[0].decode("utf-8", "replace")
+    mnt = sb[EXT_F["last_mounted"]:EXT_F["last_mounted"] + 64]
+    mnt = mnt.split(b"\x00")[0].decode("utf-8", "replace")
+    return lab or mnt.strip("/").replace("/", "_")
+
+
+def volumes(fh, size=None):
+    """Every volume main() would list or extract, in report order, as dicts.
+
+    This is the callable form of the discovery main() does while it prints.
+    The window's Contents pane and the LEAPP tools read images through it, so
+    a volume here is a volume in the report: `qnxprobe_gui.py --check-discovery
+    IMAGE` proves that against the report text for any image.
+
+    Each dict carries:
+        label       the region as the report names it ("GPT part 3 storage")
+        base, size  byte offset and byte length of the region
+        lba         base in sectors, the identity an extraction is named by
+        kind        "qnx6", "ext4", "fat32", "ntfs", ..., "extended container",
+                    or "not recognised"
+        name        the directory the volume extracts under (volume_name)
+        detail      a short description from the identifier
+        missing_past_end
+                    bytes of the region that lie past the end of the image; a
+                    positive value means the file holds only part of this
+                    volume (a lone first segment of a split image reads so)
+        walker      an object with root, listdir, entry and read_file, when the
+                    kind is one this reads; else
+        note        why there is no walker
+
+    Brute-scan finds are report-only in main() too (they have no region and so
+    no base to walk), so they are not here either. fh is what open_image()
+    returns; size defaults to image_size(fh).
+    """
+    if size is None:
+        size = image_size(fh)
+    regions, names, containers, protective = partition_regions(fh, size)
+    missing = {start: gap for _lab, start, _rs, gap in
+               short_regions(size, regions, skip=protective)}
+    out, qnx6_labels = [], set()
+
+    for label, base, rsize in regions:
+        best = None
+        for off, _rel in sb_slots(fh, base, label, regions):
+            r = check(fh, off)
+            if r and not r[2] and (best is None or r[1]["serial"] > best[1]["serial"]):
+                best = (off, r[1])
+        if best is None:
+            continue
+        qnx6_labels.add(label)
+        vol = dict(label=label, base=base, size=rsize, lba=base // SECTOR, kind="qnx6",
+                   name=names.get(base) or f"lba{base // SECTOR}",
+                   detail=f"serial {best[1]['serial']:,}, "
+                          f"volumeid {best[1]['volumeid'].hex()} (as stored)",
+                   missing_past_end=missing.get(base, 0))
+        try:
+            vol["walker"] = Qnx6Walker(fh, base, best[0] - base)
+        except Exception as exc:                        # report it, do not hide it
+            vol["note"] = f"could not walk this filesystem: {exc}"
+        out.append(vol)
+
+    for label, base, rsize in regions:
+        if label in qnx6_labels or label in protective:
+            continue
+        if label in containers:
+            out.append(dict(label=label, base=base, size=rsize, lba=base // SECTOR,
+                            kind="extended container", name="", detail="",
+                            missing_past_end=missing.get(base, 0),
+                            note="holds the logical volumes, nothing to walk"))
+            continue
+        kind, lines = identify_fs(fh, base, rsize)
+        stem = names.get(base) or f"lba{base // SECTOR}"
+        vol = dict(label=label, base=base, size=rsize, lba=base // SECTOR,
+                   kind=kind or "not recognised", name=stem,
+                   detail="; ".join(lines[:2]), missing_past_end=missing.get(base, 0))
+        try:
+            if kind and kind.startswith("ext"):
+                ext_name = _ext_label(fh, base)
+                suffix = sanitize_volume_label(ext_name) if ext_name else ""
+                if suffix and not stem.endswith(f"_{suffix}"):
+                    vol["name"] = f"{stem}_{suffix}"
+                vol["walker"] = ExtWalker(fh, base)
+            elif kind == "QNX IFS boot image":
+                vol["walker"] = IfsWalker(fh, base)
+            elif kind:
+                vol["walker"] = walker_for(kind, fh, base, rsize)
+                if vol["walker"] is None:
+                    vol["note"] = "recognised, but no walker for this kind"
+            else:
+                vol["note"] = "not a filesystem this tool reads"
+        except IfsUnsupported as exc:
+            vol["note"] = f"contents not read: {exc}"
+        except Exception as exc:
+            vol["note"] = f"could not walk this filesystem: {exc}"
+        out.append(vol)
+    return out
+
+
 def main(path, scan_limit_mib=256, do_list=False, list_depth=2, list_max=400,
          extract=None, only=None, zf=None, do_triage=False, exclude=None,
          reporter=None, manifest=None):
@@ -6294,6 +6572,56 @@ def _ntfs_deleted_check(image_gz, listing):
         else:
             different += 1
     return matched, len(want), missing, different
+
+
+def _ext_fixture_check(image_gz, listing):
+    """Walk a committed ext fixture and compare every file against the hashes
+    sha256sum recorded over the tree the image was built from.
+
+    Returns (kind, matched, expected, missing, different). The fixtures hold
+    sparse files of every shape (a hole first, a hole in the middle, a trailing
+    hole past the last block, a file that is nothing but hole, and a 3 MiB one
+    whose data sits at both ends), so a reader that drops holes or loses the
+    logical position of an extent fails here; the ext2 image reaches the same
+    files through the classic block map instead of an extent tree.
+    """
+    import gzip, hashlib, io
+    with gzip.open(image_gz, "rb") as gz:
+        img = io.BytesIO(gz.read())
+    size = img.getbuffer().nbytes
+    want = {}
+    with open(listing, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            digest, path = line.split("  ", 1)
+            want[path] = digest
+    kind = (identify_fs(img, 0, size) or (None,))[0]
+    w = walker_for(kind, img, 0, size) if kind else None
+    if w is None:
+        return kind, 0, len(want), len(want), 0
+    have = {path: (ino, sz) for path, ino, sz, _mtime in collect(w, w.root) if sz is not None}
+    matched = missing = different = 0
+    for path, digest in want.items():
+        got = have.get(path)
+        if got is None:
+            missing += 1
+            continue
+        h = hashlib.sha256()
+        read = 0
+        try:
+            for chunk in w.read_file(got[0], got[1]):
+                h.update(chunk)
+                read += len(chunk)
+        except ExtUnreadable:
+            different += 1
+            continue
+        if read == got[1] and h.hexdigest() == digest:
+            matched += 1
+        else:
+            different += 1
+    return kind, matched, len(want), missing, different
 
 
 def _ntfs_fixture_check(image_gz, listing):
@@ -8114,6 +8442,34 @@ def self_test():
                 ok = False
             print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
 
+        # ext: sparse files and the classic block map. Both fixtures were built
+        # from one tree with mke2fs -d, so one hash list serves both, and it was
+        # written by sha256sum over that tree, not by any reader of the image.
+        ext_want = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "tests", "fixtures", "ext-sparse.sha256")
+        for stem, want_kind in (("ext4-sparse", "ext4"), ("ext2-sparse", "ext2")):
+            ext_fix = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "tests", "fixtures", stem + ".img.gz")
+            if not (os.path.isfile(ext_fix) and os.path.isfile(ext_want)):
+                print(f"  [SKIP] the {stem} fixture is not beside this script, so the "
+                      "walk was not compared against it")
+                continue
+            try:
+                ekind, egot, ewant, emiss, ediff = _ext_fixture_check(ext_fix, ext_want)
+                ebroke = ""
+            except Exception as exc:                 # pylint: disable=broad-except
+                ekind, egot, ewant, emiss, ediff = None, 0, 0, 0, 0
+                ebroke = f"; the walk raised {type(exc).__name__}: {exc}"
+            econd = (ekind == want_kind and egot and egot == ewant and not emiss
+                     and not ediff and not ebroke)
+            if not econd:
+                ok = False
+            print(f"  [{'PASS' if econd else 'FAIL'}] every file of the {stem} fixture, "
+                  f"holes included, matches what sha256sum recorded over its source tree "
+                  f"({egot} of {ewant}, identified as {ekind}"
+                  + (f", {emiss} missing" if emiss else "")
+                  + (f", {ediff} different" if ediff else "") + ")" + ebroke)
+
         ntfs_fix = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "tests", "fixtures", "ntfs-fixture.img.gz")
         ntfs_want = ntfs_fix[:-len(".img.gz")] + ".sha256"
@@ -8223,6 +8579,52 @@ def self_test():
                 ok = False
             print(f"  [{'PASS' if nok else 'FAIL'}] an NTFS listing still prints an "
                   f"instant's date ({ndetail})")
+
+        # volumes(): the callable form of the report's discovery. The names and
+        # kinds below are written out, not read back from volume_name() or from
+        # main(), so a wrong region, a wrong kind or a missing walker each fails.
+        def _vol_view(path):
+            with open(path, "rb") as fh:
+                return [(v["kind"], v["name"], "walker" in v, v["missing_past_end"])
+                        for v in volumes(fh, os.path.getsize(path))]
+        vol_checks = (
+            ("volumes() names the qnx6 behind an MBR by its partition and LBA",
+             a, [("qnx6", "p1_lba2048", True, 0)]),
+            ("volumes() names a whole-image big-endian qnx6 lba0",
+             b, [("qnx6", "lba0", True, 0)]),
+            ("volumes() reports an unrecognised image as one region without a walker",
+             c, [("not recognised", "lba0", False, 0)]),
+            ("volumes() recognises a synthetic FAT32 boot sector",
+             fp, [("fat32", "lba0", True, 0)]),
+            ("volumes() recognises a synthetic exFAT boot sector",
+             xp, [("exfat", "lba0", True, 0)]),
+        )
+        for label, path, want in vol_checks:
+            try:
+                got = _vol_view(path)
+                vbroke = ""
+            except Exception as exc:                 # pylint: disable=broad-except
+                got, vbroke = None, f"; raised {type(exc).__name__}: {exc}"
+            cond = got == want and not vbroke
+            if not cond:
+                ok = False
+            print(f"  [{'PASS' if cond else 'FAIL'}] {label}"
+                  + ("" if cond else f"  (got {got}{vbroke})"))
+        # A region the file does not hold in full reports how much is missing:
+        # the first segment of a split image has exactly this shape.
+        try:
+            with open(cut, "rb") as fh:
+                cut_vols = volumes(fh, os.path.getsize(cut))
+            cut_cond = (len(cut_vols) == 1 and cut_vols[0]["kind"] == "qnx6"
+                        and cut_vols[0]["missing_past_end"] > 0)
+            cut_detail = (f"{cut_vols[0]['missing_past_end']:,} bytes past the end"
+                          if cut_vols else "no volume found")
+        except Exception as exc:                     # pylint: disable=broad-except
+            cut_cond, cut_detail = False, f"raised {type(exc).__name__}: {exc}"
+        if not cut_cond:
+            ok = False
+        print(f"  [{'PASS' if cut_cond else 'FAIL'}] volumes() reports a volume the "
+              f"image is too short for as missing bytes ({cut_detail})")
 
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"

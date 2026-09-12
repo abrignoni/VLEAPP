@@ -83,8 +83,10 @@ jobs:
       # scripts/vendor/ holds code copied verbatim from another repository, so it
       # drifts in two directions and both are silent: an edit here looks like a fix
       # until the next re-vendor reverts it, and an upstream release leaves this copy
-      # quietly old. Unconditional rather than gated on changed Python files, because
-      # the recorded hashes live in a .json and a stale record is the same defect.
+      # quietly old. The manifest records each copy's hash and upstream commit; this
+      # checks the hash and fetches the upstream file at that commit. Unconditional
+      # rather than gated on changed Python files, because the recorded hashes live in
+      # a .json and a stale record is the same defect.
       - name: Check vendored files match what was vendored
         run: python admin/scripts/check_vendored.py
 
