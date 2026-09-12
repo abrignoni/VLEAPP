@@ -49,10 +49,10 @@ def _read_lines(file_found):
 
 def _parse(context):
     gps, calls = [], []
-    source_path = ''
+    source_paths = []
     for file_found in context.get_files_found():
         file_found = str(file_found)
-        source_path = file_found
+        source_paths.append(file_found)
         rel = context.get_relative_path(file_found)
         for x in _read_lines(file_found):
             fecha = ' '.join(x.split(' ', 2)[:2])
@@ -86,19 +86,19 @@ def _parse(context):
                         calls.append((fecha, number, incoming, state, rel, x.strip()))
                 except (IndexError, ValueError):
                     pass
-    return gps, calls, source_path
+    return gps, calls, source_paths
 
 
 @artifact_processor
 def systemappwtfGps(context):
-    gps, _, source_path = _parse(context)
+    gps, _, source_paths = _parse(context)
     data_headers = (('Timestamp', 'datetime'), 'Date', 'Latitude', 'Longitude', 'Source',
                     'Source Line')
-    return data_headers, gps, context.get_relative_path(source_path)
+    return data_headers, gps, '\n'.join(source_paths)
 
 
 @artifact_processor
 def systemappwtfBtCalls(context):
-    _, calls, source_path = _parse(context)
+    _, calls, source_paths = _parse(context)
     data_headers = ('Date', 'Phone Number', 'Incoming', 'State', 'Source', 'Source Line')
-    return data_headers, calls, context.get_relative_path(source_path)
+    return data_headers, calls, '\n'.join(source_paths)
