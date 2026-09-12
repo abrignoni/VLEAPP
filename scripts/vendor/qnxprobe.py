@@ -42,7 +42,7 @@ except ImportError:                  # not on sys.path when imported as a module
     except ImportError:
         ewfprobe = None
 
-QNXPROBE_VERSION = "1.23"
+QNXPROBE_VERSION = "1.24"
 
 QNX6_MAGIC     = 0x68191122
 BOOTBLOCK_SIZE = 0x2000
@@ -860,6 +860,39 @@ class ExtWalker:
 # entries. Only the fields needed to list and read files are parsed.
 # ---------------------------------------------------------------------------
 
+class FatDeletedFile:
+    """One deleted FAT32 or exFAT directory entry that still describes a file.
+
+    ``recoverable`` says whether the content can be read back: the entry keeps
+    its first cluster and size, so the data is readable while those clusters
+    are still free. ``assumed_contiguous`` is True when the chain that said
+    where the rest of the file lay is gone (FAT32 zeroes it on delete; exFAT
+    keeps one only for a fragmented file) and the read assumes the file was
+    laid out in one run, which is how a driver writes a fresh file onto a
+    card with room but is not something the volume can confirm. ``times`` are
+    the readings as stored, text with no zone, the same as listdir_records().
+    """
+
+    __slots__ = ("name", "parent", "is_dir", "size", "first_cluster",
+                 "recoverable", "reason", "assumed_contiguous", "times",
+                 "in_deleted_dir", "_node")
+
+    def __init__(self, name, parent, is_dir, size, first_cluster, recoverable,
+                 reason, assumed_contiguous, times, in_deleted_dir, node):
+        self.name, self.parent, self.is_dir = name, parent, is_dir
+        self.size, self.first_cluster = size, first_cluster
+        self.recoverable, self.reason = recoverable, reason
+        self.assumed_contiguous, self.times = assumed_contiguous, times
+        self.in_deleted_dir = in_deleted_dir
+        self._node = node
+
+    def __repr__(self):
+        state = "recoverable" if self.recoverable else f"not recoverable ({self.reason})"
+        extra = ", contiguity assumed" if self.assumed_contiguous else ""
+        return (f"FatDeletedFile(name={self.name!r}, size={self.size}, "
+                f"cluster={self.first_cluster}, {state}{extra})")
+
+
 class Fat32Walker:
     """List and read files from a FAT32 volume. inode() takes a (cluster, size,
     is_dir) tuple, so the shared collect()/extract_to_zip() work unchanged; the
@@ -1018,6 +1051,134 @@ class Fat32Walker:
                 "accessed date": _dos_date(struct.unpack_from("<H", e, 18)[0]),
             }))
         return out
+
+    def _deleted_in(self, node, in_deleted_dir):
+        """Deleted entries in one directory, in the driver's own order."""
+        clus = node[0]
+        raw = self._read_chain(clus)
+        out, lfn = [], []
+        for i in range(0, len(raw), 32):
+            e = raw[i:i + 32]
+            if len(e) < 32 or e[0] == 0x00:
+                break
+            attr = e[11]
+            if attr == 0x0F:
+                # A long-name fragment. Deletion overwrites its sequence byte
+                # with 0xE5 too, so the ordinal is gone; fragments are stored
+                # last-first, so disk order in reverse rebuilds the name.
+                lfn.append((e[0] == 0xE5, e[1:11] + e[14:26] + e[28:32]))
+                continue
+            if attr & 0x08:
+                lfn = []
+                continue
+            if e[0] != 0xE5:
+                lfn = []
+                continue                            # a live entry; the walk lists it
+            hi = struct.unpack_from("<H", e, 20)[0]
+            lo = struct.unpack_from("<H", e, 26)[0]
+            first = (hi << 16) | lo
+            sz = struct.unpack_from("<I", e, 28)[0]
+            is_dir = bool(attr & 0x10)
+            dead = [chars for was_deleted, chars in lfn if was_deleted]
+            lfn = []
+            if dead:
+                name = "".join(c.decode("utf-16-le", "replace")
+                               for c in reversed(dead)).split("\uffff")[0].rstrip("\x00")
+            else:
+                # the 0xE5 mark sat on the first character; "_" stands in for
+                # it, the same placeholder The Sleuth Kit shows for these
+                name = _fat_short_name(b"_" + e[1:])
+            times = {
+                "modified": _dos_stamp(struct.unpack_from("<H", e, 24)[0],
+                                       struct.unpack_from("<H", e, 22)[0]),
+                "created": _dos_stamp(struct.unpack_from("<H", e, 16)[0],
+                                      struct.unpack_from("<H", e, 14)[0], e[13]),
+                "accessed date": _dos_date(struct.unpack_from("<H", e, 18)[0]),
+            }
+            out.append((name, first, sz, is_dir, times))
+        return out
+
+    def deleted_files(self, *, min_size=0, max_depth=32):
+        """Yield the deleted directory entries of the whole volume.
+
+        A FAT32 delete writes 0xE5 over the first byte of the entry and frees
+        its clusters in the FAT; everything else stays. So the name (rebuilt
+        from the long-name fragments, whose ordinals the same 0xE5 destroys),
+        the first cluster, the size and the recorded times are all still
+        there. What is gone is the chain: the FAT entries that said where the
+        second cluster onward lay are zeroed. Reading a file longer than one
+        cluster therefore assumes it was written in one run, and the result
+        says so in ``assumed_contiguous``, because the volume cannot confirm it.
+        A file is ``recoverable`` only while every cluster that read would
+        touch is still free; a cluster since handed to a live file means the
+        assumption is already false, and the file is reported as having
+        existed rather than read.
+
+        Live directories are walked to find deleted files inside them, and a
+        deleted directory whose first cluster is still free and still parses
+        as a directory (it opens with "." and "..") is walked too, since a
+        deleted folder of photographs is the common case on a card. A parent
+        that was itself deleted is flagged with ``in_deleted_dir``.
+        """
+        seen = set()
+
+        def walk(node, depth, in_deleted):
+            if depth > max_depth or node[0] in seen:
+                return
+            seen.add(node[0])
+            for name, first, sz, is_dir, times in self._deleted_in(node, in_deleted):
+                if is_dir:
+                    ok_dir = first >= 2 and self._fat_next(first) == 0 and self._looks_like_dir(first)
+                    yield FatDeletedFile(name, node[0], True, 0, first, False,
+                                         "directory", False, times, in_deleted, None)
+                    if ok_dir:
+                        yield from walk((first, 0, True), depth + 1, True)
+                    continue
+                if sz < min_size:
+                    continue
+                if first < 2 or not sz:
+                    yield FatDeletedFile(name, node[0], False, sz, first, False,
+                                         "no cluster recorded" if first < 2 else "empty",
+                                         False, times, in_deleted, None)
+                    continue
+                need = (sz + self.cluster_bytes - 1) // self.cluster_bytes
+                ok, reason = True, ""
+                for k in range(need):
+                    if self._fat_next(first + k) != 0:
+                        # a cluster in the assumed run belongs to a live file:
+                        # either this file was fragmented or it has since been
+                        # overwritten, and either way the run cannot be read as it
+                        ok, reason = False, ("the run its size would need crosses a live "
+                                             "file, so it was fragmented or is overwritten")
+                        break
+                yield FatDeletedFile(name, node[0], False, sz, first, ok, reason,
+                                     need > 1, times, in_deleted, (first, sz, False))
+            # deleted files can sit in any live subdirectory too
+            for _nm, child, _t in self.listdir_records(node):
+                if child[2]:
+                    yield from walk(child, depth + 1, in_deleted)
+
+        yield from walk(self.root, 0, False)
+
+    def _looks_like_dir(self, clus):
+        """A FAT directory opens with its "." and ".." entries."""
+        raw = read_at(self.fh, self._cluster_off(clus), 64)
+        return len(raw) == 64 and raw[:11] == b".          " and raw[32:43] == b"..         "
+
+    def read_deleted(self, entry, size=None):
+        """The content of a recoverable deleted file, read from its first
+        cluster on for its recorded size. Refuses one whose clusters have been
+        reused, so overwritten bytes are never presented as the file."""
+        if not entry.recoverable or entry._node is None:
+            raise NtfsUnreadable(
+                f"deleted file {entry.name!r} is not recoverable: {entry.reason}")
+        first, sz, _ = entry._node
+        want = sz if size is None else min(size, sz)
+        need = (want + self.cluster_bytes - 1) // self.cluster_bytes
+        out = bytearray()
+        for k in range(need):
+            out += read_at(self.fh, self._cluster_off(first + k), self.cluster_bytes)
+        yield bytes(out[:want])
 
     def listdir(self, node):
         return [(name, child) for name, child, _times in self.listdir_records(node)]
@@ -1216,6 +1377,152 @@ class ExfatWalker:
                 i += 32
         return out
 
+    def _cluster_in_use(self, clus):
+        """True when the Allocation Bitmap marks this cluster used. Read once."""
+        bits = getattr(self, "_alloc_bits", None)
+        if bits is None:
+            bits = b""
+            clus_r, _, _, contig = self.root
+            raw = self._read(clus_r, 0, contig)
+            for i in range(0, len(raw), 32):
+                if raw[i] == 0x81:                   # Allocation Bitmap entry
+                    first = struct.unpack_from("<I", raw, i + 20)[0]
+                    length = struct.unpack_from("<Q", raw, i + 24)[0]
+                    bits = self._read(first, length, True)
+                    break
+            self._alloc_bits = bits
+        idx = clus - 2
+        if idx < 0 or (idx >> 3) >= len(bits):
+            return True                              # off the bitmap: treat as used
+        return bool(bits[idx >> 3] & (1 << (idx & 7)))
+
+    def _deleted_in(self, node, in_deleted_dir):
+        clus, _, _, contig = node
+        raw = self._read(clus, 0, contig)
+        out = []
+        i = 0
+        while i < len(raw):
+            etype = raw[i]
+            if etype == 0x00:
+                break
+            if etype == 0x05:                        # File entry with the in-use bit cleared
+                secs = raw[i + 1]
+                s2 = raw[i + 32:i + 64]
+                if len(s2) < 32 or s2[0] not in (0x40, 0xC0):
+                    i += 32
+                    continue
+                flags = s2[1]
+                name_len = s2[3]
+                first = struct.unpack_from("<I", s2, 20)[0]
+                data_len = struct.unpack_from("<Q", s2, 24)[0]
+                is_dir = bool(raw[i + 4] & 0x10)
+                contiguous = bool(flags & 0x02)
+                name = ""
+                for k in range(2, secs + 1):
+                    ent = raw[i + 32 * k:i + 32 * k + 32]
+                    if not ent or ent[0] not in (0x41, 0xC1):
+                        break
+                    name += ent[2:32].decode("utf-16-le", "replace")
+                name = name[:name_len]
+                cre, mod, acc = struct.unpack_from("<III", raw, i + 8)
+                times = {
+                    "modified": _exfat_stamp(mod, raw[i + 21]),
+                    "created": _exfat_stamp(cre, raw[i + 20]),
+                    "accessed": _exfat_stamp(acc),
+                    "modified utc offset": _exfat_offset(raw[i + 23]),
+                    "created utc offset": _exfat_offset(raw[i + 22]),
+                    "accessed utc offset": _exfat_offset(raw[i + 24]),
+                }
+                out.append((name, first, data_len, is_dir, contiguous, times))
+                i += 32 * (secs + 1)
+            else:
+                i += 32
+        return out
+
+    def deleted_files(self, *, min_size=0, max_depth=32):
+        """Yield the deleted directory entries of the whole volume.
+
+        An exFAT delete clears the in-use bit of the entry's type byte (0x85,
+        0xC0 and 0xC1 become 0x05, 0x40 and 0x41) and clears the file's bits in
+        the Allocation Bitmap; every field survives, including the stream's
+        NoFatChain flag, first cluster and length. A file the driver wrote in
+        one run carries NoFatChain and is read exactly from its first cluster
+        for its length. A fragmented file kept its chain in the FAT; if that
+        chain is still intact it is followed, and if it has been cleared the
+        file is reported as not recoverable rather than read on an assumption
+        the entry itself contradicts. Either way a file is ``recoverable`` only
+        while every cluster the read would touch is still free.
+
+        Live directories are walked for deleted files inside them, and a
+        deleted directory whose first cluster is still free and still parses
+        as a directory is walked too, flagged with ``in_deleted_dir``.
+        """
+        seen = set()
+
+        def walk(node, depth, in_deleted):
+            if depth > max_depth or node[0] in seen:
+                return
+            seen.add(node[0])
+            for name, first, size, is_dir, contiguous, times in self._deleted_in(node, in_deleted):
+                if is_dir:
+                    ok_dir = (first >= 2 and not self._cluster_in_use(first)
+                              and self._looks_like_dir(first))
+                    yield FatDeletedFile(name, node[0], True, 0, first, False,
+                                         "directory", False, times, in_deleted, None)
+                    if ok_dir:
+                        yield from walk((first, 0, True, contiguous), depth + 1, True)
+                    continue
+                if size < min_size:
+                    continue
+                if first < 2 or not size:
+                    yield FatDeletedFile(name, node[0], False, size, first, False,
+                                         "no cluster recorded" if first < 2 else "empty",
+                                         False, times, in_deleted, None)
+                    continue
+                need = (size + self.cluster_bytes - 1) // self.cluster_bytes
+                ok, reason, chain = True, "", None
+                if contiguous:
+                    chain = list(range(first, first + need))
+                else:
+                    chain, c, s2 = [], first, set()
+                    while 0x2 <= c < 0xFFFFFFF7 and c not in s2 and len(chain) < need:
+                        chain.append(c); s2.add(c); c = self._fat_next(c)
+                    if len(chain) < need:
+                        ok, reason, chain = False, "the FAT chain was cleared on delete", None
+                if ok and any(self._cluster_in_use(c) for c in chain):
+                    ok, reason = False, "clusters reused by a later file"
+                yield FatDeletedFile(name, node[0], False, size, first, ok, reason,
+                                     False, times, in_deleted,
+                                     (chain, size) if ok else None)
+            for _nm, child, _t in self.listdir_records(node):
+                if child[2]:
+                    yield from walk(child, depth + 1, in_deleted)
+
+        yield from walk(self.root, 0, False)
+
+    def _looks_like_dir(self, clus):
+        """An exFAT directory's first entry is a real entry type (a set or a
+        cleared in-use bit over the file, stream, name or bitmap kinds)."""
+        raw = read_at(self.fh, self._cluster_off(clus), 32)
+        return len(raw) == 32 and (raw[0] & 0x7F) in (0x05, 0x40, 0x41, 0x01, 0x02, 0x03)
+
+    def read_deleted(self, entry, size=None):
+        """The content of a recoverable deleted file, cluster by cluster along
+        the chain that was kept or the run the entry declared. Refuses one whose
+        clusters have been reused, so overwritten bytes are never presented as
+        the file."""
+        if not entry.recoverable or entry._node is None:
+            raise NtfsUnreadable(
+                f"deleted file {entry.name!r} is not recoverable: {entry.reason}")
+        chain, sz = entry._node
+        want = sz if size is None else min(size, sz)
+        out = bytearray()
+        for c in chain:
+            out += read_at(self.fh, self._cluster_off(c), self.cluster_bytes)
+            if len(out) >= want:
+                break
+        yield bytes(out[:want])
+
     def listdir(self, node):
         return [(name, child) for name, child, _times in self.listdir_records(node)]
 
@@ -1390,6 +1697,30 @@ def ntfs_time(v):
     return sec if -12219292800 < sec < 253402300799 else 0
 
 
+def _ntfs_std_times(attrs):
+    """(created, modified, accessed) from a record's $STANDARD_INFORMATION, as
+    Unix seconds, each 0 where the attribute is absent or too short to hold it.
+
+    The attribute holds four FILETIMEs: created at 0, last written at 8, the
+    record's own last change at 16, last read at 24. $FILE_NAME carries a second
+    set of the same four, and the two are not kept in step: on the committed
+    fixture a file's accessed time here is fifteen seconds later than the one its
+    $FILE_NAME holds, which is what an examiner asking when a file was last read
+    means. Every reader of the attribute goes through this one function so the
+    three offsets cannot drift apart between a listing, a live file and a deleted
+    record. Each field is guarded on its own length, so a short attribute yields
+    the fields it does hold rather than nothing.
+    """
+    for a in attrs:
+        if a.type == NTFS_STANDARD_INFORMATION and a.resident:
+            v = a.value
+            created = ntfs_time(struct.unpack_from("<Q", v, 0)[0]) if len(v) >= 8 else 0
+            modified = ntfs_time(struct.unpack_from("<Q", v, 8)[0]) if len(v) >= 16 else 0
+            accessed = ntfs_time(struct.unpack_from("<Q", v, 24)[0]) if len(v) >= 32 else 0
+            return created, modified, accessed
+    return 0, 0, 0
+
+
 def _ntfs_fixup(buf, per, name):
     """Apply the update sequence array to a multi-sector record.
 
@@ -1471,6 +1802,35 @@ class _NtfsAttr:
         return bool(self.flags & NTFS_ATTR_ENCRYPTED)
 
 
+class NtfsDeletedFile:
+    """One file whose MFT record is free but still describes it.
+
+    ``recoverable`` says whether the content can still be read: a resident file
+    always (its bytes are in the record), a non-resident one only while every
+    cluster it used is still free. ``reason`` names why not, when it is False.
+    """
+
+    __slots__ = ("record", "name", "parent", "is_dir", "size", "resident",
+                 "recoverable", "reason", "created", "modified", "accessed",
+                 "has_attribute_list", "_data")
+
+    def __init__(self, record, name, parent, is_dir, size, resident,
+                 recoverable, reason, created, modified, accessed,
+                 has_attribute_list, data):
+        self.record, self.name, self.parent = record, name, parent
+        self.is_dir, self.size = is_dir, size
+        self.resident, self.recoverable, self.reason = resident, recoverable, reason
+        self.created, self.modified, self.accessed = created, modified, accessed
+        self.has_attribute_list = has_attribute_list
+        self._data = data
+
+    def __repr__(self):
+        state = "recoverable" if self.recoverable else f"not recoverable ({self.reason})"
+        return (f"NtfsDeletedFile(rec={self.record}, name={self.name!r}, "
+                f"size={self.size}, {'resident' if self.resident else 'non-resident'}, "
+                f"{state})")
+
+
 class NtfsWalker:
     """List and read files from an NTFS volume, same interface as the walkers
     above. A node is the MFT record number, which is what a directory index
@@ -1508,6 +1868,7 @@ class NtfsWalker:
         self.serial = struct.unpack_from("<Q", boot, 72)[0]
         self.volume_size = self.total_sectors * self.bps
         self._records = {}                       # record number -> attributes
+        self._alloc_bitmap = None                # $Bitmap bytes, read on first need
         self._mft_runs = None
         self._mft_runs = self._read_mft_runs()
 
@@ -1681,6 +2042,163 @@ class NtfsWalker:
             joined.runs.extend(a.runs)
         return joined
 
+    def _cluster_in_use(self, lcn):
+        """True when this cluster is marked allocated in $Bitmap. The bitmap is
+        read once and kept: a deleted-file sweep asks about many clusters."""
+        bits = self._alloc_bitmap
+        if bits is None:
+            attr = self._data_attr(NTFS_BITMAP)
+            size = (len(attr.value) if attr.resident else attr.data_size) if attr else 0
+            bits = b"".join(self.read_file(NTFS_BITMAP, size)) if size else b""
+            self._alloc_bitmap = bits
+        byte = lcn >> 3
+        if byte >= len(bits):
+            return True                              # off the end of the bitmap: treat as used
+        return bool(bits[byte] & (1 << (lcn & 7)))
+
+    def _parse_deleted(self, raw):
+        """Attributes of one record, ignoring the in-use flag and NOT following
+        its $ATTRIBUTE_LIST.
+
+        The live parser stops at a record not in use; a deleted file is exactly
+        such a record, so that guard is dropped here. The list is not followed
+        on purpose: for a deleted record it points at other records that may
+        since have been reused, so following it would splice a live file's
+        attributes into this one.
+        """
+        if not raw or len(raw) < 0x30:
+            return None
+        first, flags = struct.unpack_from("<HH", raw, 0x14)
+        used = struct.unpack_from("<I", raw, 0x18)[0]
+        out, pos, limit = [], first, min(used or len(raw), len(raw))
+        while pos + 16 <= limit:
+            type_ = struct.unpack_from("<I", raw, pos)[0]
+            if type_ == NTFS_END:
+                break
+            length = struct.unpack_from("<I", raw, pos + 4)[0]
+            if length < 16 or pos + length > limit:
+                break
+            attr = self._parse_one(raw, pos, length)
+            if attr:
+                out.append(attr)
+            pos += length
+        return flags, out
+
+    def _record_raw(self, num):
+        off = num * self.rec_size
+        raw = self._read_runs(self._mft_runs, self.rec_size, off) if self._mft_runs \
+            else read_at(self.fh, self.base + self.mft_lcn * self.cluster + off,
+                         self.rec_size)
+        return _ntfs_fixup(raw, self.bps, NTFS_FILE)
+
+    def deleted_files(self, *, include_system=False, min_size=0):
+        """Yield the files whose MFT record is free but still names them.
+
+        A deleted file whose record has not yet been handed to another file can
+        be recovered from the record: its name, size, dates, and, when the data
+        has not been overwritten, its content. This is the only route to a file
+        whose data was **resident**, small enough to live inside the record and
+        so never occupying a cluster a carver could find.
+
+        Each result carries ``recoverable``: True when the bytes are still there
+        (resident always; non-resident only while every cluster it used is still
+        free), False when they have been reused, in which case the record is
+        reported as evidence the file existed rather than its content offered.
+        ``$ATTRIBUTE_LIST`` is not followed (see ``_parse_deleted``), so a file
+        whose attributes overflowed its record is reported not recoverable rather
+        than reconstructed from records that may now belong elsewhere.
+
+        ``include_system`` keeps the ``$``-named metadata files; by default only
+        ordinary files are yielded. ``min_size`` drops anything smaller.
+        """
+        data_attr = self._data_attr(0)              # $MFT's own $DATA
+        if data_attr is None:
+            return
+        count = data_attr.data_size // self.rec_size
+        for num in range(count):
+            if num < 16 and not include_system:
+                continue                            # 0-15 are the reserved metafiles
+            raw = self._record_raw(num)
+            if not raw or raw[:4] != NTFS_FILE:
+                continue
+            parsed = self._parse_deleted(raw)
+            if parsed is None:
+                continue
+            flags, attrs = parsed
+            if flags & NTFS_MFT_IN_USE:
+                continue                            # a live file; the walk lists it
+            names = []
+            for a in attrs:
+                if a.type == NTFS_FILE_NAME and a.resident and len(a.value) > 0x42:
+                    nlen, ns = a.value[0x40], a.value[0x41]
+                    parent = struct.unpack_from("<Q", a.value, 0)[0] & 0xFFFFFFFFFFFF
+                    nm = a.value[0x42:0x42 + nlen * 2].decode("utf-16-le", "replace")
+                    names.append((ns, nm, parent))
+            if not names:
+                continue                            # nothing names it
+            names.sort(key=lambda n: n[0] == 2)     # prefer a long name over the 8.3 alias
+            _ns, name, parent = names[0]
+            if not include_system and name.startswith("$"):
+                continue
+            is_dir = bool(flags & NTFS_MFT_IS_DIR)
+            has_list = any(a.type == NTFS_ATTRIBUTE_LIST for a in attrs)
+            created, modified, accessed = _ntfs_std_times(attrs)
+            data = next((a for a in attrs if a.type == NTFS_DATA and a.name == ""), None)
+            if is_dir or data is None:
+                yield NtfsDeletedFile(num, name, parent, is_dir, 0, True, False,
+                                      "directory" if is_dir else "no data attribute",
+                                      created, modified, accessed, has_list, None)
+                continue
+            size = len(data.value) if data.resident else data.data_size
+            if size < min_size:
+                continue
+            if data.resident:
+                yield NtfsDeletedFile(num, name, parent, is_dir, size, True, True, "",
+                                      created, modified, accessed, has_list, data)
+                continue
+            reason, ok = "", True
+            if data.encrypted:
+                reason, ok = "encrypted", False
+            elif has_list:
+                reason, ok = "attributes overflowed the record", False
+            else:
+                for lcn, run in data.runs:
+                    if lcn is None:
+                        continue                    # a sparse run holds no data to lose
+                    if any(self._cluster_in_use(lcn + i) for i in range(run)):
+                        reason, ok = "clusters reused by a later file", False
+                        break
+            yield NtfsDeletedFile(num, name, parent, is_dir, size, False, ok, reason,
+                                  created, modified, accessed, has_list, data)
+
+    def read_deleted(self, entry, size=None):
+        """Yield the content of a recoverable deleted file. Refuses one whose
+        clusters have been reused, so overwritten data is never presented as the
+        file. Reading is otherwise the same as for a live file."""
+        if not entry.recoverable or entry._data is None:
+            raise NtfsUnreadable(
+                f"deleted file {entry.name!r} is not recoverable: {entry.reason}")
+        data = entry._data
+        want = entry.size if size is None else min(size, entry.size)
+        if data.resident:
+            yield data.value[:want]
+            return
+        if data.compressed:
+            yield from self._read_compressed(data, want)
+            return
+        real = min(want, data.init_size) if data.init_size else 0
+        done = 0
+        while done < real:
+            chunk = self._read_runs(data.runs, min(1 << 20, real - done), done)
+            if not chunk:
+                break
+            yield chunk
+            done += len(chunk)
+        while done < want:
+            take = min(1 << 20, want - done)
+            yield b"\x00" * take
+            done += take
+
     def volume_label(self):
         """The volume label, from the $VOLUME_NAME attribute of record 3, or None
         when the record cannot be read. An empty string means the volume has none."""
@@ -1714,16 +2232,24 @@ class NtfsWalker:
         if not attrs:
             return None
         is_dir = bool(self._flags(num) & NTFS_MFT_IS_DIR)
-        mtime = 0
-        for a in attrs:
-            if a.type == NTFS_STANDARD_INFORMATION and a.resident and len(a.value) >= 24:
-                mtime = ntfs_time(struct.unpack_from("<Q", a.value, 8)[0])
-                break
+        mtime = _ntfs_std_times(attrs)[1]
         if is_dir:
             return (S_IFDIR | 0o755, 0, mtime)
         data = self._data_attr(num)
         size = 0 if data is None else (len(data.value) if data.resident else data.data_size)
         return (0o100644, size, mtime)
+
+    def stamps(self, num):
+        """The instants a live file's $STANDARD_INFORMATION holds, as
+        (created, modified, accessed) in Unix seconds, 0 where unset.
+
+        ``entry`` returns only the modified time, which is what a listing needs.
+        A caller carrying a file's dates into a record wants all three, and they
+        are instants rather than readings: FILETIME counts from a UTC epoch, so
+        unlike a FAT or exFAT stamp these can be placed on a timeline. The record
+        is cached, so asking after ``entry`` reads nothing more from the image.
+        """
+        return _ntfs_std_times(self._record(num))
 
     def free_extents(self, min_bytes=0):
         """[(byte offset, length)] for the runs of space the volume says are free.
@@ -5669,6 +6195,83 @@ def _hfs_fixture_check(image_gz, listing):
     return matched, len(want), missing, different
 
 
+def _fat_deleted_check(image_gz, listing, walker_cls):
+    """Recover the deleted files a FAT32 or exFAT fixture builder created and
+    then removed, and compare each against the sha256 recorded from its bytes
+    before deletion. The listing names a file by its last path component; a
+    FAT32 short-name-only entry loses its first character to the 0xE5 mark, so
+    a listed name is also matched with that character replaced by "_".
+    Returns (matched, expected, missing, different).
+    """
+    import gzip, hashlib, io
+    with gzip.open(image_gz, "rb") as gz:
+        img = io.BytesIO(gz.read())
+    want = {}
+    with open(listing, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            digest, rest = line.split("  ", 1)
+            want[rest.rsplit("/", 1)[-1]] = digest
+    w = walker_cls(img, 0)
+    have = {}
+    for e in w.deleted_files():
+        if e.recoverable and not e.is_dir:
+            have[e.name] = e
+    matched = missing = different = 0
+    for name, digest in want.items():
+        e = have.get(name) or have.get("_" + name[1:])
+        if e is None:
+            missing += 1
+            continue
+        h = hashlib.sha256()
+        for chunk in w.read_deleted(e):
+            h.update(chunk)
+        if h.hexdigest() == digest:
+            matched += 1
+        else:
+            different += 1
+    return matched, len(want), missing, different
+
+
+def _ntfs_deleted_check(image_gz, listing):
+    """Recover the deleted files the fixture builder created and then removed,
+    and compare each against the sha256 recorded from its bytes before deletion.
+
+    The expected hashes come from what was written, not from this reader, and
+    the same files were confirmed recoverable by The Sleuth Kit's icat at build
+    time. Returns (matched, expected, missing, different).
+    """
+    import gzip, hashlib, io
+    with gzip.open(image_gz, "rb") as gz:
+        img = io.BytesIO(gz.read())
+    want = {}
+    with open(listing, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            digest, name = line.split("  ", 1)
+            want[name] = digest
+    w = NtfsWalker(img, 0)
+    have = {e.name: e for e in w.deleted_files() if e.recoverable and not e.is_dir}
+    matched = missing = different = 0
+    for name, digest in want.items():
+        e = have.get(name)
+        if e is None:
+            missing += 1
+            continue
+        h = hashlib.sha256()
+        for chunk in w.read_deleted(e):
+            h.update(chunk)
+        if h.hexdigest() == digest:
+            matched += 1
+        else:
+            different += 1
+    return matched, len(want), missing, different
+
+
 def _ntfs_fixture_check(image_gz, listing):
     """Walk the committed NTFS fixture and compare every file against the
     hashes an independent reader recorded from the same image.
@@ -5712,6 +6315,69 @@ def _ntfs_fixture_check(image_gz, listing):
         else:
             different += 1
     return matched, len(want), missing, different
+
+
+def _ntfs_times_check(image_gz):
+    """Compare the instants the walker reads for live and deleted NTFS files
+    against what The Sleuth Kit's istat printed for the same records.
+
+    The pins are istat's $STANDARD_INFORMATION block, not the $FILE_NAME block it
+    prints beneath: on this fixture the two differ, most on the accessed time,
+    so a reader that took the wrong attribute fails on the field that matters.
+    Recorded 2026-09-12 with ``TZ=UTC istat -o 0 ntfs-fixture.img <record>`` on
+    sleuthkit 4.x; the fixture is committed and never rewritten, so these values
+    are fixed. Each is compared within a microsecond, which is below the
+    precision a Unix-seconds float keeps at this epoch and above istat's 100 ns.
+
+    Returns (failures, live files checked).
+    """
+    import gzip, io
+    from datetime import datetime, timezone
+    live = {
+        "dir/mid.txt": ("2026-09-11 04:22:40.133550800", "2026-09-11 04:22:40.133580100",
+                        "2026-09-11 04:22:55.233196100"),
+        "many/file_0001.txt": ("2026-09-11 04:22:40.136710000", "2026-09-11 04:22:40.136739400",
+                               "2026-09-11 04:22:55.279657800"),
+    }
+    deleted = {
+        "h_9.bin": ("2026-09-11 04:22:40.754156700", "2026-09-11 04:22:40.754286000",
+                    "2026-09-11 04:22:40.754156700"),
+        "h_11.bin": ("2026-09-11 04:22:40.766373400", "2026-09-11 04:22:40.766531400",
+                     "2026-09-11 04:22:40.766373400"),
+    }
+
+    def epoch(text):
+        base, frac = text.split(".")
+        dt = datetime.strptime(base, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        return dt.timestamp() + int(frac) / 10 ** len(frac)
+
+    def matches(got, want):
+        return all(abs(g - epoch(w)) < 1e-6 for g, w in zip(got, want))
+
+    with gzip.open(image_gz, "rb") as gz:
+        img = io.BytesIO(gz.read())
+    w = NtfsWalker(img, 0)
+    failures, checked, seen = [], 0, set()
+    for path, ino, size, mtime in collect(w, w.root):
+        if size is None:
+            continue
+        got = w.stamps(ino)
+        checked += 1
+        if got[1] != mtime:
+            failures.append(f"{path}: stamps() modified {got[1]} is not entry()'s {mtime}")
+        if path in live:
+            seen.add(path)
+            if not matches(got, live[path]):
+                failures.append(f"{path}: stamps() {got} is not istat's {live[path]}")
+    for e in w.deleted_files():
+        if e.name in deleted:
+            seen.add(e.name)
+            got = (e.created, e.modified, e.accessed)
+            if not matches(got, deleted[e.name]):
+                failures.append(f"deleted {e.name}: {got} is not istat's {deleted[e.name]}")
+    for name in (set(live) | set(deleted)) - seen:
+        failures.append(f"{name}: not found in the fixture, so nothing was compared")
+    return failures, checked
 
 
 def self_test():
@@ -7408,6 +8074,63 @@ def self_test():
             # a check that passed. The frozen executable carries no fixtures.
             print("  [SKIP] the NTFS fixture is not beside this script, so the "
                   "walk was not compared against it")
+
+        ntfs_del = ntfs_fix[:-len(".img.gz")] + ".deleted.sha256"
+        if os.path.isfile(ntfs_fix) and os.path.isfile(ntfs_del):
+            try:
+                dgot, dwant, dmiss, ddiff = _ntfs_deleted_check(ntfs_fix, ntfs_del)
+                dbroke = ""
+            except Exception as exc:                 # pylint: disable=broad-except
+                dgot = dwant = dmiss = ddiff = 0
+                dbroke = f"; the sweep raised {type(exc).__name__}: {exc}"
+            dcond = dgot and dgot == dwant and not dmiss and not ddiff and not dbroke
+            if not dcond:
+                ok = False
+            print(f"  [{'PASS' if dcond else 'FAIL'}] deleted files recovered "
+                  f"from the MFT match the bytes written before deletion "
+                  f"({dgot} of {dwant}"
+                  + (f", {dmiss} missing" if dmiss else "")
+                  + (f", {ddiff} different" if ddiff else "") + ")" + dbroke)
+        elif os.path.isfile(ntfs_fix):
+            print("  [SKIP] the NTFS deleted-files listing is not beside this "
+                  "script, so recovery was not compared against it")
+
+        if os.path.isfile(ntfs_fix):
+            try:
+                tfail, tchecked = _ntfs_times_check(ntfs_fix)
+            except Exception as exc:                 # pylint: disable=broad-except
+                tfail, tchecked = [f"the check raised {type(exc).__name__}: {exc}"], 0
+            tcond = tchecked and not tfail
+            if not tcond:
+                ok = False
+            print(f"  [{'PASS' if tcond else 'FAIL'}] created, modified and accessed of "
+                  f"live and deleted NTFS files match what istat recorded "
+                  f"({tchecked} live files checked"
+                  + (f"; {tfail[0]}" if tfail else "") + ")")
+
+        for label, stem, wcls in (("FAT32", "fat32-deleted", Fat32Walker),
+                                  ("exFAT", "exfat-deleted", ExfatWalker)):
+            fix = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "tests", "fixtures", stem + ".img.gz")
+            lst = fix[:-len(".img.gz")] + ".deleted.sha256"
+            if not (os.path.isfile(fix) and os.path.isfile(lst)):
+                print(f"  [SKIP] the {label} deleted-files fixture is not beside this "
+                      "script, so recovery was not compared against it")
+                continue
+            try:
+                fgot, fwant, fmiss, fdiff = _fat_deleted_check(fix, lst, wcls)
+                fbroke = ""
+            except Exception as exc:                 # pylint: disable=broad-except
+                fgot = fwant = fmiss = fdiff = 0
+                fbroke = f"; the sweep raised {type(exc).__name__}: {exc}"
+            fcond = fgot and fgot == fwant and not fmiss and not fdiff and not fbroke
+            if not fcond:
+                ok = False
+            print(f"  [{'PASS' if fcond else 'FAIL'}] deleted files recovered from the "
+                  f"{label} directory entries match the bytes written before deletion "
+                  f"({fgot} of {fwant}"
+                  + (f", {fmiss} missing" if fmiss else "")
+                  + (f", {fdiff} different" if fdiff else "") + ")" + fbroke)
 
         print()
         print("  SELF-TEST PASSED. The detector reports positives and negatives"
