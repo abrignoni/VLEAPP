@@ -17,6 +17,7 @@ from PIL import Image, ImageTk
 from tkinter import ttk, filedialog as tk_filedialog, messagebox as tk_msgbox
 from scripts.version_info import vleapp_version
 from scripts.search_files import *
+from scripts.raw_image import RAW_IMAGE_LABEL, RAW_IMAGE_SUFFIXES
 from scripts.ilapfuncs import *
 from scripts.modules_to_exclude import modules_to_exclude
 from scripts.lavafuncs import *
@@ -209,20 +210,6 @@ def scroll(event):
     parent.event_generate('<MouseWheel>', delta=event.delta, when='now')
 
 
-# Extensions conventionally given to a raw disk image, plus the one an
-# EnCase/EWF acquisition carries. Everything a raw image run needs is decided by
-# reading the image, so this list only has to get the file past type selection;
-# an image named anything else is still reachable from the command line with
-# -t raw. An .E01 is the first segment of its set and the reader joins the rest.
-RAW_IMAGE_SUFFIXES = ('img', 'bin', 'dd', 'raw', '001', 'e01')
-
-# The file dialog names extensions, and an extension says nothing about what is
-# inside: a .dd can hold any of these or nothing this reads. The command line
-# spells the list out in its -t help, so a GUI user should not have to go and
-# find that out from a terminal.
-RAW_IMAGE_FILESYSTEMS = ('QNX6, QNX4, ETFS, EFS, ext2/3/4, FAT32, exFAT, NTFS, '
-                         'HFS+, APFS, QNX IFS')
-RAW_IMAGE_LABEL = f'Raw disk image or acquisition ({RAW_IMAGE_FILESYSTEMS})'
 
 
 def ValidateInput():

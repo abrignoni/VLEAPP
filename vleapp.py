@@ -12,6 +12,7 @@ import scripts.plugin_loader as plugin_loader
 import leapp_functions.app.history as history
 
 from scripts.search_files import *
+from scripts.raw_image import FileSeekerRaw
 from scripts.ilapfuncs import *
 from leapp_functions.app.output import validate_output_folder_available
 from scripts.version_info import vleapp_version
@@ -154,7 +155,10 @@ def main():
                               "'fs' for a folder containing extracted files with normal paths and names, "
                               "'tar', 'zip', or 'gz' for compressed packages containing files with normal names, "
                               "'file' for a single file input, "
-                              "'raw' for a raw disk image or an EnCase/EWF (.E01) acquisition, whose QNX6, QNX4, ETFS, EFS, ext, FAT32, exFAT, NTFS, HFS+ or APFS volumes and QNX IFS boot images are read without mounting, "
+                              "'raw' for a disk image (.img, .dd, .bin, or any numbered .001 segment of a split "
+                              "set) or an EnCase/EWF .E01 acquisition, read in place without mounting: its "
+                              "NTFS, FAT32, exFAT, ext2/3/4, HFS+, APFS, QNX6, QNX4, ETFS, EFS and QNX IFS "
+                              "volumes are searched directly, "
                               "'iva' for a Berla iVe .iVa export."))
     parser.add_argument('-o', '--output_path', required=False, action="store",
                         help='Path to base output folder (this must exist)')
