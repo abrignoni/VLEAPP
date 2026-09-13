@@ -34,7 +34,7 @@ $ python vleapp.py -t <fs | zip | tar | gz | file | raw | iva> -i <path_to_extra
 `raw` reads a disk image (`.img`, `.dd`, `.bin`, or any numbered `.001` segment of
 a split set), or an EnCase/EWF `.E01` acquisition and the segments beside it, in
 place: no mounting and no administrator rights. Its NTFS, FAT32, exFAT, ext2/3/4,
-HFS+, APFS, QNX6, QNX4, ETFS, EFS and QNX IFS volumes are searched directly, and
+F2FS, HFS+, APFS, QNX6, QNX4, ETFS, EFS and QNX IFS volumes are searched directly, and
 only the files an artifact asks for are read out of the image. The GUI picks
 `raw` on its own for those extensions. See `admin/docs/raw_image_input.md`.
 `iva` reads a Berla iVe export as it stands: the raw image inside it is read the
