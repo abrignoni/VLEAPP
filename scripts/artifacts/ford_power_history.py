@@ -148,14 +148,13 @@ def ford_power_history(context):
                           mode.group(1) if mode else '',
                           fields.get('reset type', ''), fields.get('reset initiator', ''),
                           fields.get('reset reason', ''), fields.get('reboot source', ''),
-                          uptime, total_uptime,
-                          context.get_relative_path(source_path)))
+                          uptime, total_uptime))
 
     data_headers = (('Powered On', 'datetime'), ('Previous Shutdown', 'datetime'),
                     'Boot Count', 'Wake Source (as stored)', 'Target Mode (as stored)',
                     'Reset Type', 'Reset Initiator', 'Reset Reason',
                     'Reboot Source (as stored)', 'Up Time (seconds)',
-                    'Total Up Time (as stored)', 'Source File')
+                    'Total Up Time (as stored)')
     return data_headers, data_list, context.get_relative_path(source_path)
 
 
@@ -177,7 +176,7 @@ def _single_record(context, filename):
     return fields, context.get_relative_path(source_path)
 
 
-def _power_row(fields, relative_path):
+def _power_row(fields):
     """One row, shared by last-shutdown.txt and reset-reason.txt."""
     try:
         # The unit is known to be milliseconds, so it is divided here rather
@@ -187,11 +186,11 @@ def _power_row(fields, relative_path):
         stamp = None
     return (stamp, fields.get('boot count', ''), fields.get('initiator', ''),
             fields.get('reason', ''), fields.get('up-time', ''),
-            fields.get('total up-time', ''), relative_path)
+            fields.get('total up-time', ''))
 
 
 _POWER_HEADERS = (('Timestamp', 'datetime'), 'Boot Count', 'Initiator', 'Reason',
-                  'Up Time (as stored)', 'Total Up Time (as stored)', 'Source File')
+                  'Up Time (as stored)', 'Total Up Time (as stored)')
 
 
 @artifact_processor
@@ -199,7 +198,7 @@ def ford_power_last_shutdown(context):
     fields, relative_path = _single_record(context, "last-shutdown.txt")
     if not fields:
         return (), [], relative_path
-    return _POWER_HEADERS, [_power_row(fields, relative_path)], relative_path
+    return _POWER_HEADERS, [_power_row(fields)], relative_path
 
 
 @artifact_processor
@@ -207,4 +206,4 @@ def ford_power_reset_reason(context):
     fields, relative_path = _single_record(context, "reset-reason.txt")
     if not fields:
         return (), [], relative_path
-    return _POWER_HEADERS, [_power_row(fields, relative_path)], relative_path
+    return _POWER_HEADERS, [_power_row(fields)], relative_path
