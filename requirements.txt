@@ -4,7 +4,6 @@ openpyxl
 packaging>=24.0
 pillow
 PyCryptodome
-PyMuPDF
 PyPDF2
 pytz
 simplekml
