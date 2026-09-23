@@ -5,7 +5,7 @@ Leave blank if not available
 """
 
 leapp_name = 'VLEAPP'
-vleapp_version = '2026.4.0'
+vleapp_version = '2026.4.1-dev'
 
 vleapp_contributors = [
     ['Yogesh Khatri', 'https://swiftforensics.com', '@SwiftForensics', 'https://github.com/ydkhatri'],
