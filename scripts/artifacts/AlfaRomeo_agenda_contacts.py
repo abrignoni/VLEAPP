@@ -6,10 +6,10 @@ __artifacts_v2__ = {
         "author": "gforce4n6",
         "version": "0.2",
         "creation_date": "2023-06-16",
-        "last_update_date": "2026-06-29",
+        "last_update_date": "2026-09-25",
         "requirements": "none",
         "category": "Alfa Romeo Vehicles",
-        "notes": "",
+        "notes": "Rows are listed by ContactCard ID, then phone number, then BT address.",
         "paths": ('*/agenda.sqlite*',),
         "output_types": "standard",
         "artifact_icon": "user",
@@ -36,6 +36,7 @@ def alfaRomeoContacts(context):
             FROM ContactCard
             LEFT JOIN BT_Device ON ContactCard.BT_DEVICE_ID = BT_Device.ID
             LEFT JOIN PhoneNumber ON ContactCard.ID = PhoneNumber.CONTACT_ID
+            ORDER BY ContactCard.ID, PhoneNumber.NUMBER, BT_Device.BD_ADDRESS
         ''')
         for row in cursor.fetchall():
             data_list.append((row[0], row[1], row[2], row[3]))
