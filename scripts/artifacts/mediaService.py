@@ -41,7 +41,7 @@ def mediaService(context):
                         ELSE 'Not Specified' END,
                    mediastores.fs_type
             FROM mediastores
-            ORDER BY mediastores.btdeviceid
+            ORDER BY mediastores.btdeviceid, mediastores.rowid
         ''')
         for row in cursor.fetchall():
             data_list.append(tuple(row))
