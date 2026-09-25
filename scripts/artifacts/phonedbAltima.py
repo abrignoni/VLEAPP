@@ -6,12 +6,13 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni",
         "version": "0.2",
         "creation_date": "2023-02-14",
-        "last_update_date": "2026-06-29",
+        "last_update_date": "2026-09-25",
         "requirements": "none",
         "category": "Nissan Vehicles",
         "notes": "The DB holds one phonebook per paired device (NUM_PHONEBOOK_<n>/phonebook_<n>); "
                  "the original emitted one report per phonebook, here flattened into a single "
-                 "table with a Phone Book column. Phone Number/s is a '; '-joined list.",
+                 "table with a Phone Book column. Phone Number/s is a '; '-joined list, sorted. "
+                 "Rows are listed by phone book, then entry ID.",
         "paths": ('*/ffs/phone_db.db*',),
         "output_types": "standard",
         "artifact_icon": "book",
@@ -47,11 +48,14 @@ def phoneBookAltima(context):
                     JOIN phonebook_{num}
                       ON num_phonebook_{num}.entry_id = phonebook_{num}.entry_id
                     GROUP BY num_phonebook_{num}.entry_id
+                    ORDER BY num_phonebook_{num}.entry_id
                 ''')
             except sqlite3.Error:
                 continue
             for row in cursor.fetchall():
-                data_list.append((num, row[0], row[1], row[2], row[3]))
+                # GROUP_CONCAT has no defined order, so sort each contact's numbers.
+                numbers = '; '.join(sorted(row[3].split('; '))) if row[3] else row[3]
+                data_list.append((num, row[0], row[1], row[2], numbers))
         db.close()
 
     data_headers = ('Phone Book', 'ID', 'First Name', 'Last Name', 'Phone Number/s')

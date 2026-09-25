@@ -6,10 +6,10 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni",
         "version": "0.2",
         "creation_date": "2021-07-15",
-        "last_update_date": "2026-06-29",
+        "last_update_date": "2026-09-25",
         "requirements": "none",
         "category": "Nuance VCA",
-        "notes": "",
+        "notes": "Rows are listed by first name, last name, phone number and type.",
         "paths": ('*/Nuance/NuanceVCAdb/Phone*.sqlite*',),
         "output_types": "standard",
         "artifact_icon": "user",
@@ -34,6 +34,7 @@ def nvcaContacts(context):
             SELECT First_Name, Last_Name, Phone_Number, Phone_Number_Type
             FROM S_Phone_Number_Type, t_phone_number
             WHERE S_Phone_Number_Type.S_Phone_Number_Type_id = t_phone_number.S_Phone_Number_Type_Id
+            ORDER BY First_Name, Last_Name, Phone_Number, Phone_Number_Type
         ''')
         for row in cursor.fetchall():
             data_list.append((row[0], row[1], row[2], row[3]))
