@@ -122,7 +122,7 @@ def ford_diag_events(context):
         SELECT uploaded, creator_id, ecu, event_type, event_severity,
                status, uptime, create_time, geid
         FROM events_metadata
-        ORDER BY uptime
+        ORDER BY uptime, events_metadata.rowid
     ''')
     for row in cursor.fetchall():
         uploaded = row[0]

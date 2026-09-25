@@ -138,7 +138,7 @@ def bmw_connected_device_media(context):
                 LEFT JOIN iap2_genre g ON g.genre_id = m.genre_id
                 LEFT JOIN iap2_composer c ON c.composer_id = m.composer_id
                 LEFT JOIN iap2_library l ON l.library_id = m.library_id
-                ORDER BY ar.artist, al.album, m.album_track_number
+                ORDER BY ar.artist, al.album, m.album_track_number, m.rowid, ar.rowid, al.rowid, aa.rowid, g.rowid, c.rowid, l.rowid
             ''')
             rows = cursor.fetchall()
         except sqlite3.Error:
