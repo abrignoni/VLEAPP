@@ -23,8 +23,12 @@ __artifacts_v2__ = {
                  "one application held 30 versions of its profile list spanning 2023-05-22 "
                  "to 2024-03-27, and the values differ between versions. What changed "
                  "between two versions is left to the examiner rather than diffed here. "
-                 "Values are reported as stored: the setting names are the application's "
-                 "own and their integers are undocumented. A stored value records what was "
+                 "Values are reported as stored: the setting names are the application's own and "
+                 "their integers are undocumented. Application is the package-style folder name in"
+                 " the store's path, and the declared path matches a store in either the HMI or "
+                 "the packaged app layout, so Application does not separate two stores of one "
+                 "application, and Source File names the store each row came from. A stored value "
+                 "records what was "
                  "written and when; it does not establish who was in the vehicle.",
         "paths": ('*/system_handled/Local Storage/leveldb/*',),
         "sample_data": {
