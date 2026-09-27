@@ -237,4 +237,4 @@ review does not stop while we work that out.
 
 This tool is the result of a collaborative effort of many people in the DFIR community.
 
-VLEAPP logo courtesy of Derek Eiri.
+VLEAPP logo courtesy of Kevin Pagano. The earlier VLEAPP logo was by Derek Eiri.
