@@ -13,8 +13,11 @@ __artifacts_v2__ = {
         "notes": "The unit keeps one store per device under a directory whose name carries "
                  "the identifier it indexed the device by, either a Bluetooth MAC or a "
                  "device serial. That identifier is parsed from the path and reported "
-                 "alongside the device UDID held in the iap2_library table, so the two can "
-                 "be compared rather than one being inferred from the other. Only backup "
+                 "alongside the device UDID held in the iap2_library table, so the two can be "
+                 "compared rather than one being inferred from the other. Identifier Type and "
+                 "Identifier are parsed from the store's file name and are blank when the name "
+                 "carries no identifier, so they do not separate two such stores, and Source File "
+                 "names the store each row came from. Only backup "
                  "copies of these stores were present on the tested image, so what is "
                  "reported is the state when the unit wrote that backup, which is not "
                  "necessarily the state at acquisition. A row means the unit indexed a "
@@ -47,7 +50,9 @@ __artifacts_v2__ = {
                  "they record what was available to play, not what was played, and the "
                  "store carries no play count and no last played time. The identifier "
                  "columns carry the value from the store's directory name so a row can be "
-                 "attributed to the device it came from.",
+                 "attributed to the device it came from. They are blank when the store's file name"
+                 " carries no identifier, so Identifier does not separate two such stores, and "
+                 "Source File names the store each row came from.",
         "paths": ('*/iap2_*.db.backup',),
         "sample_data": {
             "bmw_mgu_2024_pers_logical": "2024 BMW MGU | 220 rows",
