@@ -181,7 +181,7 @@ def main():
     parser.add_argument('-m', '--load_profile', required=False, action="store", help="Path to VLEAPP Profile file (.vlprofile).")
     parser.add_argument('-d', '--load_case_data', required=False, action="store", help="Path to LEAPP Case Data file (.lcasedata).")
     parser.add_argument('-c', '--create_profile_casedata', required=False, action="store",
-                        help=("Generate a VLEAPP Profile file (.rlprofile) or LEAPP Case Data file (.lcasedata) into the specified path. "
+                        help=("Generate a VLEAPP Profile file (.vlprofile) or LEAPP Case Data file (.lcasedata) into the specified path. "
                               "This argument is meant to be used alone, without any other arguments."))
     parser.add_argument('-p', '--artifact_paths', required=False, action="store_true",
                         help=("Generate a text file list of artifact paths. "
