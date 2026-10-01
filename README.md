@@ -4,6 +4,42 @@
 
 If you want to contribute hit me up on twitter: https://twitter.com/AlexisBrignoni   
 
+## Download
+
+Download a pre-built release, no Python installation required, from
+[VLEAPP GitHub Releases](https://github.com/abrignoni/VLEAPP/releases) or
+[LEAPPs Releases](https://leapps.org/releases).
+
+| Platform | Download |
+| -------- | -------- |
+| Windows (Intel/AMD) | `VLEAPP-*-windows-x64-setup.exe` (installer) or `VLEAPP-*-windows-x64-portable.zip` |
+| Windows (ARM) | `VLEAPP-*-windows-arm64-setup.exe` or `VLEAPP-*-windows-arm64-portable.zip` |
+| macOS (Apple Silicon) | `VLEAPP-*-macos-arm64.dmg` |
+| macOS (Intel) | `VLEAPP-*-macos-x64.dmg` |
+| Linux (Intel/AMD) | `VLEAPP-*-linux-x64.AppImage` |
+| Linux (ARM) | `VLEAPP-*-linux-arm64.AppImage` |
+
+Each download holds one program, `vleapp`. `SHA256SUMS.txt` in each release lets you check a download.
+
+**GUI**: open VLEAPP the usual way: from the Start menu after installing on Windows, by
+double-clicking `vleapp.exe` in the portable folder, VLEAPP in Applications on macOS, or
+the AppImage on Linux. Started without arguments, it opens the window.
+
+**CLI**: give `vleapp` arguments in a terminal and it runs as a command line instead. The
+output folder must already exist. On Windows, keep `vleapp.exe` in its folder with the
+files beside it.
+
+```
+vleapp.exe -t fs -i C:\path\to\extraction -o C:\path\to\output\
+```
+
+On Linux, run the AppImage with the same arguments. On macOS it is inside the app; to
+type just `vleapp` in a terminal, link it onto your PATH once:
+
+```
+sudo ln -s /Applications/VLEAPP.app/Contents/MacOS/vleapp /usr/local/bin/vleapp
+```
+
 ## Requirements
 
 **Python 3.10 or above**
@@ -72,6 +108,23 @@ $ python vleappGUI.py
 ```
 $ python vleapp.py --help
 ```
+
+### Building the binaries
+
+`packaging/build.py` builds `vleapp` with PyInstaller for the machine it runs on, from the
+same virtual environment.
+
+```
+python packaging/build.py exe          # dist/VLEAPP/, and dist/VLEAPP.app on macOS
+python packaging/build.py smoke        # run what it built, without opening a window
+python packaging/build.py installer    # Windows: Inno Setup installer; macOS: .dmg; Linux: AppImage
+```
+
+`exe --onefile` makes `dist/vleapp` (`dist\vleapp.exe` on Windows) as a single file
+instead. The Windows installer needs [Inno Setup](https://jrsoftware.org/isdl.php); on
+Linux, `smoke` needs a display, which `xvfb-run` provides. `python packaging/build.py --help`
+has the rest.
+
 ## Contributing artifact plugins
 
 Each plugin is a Python source file which should be added to the `scripts/artifacts` folder which will be loaded dynamically each time VLEAPP is run.

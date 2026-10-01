@@ -16,7 +16,7 @@ from scripts.search_files import *
 from scripts.raw_image import FileSeekerRaw, cli_image_keys
 from scripts.ilapfuncs import *
 from leapp_functions.app.output import validate_output_folder_available
-from scripts.version_info import vleapp_version
+from scripts.version_info import leapp_name, vleapp_version
 from time import process_time, gmtime, strftime, perf_counter
 from scripts.lavafuncs import *
 
@@ -203,6 +203,7 @@ def main():
                         help="Rows above which an artifact's table is left off its HTML page, which then points at "
                              "the LAVA database and the TSV export instead (default %(default)s). 0 writes every table.")
     parser.add_argument('--custom_artifacts_path', required=False, action="store", help="Additional path to load artifacts from (e.g., scripts/alternate_artifacts)")
+    parser.add_argument('--version', action='version', version=f'{leapp_name} {vleapp_version}')
 
     # Check if no arguments were provided
     if len(sys.argv) == 1:
