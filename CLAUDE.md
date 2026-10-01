@@ -27,6 +27,14 @@ loader, same seekers, same glob semantics.
   when porting a change from another core, expect the surrounding helper to be older than
   the one you copied from and read before pasting.
 - `scripts/report_icons.py` is local to this repo.
+- **Builds are made by `packaging/build.py`**, one PyInstaller spec for every platform and
+  one executable, `vleapp`, that opens the window without arguments. Every artifact module
+  is a hidden import, so what the artifacts import is followed without a list. What it
+  cannot follow is a name built at run time (`importlib.import_module(some_variable)`) or a
+  data file kept outside `scripts/`, `leapp_functions/` or `assets/`: expect a working dev
+  run and a broken build, and run `python packaging/build.py smoke` or `test_builds.yml`.
+  The disk image's arrow is not where the other LEAPPs draw theirs, so do not copy their
+  `dmg_settings.py`. See `.claude/rules/vleapp-build-and-release.md`.
 - No protobuf dependency, and it should stay that way.
 
 ## Rules
