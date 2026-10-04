@@ -20,7 +20,7 @@ __artifacts_v2__ = {
         "description": "Speed limit values (no road name is reported) from a pas_debug log inside "
                        "a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -37,8 +37,8 @@ __artifacts_v2__ = {
                        "the most recent \"Extracted BSSID\" line before it, from a pas_debug "
                        "log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Timestamp is the clock reading of the "
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "notes": "BSSID Line Timestamp is the clock reading of the "
                  "most recent \"Extracted BSSID\" line "
                  "before the SSID line, not of the SSID "
                  "line itself. No zone is read from the "
@@ -80,8 +80,9 @@ __artifacts_v2__ = {
                        "inside a "
                        "Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the last coordinates "
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "notes": "Last Logged Latitude and Last Logged Longitude "
+                 "are the last coordinates "
                  "the parser read before the event line, from "
                  "either a 'Received Lat' line or a 'lat: ... "
                  "lon: ... heading:' line. They are blank when "
@@ -106,8 +107,9 @@ __artifacts_v2__ = {
                        "pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the last "
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "notes": "Last Logged Latitude and Last Logged Longitude "
+                 "are the last "
                  "coordinates the parser read before the "
                  "event line, from either a 'Received Lat' "
                  "line or a 'lat: ... lon: ... heading:' "
@@ -135,8 +137,9 @@ __artifacts_v2__ = {
                        "each with the coordinates last logged before it, from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the last "
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "notes": "Last Logged Latitude and Last Logged Longitude "
+                 "are the last "
                  "coordinates the parser read before the "
                  "event line, from either a 'Received Lat' "
                  "line or a 'lat: ... lon: ... heading:' "
@@ -147,9 +150,8 @@ __artifacts_v2__ = {
                  "until the next coordinate line. The "
                  "pairing is by line order and is not a "
                  "link the log records. The value is the "
-                 "text after \"after scaling:\"; the column "
-                 "header gives degrees Celsius and no unit "
-                 "is read from the line. Timestamp is the "
+                 "text after \"after scaling:\"; no unit is "
+                 "read from the line. Timestamp is the "
                  "log line's clock reading. No zone is "
                  "read from the line. The value is stored "
                  "as if it were UTC, and the offset from "
@@ -165,8 +167,9 @@ __artifacts_v2__ = {
                        "the coordinates last logged before it, from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the last coordinates "
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "notes": "Last Logged Latitude and Last Logged Longitude "
+                 "are the last coordinates "
                  "the parser read before the event line, from "
                  "either a 'Received Lat' line or a 'lat: ... "
                  "lon: ... heading:' line. They are blank when "
@@ -175,8 +178,9 @@ __artifacts_v2__ = {
                  "'Received Lat' line, and stay blank until the "
                  "next coordinate line. The pairing is by line "
                  "order and is not a link the log records. "
-                 "REAR_REAR is shown as Rear Right Tire and "
-                 "FRONT_REAR as Front Right Tire. A line with "
+                 "The Tire Position Token column shows the token "
+                 "as logged; which tire REAR_REAR or FRONT_REAR "
+                 "names is not established. A line with "
                  "any other position token produces no row. "
                  "Timestamp is the log line's clock reading. No "
                  "zone is read from the line. The value is "
@@ -193,8 +197,9 @@ __artifacts_v2__ = {
                        "pas_debug log inside "
                        "a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the last coordinates "
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "notes": "Last Logged Latitude and Last Logged Longitude "
+                 "are the last coordinates "
                  "the parser read before the event line, from "
                  "either a 'Received Lat' line or a 'lat: ... "
                  "lon: ... heading:' line. They are blank when "
@@ -231,8 +236,9 @@ __artifacts_v2__ = {
                        "from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the last coordinates "
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "notes": "Last Logged Latitude and Last Logged Longitude "
+                 "are the last coordinates "
                  "the parser read before the event line, from "
                  "either a 'Received Lat' line or a 'lat: ... "
                  "lon: ... heading:' line. They are blank when "
@@ -256,8 +262,9 @@ __artifacts_v2__ = {
                        "CAppLinkService line before it, not the time of the odometer line itself) "
                        "from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Timestamp is the clock reading of the most "
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "notes": "CAppLinkService Line Timestamp is the clock "
+                 "reading of the most "
                  "recent CAppLinkService line before the "
                  "odometer line, not of the odometer line "
                  "itself, and is blank when there is none. No "
@@ -303,8 +310,9 @@ from scripts.ilapfuncs import artifact_processor, logdevinfo
 
 _GEAR = {'1': 'Gear is in Park', '2': 'Gear is in Neutral', '3': 'Gear is in Drive',
          '4': 'Gear is in Reverse'}
-_TIRE = {'REAR_LEFT': 'Rear Left Tire', 'REAR_REAR': 'Rear Right Tire',
-         'FRONT_LEFT': 'Front Left Tire', 'FRONT_REAR': 'Front Right Tire'}
+# Position tokens matched in the line, shown as logged. No source establishes
+# which tire REAR_REAR or FRONT_REAR names.
+_TIRE = ('REAR_LEFT', 'REAR_REAR', 'FRONT_LEFT', 'FRONT_REAR')
 
 
 def timeorder(line):
@@ -365,7 +373,7 @@ def _parse(context):
                         sect['dev'].append((_ts(timeorder(line)), latitude, longitude, heading,
                                             basename))
                 if '= Speed Limit:' in line and 'Speed limit invalid' not in line:
-                    sect['speed'].append((_ts(timeorder(line)), '', line.split('=')[1].strip(),
+                    sect['speed'].append((_ts(timeorder(line)), line.split('=')[1].strip(),
                                           basename))
                 if 'WIFI_MID' in line:
                     if 'Extracted BSSID' in line:
@@ -418,9 +426,9 @@ def _parse(context):
                     if ts_str[0:-3] != timestamp_loc[0:-3]:
                         latitude = longitude = ''
                     tire, pressure = '', ''
-                    for key, label in _TIRE.items():
+                    for key in _TIRE:
                         if key in line:
-                            tire, pressure = label, line.strip().split(' ')[-1]
+                            tire, pressure = key, line.strip().split(' ')[-1]
                             break
                     row = (_ts(ts_str), tire, pressure, latitude, longitude)
                     if pressure and row not in sect['tp']:
@@ -510,14 +518,15 @@ def chryslerTarGps(context):
 @artifact_processor
 def chryslerTarSpeed(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Road', 'Speed Limit', 'Log Filename')
+    headers = (('Timestamp', 'datetime'), 'Speed Limit', 'Log Filename')
     return headers, sect['speed'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def chryslerTarApInfo(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'BSSID', 'SSID', 'Signal Strength', 'Log Filename')
+    headers = (('BSSID Line Timestamp', 'datetime'), 'BSSID', 'SSID', 'Signal Strength',
+               'Log Filename')
     return headers, sect['apinfo'], context.get_relative_path(source_path)
 
 
@@ -538,35 +547,43 @@ def chryslerTarTransm(context):
 @artifact_processor
 def chryslerTarBrake(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Brake Status', 'Latitude', 'Longitude')
+    headers = (('Timestamp', 'datetime'), 'Brake Status', 'Last Logged Latitude',
+               'Last Logged Longitude')
     return headers, sect['brake'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def chryslerTarEngineTemp(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Engine Temp Degrees Celcius', 'Latitude', 'Longitude')
+    headers = (('Timestamp', 'datetime'), 'iTemp C (first two characters)',
+               'Last Logged Latitude',
+               'Last Logged Longitude')
     return headers, sect['engine'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def chryslerTarInteriorTemp(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Interior Temp Degrees Celcius', 'Latitude', 'Longitude')
+    headers = (('Timestamp', 'datetime'), 'Interior Temp (after scaling, as logged)',
+               'Last Logged Latitude',
+               'Last Logged Longitude')
     return headers, sect['interior'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def chryslerTarTirePressure(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Tire', 'Tire Pressure', 'Latitude', 'Longitude')
+    headers = (('Timestamp', 'datetime'), 'Tire Position Token', 'Tire Pressure',
+               'Last Logged Latitude',
+               'Last Logged Longitude')
     return headers, sect['tp'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def chryslerTarGearState(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Gear State', 'Latitude', 'Longitude')
+    headers = (('Timestamp', 'datetime'), 'Gear State', 'Last Logged Latitude',
+               'Last Logged Longitude')
     return headers, sect['gear'], context.get_relative_path(source_path)
 
 
@@ -580,14 +597,15 @@ def chryslerTarOutTemp(context):
 @artifact_processor
 def chryslerTarDoor(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Door Status', 'Latitude', 'Longitude')
+    headers = (('Timestamp', 'datetime'), 'Door Status', 'Last Logged Latitude',
+               'Last Logged Longitude')
     return headers, sect['door'], context.get_relative_path(source_path)
 
 
 @artifact_processor
 def chryslerTarOdometer(context):
     sect, source_path = _parse(context)
-    headers = (('Timestamp', 'datetime'), 'Odometer', 'Log Filename')
+    headers = (('CAppLinkService Line Timestamp', 'datetime'), 'Odometer', 'Log Filename')
     return headers, sect['odometer'], context.get_relative_path(source_path)
 
 

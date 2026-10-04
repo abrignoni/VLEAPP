@@ -35,23 +35,30 @@ __artifacts_v2__ = {
     "ford_vehicle_capabilities": {
         "name": "Vehicle Capability Values",
         "description": "One stored value for each topic in the HMI applications' "
-                       "MQTT_API_TOPIC_MAP database, taken from the first record the "
-                       "reader returns for that topic, which need not be the newest "
-                       "record.",
+                       "MQTT_API_TOPIC_MAP database: the record with the highest "
+                       "LevelDB sequence number for that topic in the first "
+                       "application store that holds it.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
-        "last_update_date": "2026-08-27",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the topic map the HMI applications keep in IndexedDB, read with the "
-                 "vendored ccl_chromium_indexeddb reader. Each row is one topic and the "
-                 "first record the reader returned for it. Where several applications or "
-                 "several versions hold the same topic only that first one is reported, so "
-                 "a differing value elsewhere is not shown. On ford_syncg4 and "
-                 "ford_syncg4_logical (re-counted 3 Oct 2026) the 153 topics came from "
-                 "2,835 stored records, and on 2 of the 153 topics the reported value "
-                 "differed from the highest-sequence record of the store it was taken from. "
+                 "vendored ccl_chromium_indexeddb reader. Each row is one topic. Where a "
+                 "store's files hold several versions of a topic, the version with the "
+                 "highest LevelDB sequence number is reported; LevelDB numbers its writes "
+                 "upward, so that is the last one written to that store. Earlier "
+                 "versions are not shown. If that version is a deletion marker the value "
+                 "is blank; ford_syncg4_logical held none. Sequence numbers of different "
+                 "stores are not comparable, so where several applications hold the same "
+                 "topic the row comes from the first store in path order, named in the "
+                 "First Seen In Application column, and a differing value in another "
+                 "store is not shown. On ford_syncg4_logical (measured 4 Oct 2026) the 153 "
+                 "topics came from 2,835 stored records in 7 stores; 59 topics had more "
+                 "than one version in the reported store, 3 topics were held by more than "
+                 "one store, and on those 3 the highest-sequence values of the stores "
+                 "agreed. "
                  "Keys beginning com.ford.sdk__customStorage are left out. On the tested "
                  "image most of these were equipment flags, such as whether a camera view "
                  "or a climate feature is present; what a cached value establishes about "
@@ -120,7 +127,7 @@ def _as_text(value):
 
 
 def _iter_records(store_dir):
-    """Yield (database, object store, key, value) for one store."""
+    """Yield (database, object store, key, value, sequence) for one store."""
     try:
         wrapped = ccl_chromium_indexeddb.WrappedIndexDB(pathlib.Path(store_dir))
     except _READ_ERRORS:
@@ -146,7 +153,8 @@ def _iter_records(store_dir):
                     # the reader renders a key as "<IdbKey value>"
                     if key.startswith('<IdbKey '):
                         key = key[len('<IdbKey '):].rstrip('>')
-                    yield database.name, store_name, key, record.value
+                    yield (database.name, store_name, key, record.value,
+                           record.ldb_seq_no)
     finally:
         try:
             wrapped.close()
@@ -161,7 +169,7 @@ def ford_hmi_app_state(context):
     for store_dir in _store_dirs(context):
         app = _application(store_dir)
         rows = 0
-        for db_name, store_name, key, value in _iter_records(store_dir):
+        for db_name, store_name, key, value, _seq in _iter_records(store_dir):
             if db_name == _TOPIC_DATABASE:
                 continue
             data_list.append((app, db_name, store_name, key, _as_text(value),
@@ -182,16 +190,27 @@ def ford_vehicle_capabilities(context):
     for store_dir in _store_dirs(context):
         app = _application(store_dir)
         rows = 0
-        for db_name, _store_name, key, value in _iter_records(store_dir):
+        # Within one store keep the record with the highest LevelDB sequence
+        # number for each topic. LevelDB numbers every write upward
+        # (db/write_batch.cc) and orders the versions of one key by decreasing
+        # sequence number (db/dbformat.cc), at
+        # https://github.com/google/leveldb/blob/7ee830d02b623e8ffe0b95d59a74db1e58da04c5/db/dbformat.cc#L46-L51
+        newest = {}
+        for db_name, _store_name, key, value, seq in _iter_records(store_dir):
             if db_name != _TOPIC_DATABASE or key.startswith(_TOPIC_EXCLUDE_PREFIX):
                 continue
-            # several applications cache the same topic; keep one row per topic
             if isinstance(value, dict) and 'value' in value:
                 stored = _as_text(value.get('value'))
             else:
                 stored = _as_text(value)
-            seen.setdefault(key, (app, stored, store_dir))
+            if key not in newest or seq > newest[key][0]:
+                newest[key] = (seq, stored)
             rows += 1
+        # several applications cache the same topic; keep one row per topic.
+        # Sequence numbers of different stores are not comparable, so the
+        # first store that holds the topic is the one reported.
+        for key, (_seq, stored) in newest.items():
+            seen.setdefault(key, (app, stored, store_dir))
         if rows:
             source_paths.append(store_dir)
 
