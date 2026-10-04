@@ -10,16 +10,18 @@ every artifact's notes rather than left to a reader.
 __artifacts_v2__ = {
     "ford_nav_paired_devices": {
         "name": "Navigation Paired Devices",
-        "description": "Phones the navigation application recorded as paired, and the "
-                       "accounts it recorded against them.",
+        "description": "Rows of the device table in the navigation application's "
+                       "data_manager.sqlite, with the account rows linked to each. "
+                       "Unexercised: the tables were empty on the one tested "
+                       "extraction.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Every table this reads was empty on the one tested extraction, where no "
-                 "phone had been paired. The query was verified by staging rows into a "
+        "notes": "Every table this reads was empty on the one tested extraction. The query "
+                 "was verified by staging rows into a "
                  "scratch copy of that store and confirming it executes, joins across the "
                  "related tables and returns its declared columns, so the SQL is proven "
                  "while the artifact remains unexercised against real device data. Treat a "
@@ -35,28 +37,29 @@ __artifacts_v2__ = {
     },
     "ford_nav_call_log": {
         "name": "Navigation Call Log",
-        "description": "Calls the navigation application synced from a paired phone.",
+        "description": "Rows of the call_log table in the navigation application's "
+                       "data_manager.sqlite, with the contact and device rows they link to. "
+                       "Unexercised: the table was empty on the one tested extraction.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Every table this reads was empty on the one tested extraction, where no "
-                 "phone had been paired. The query was verified by staging rows into a "
-                 "scratch copy of that store and confirming it executes, joins across the "
-                 "related tables and returns its declared columns, so the SQL is proven "
-                 "while the artifact remains unexercised against real device data. Treat a "
-                 "zero row result as unconfirmed rather than as evidence the feature was "
-                 "unused. The time columns are reported as stored, not converted. Nothing "
-                 "available here establishes their epoch or units, and while the settings "
-                 "tables in the same store hold Unix seconds, a column in one table is not "
-                 "evidence about a column in another. Confirm the epoch against a "
-                 "populated sample before reading these values as times. The log type "
-                 "column is an integer reported as stored; the table's own CHECK "
-                 "constraint limits it to 1, 2 or 3, but what each value means is not "
-                 "established here, so no direction is asserted. A row is a record the "
-                 "vehicle copied from a phone; it does not establish who placed or "
+        "notes": "Every table this reads was empty on the one tested extraction. The query "
+                 "was verified by staging rows into a scratch copy of that store and "
+                 "confirming it executes, joins across the related tables and returns its "
+                 "declared columns, so the SQL is proven while the artifact remains "
+                 "unexercised against real device data. Treat a zero row result as "
+                 "unconfirmed rather than as evidence the feature was unused. The time "
+                 "columns are reported as stored, not converted. Nothing available here "
+                 "establishes their epoch or units, and while the settings tables in the "
+                 "same store are read as Unix times, a column in one table is not evidence "
+                 "about a column in another. Confirm the epoch against a populated sample "
+                 "before reading these values as times. The log type column is an integer "
+                 "reported as stored; what each value means is not established here, so "
+                 "no direction is asserted. How a row comes to be written is not "
+                 "established here. A row does not establish who placed or "
                  "answered the call.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
@@ -67,28 +70,29 @@ __artifacts_v2__ = {
     },
     "ford_nav_sms": {
         "name": "Navigation Messages",
-        "description": "Messages the navigation application synced from a paired phone.",
+        "description": "Rows of the sms table in the navigation application's data_manager.sqlite, "
+                       "with the contact, conversation and device rows they link to. Unexercised: "
+                       "the table was empty on the one tested extraction.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Every table this reads was empty on the one tested extraction, where no "
-                 "phone had been paired. The query was verified by staging rows into a "
-                 "scratch copy of that store and confirming it executes, joins across the "
-                 "related tables and returns its declared columns, so the SQL is proven "
-                 "while the artifact remains unexercised against real device data. Treat a "
-                 "zero row result as unconfirmed rather than as evidence the feature was "
-                 "unused. The time columns are reported as stored, not converted. Nothing "
-                 "available here establishes their epoch or units, and while the settings "
-                 "tables in the same store hold Unix seconds, a column in one table is not "
-                 "evidence about a column in another. Confirm the epoch against a "
-                 "populated sample before reading these values as times. Type and folder "
-                 "are integers reported as stored; the table's own CHECK constraints limit "
-                 "type to 1 or 2 and folder to 1 through 6, but what each value means is "
-                 "not established here, so no direction is asserted. A row is a copy the "
-                 "vehicle held; it does not establish who sent or read the message.",
+        "notes": "Every table this reads was empty on the one tested extraction. The query "
+                 "was verified by staging rows into a scratch copy of that store and "
+                 "confirming it executes, joins across the related tables and returns its "
+                 "declared columns, so the SQL is proven while the artifact remains "
+                 "unexercised against real device data. Treat a zero row result as "
+                 "unconfirmed rather than as evidence the feature was unused. The time "
+                 "columns are reported as stored, not converted. Nothing available here "
+                 "establishes their epoch or units, and while the settings tables in the "
+                 "same store are read as Unix times, a column in one table is not evidence "
+                 "about a column in another. Confirm the epoch against a populated sample "
+                 "before reading these values as times. Type and folder are integers "
+                 "reported as stored; what each value means is not established here, so no "
+                 "direction is asserted. How a row comes to be written is not established "
+                 "here. A row does not establish who sent or read the message.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync G4 | 0 rows",
@@ -98,7 +102,9 @@ __artifacts_v2__ = {
     },
     "ford_nav_contacts": {
         "name": "Navigation Contacts",
-        "description": "Contacts the navigation application synced from a paired phone, "
+        "description": "Rows of the contact table in the navigation application's "
+                       "data_manager.sqlite (unexercised: empty on the one tested "
+                       "extraction), "
                        "with their phone numbers, email addresses and postal addresses.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
@@ -106,8 +112,8 @@ __artifacts_v2__ = {
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Every table this reads was empty on the one tested extraction, where no "
-                 "phone had been paired. The query was verified by staging rows into a "
+        "notes": "Every table this reads was empty on the one tested extraction. The query "
+                 "was verified by staging rows into a "
                  "scratch copy of that store and confirming it executes, joins across the "
                  "related tables and returns its declared columns, so the SQL is proven "
                  "while the artifact remains unexercised against real device data. Treat a "
@@ -125,23 +131,23 @@ __artifacts_v2__ = {
     },
     "ford_nav_calendar": {
         "name": "Navigation Calendar",
-        "description": "Calendar entries the navigation application synced from a paired "
-                       "phone.",
+        "description": "Rows of the calendar_event table in the navigation application's "
+                       "data_manager.sqlite. Unexercised: the table was empty on the "
+                       "one tested extraction.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Every table this reads was empty on the one tested extraction, where no "
-                 "phone had been paired. The query was verified by staging rows into a "
-                 "scratch copy of that store and confirming it executes, joins across the "
-                 "related tables and returns its declared columns, so the SQL is proven "
-                 "while the artifact remains unexercised against real device data. Treat a "
-                 "zero row result as unconfirmed rather than as evidence the feature was "
-                 "unused. The table carries a timezone column of its own, so an event's "
-                 "local time should be read against that rather than against any zone "
-                 "assumed here. The all day column is reported as stored.",
+        "notes": "Every table this reads was empty on the one tested extraction. The query "
+                 "was verified by staging rows into a scratch copy of that store and "
+                 "confirming it executes, joins across the related tables and returns its "
+                 "declared columns, so the SQL is proven while the artifact remains "
+                 "unexercised against real device data. Treat a zero row result as "
+                 "unconfirmed rather than as evidence the feature was unused. No event "
+                 "start or end time is reported by this artifact. The table's timezone "
+                 "column is reported as stored. The all day column is reported as stored.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync G4 | 0 rows",
@@ -151,28 +157,32 @@ __artifacts_v2__ = {
     },
     "ford_nav_trips": {
         "name": "Navigation Trips",
-        "description": "Trips saved in the navigation application, with their waypoints as "
-                       "stored.",
+        "description": "Rows of the trips table in the navigation application's "
+                       "data_manager.sqlite, with their waypoints as stored. Unexercised: "
+                       "the table was empty on the one tested extraction.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Every table this reads was empty on the one tested extraction, where no "
-                 "phone had been paired. The query was verified by staging rows into a "
-                 "scratch copy of that store and confirming it executes, joins across the "
-                 "related tables and returns its declared columns, so the SQL is proven "
-                 "while the artifact remains unexercised against real device data. Treat a "
-                 "zero row result as unconfirmed rather than as evidence the feature was "
-                 "unused. The time columns are reported as stored, not converted. Nothing "
-                 "available here establishes their epoch or units, and while the settings "
-                 "tables in the same store hold Unix seconds, a column in one table is not "
-                 "evidence about a column in another. Confirm the epoch against a "
-                 "populated sample before reading these values as times. Waypoints, "
-                 "preferences and OEM data are stored as opaque columns and are reported "
-                 "as stored without decoding, because their format is not established "
-                 "here. A saved trip is a route someone entered; it is not evidence the "
+        "notes": "Every table this reads was empty on the one tested extraction. The query "
+                 "was verified by staging rows into a scratch copy of that store and "
+                 "confirming it executes and returns its declared columns, so the SQL is "
+                 "proven while the artifact remains unexercised against real device data. "
+                 "Treat a zero row result as unconfirmed rather than as evidence the "
+                 "feature was unused. The time columns are reported as stored, not "
+                 "converted. Nothing available here establishes their epoch or units, and "
+                 "while the settings tables in the same store are read as Unix times, a "
+                 "column in one table is not evidence about a column in another. Confirm "
+                 "the epoch against a populated sample before reading these values as "
+                 "times. The waypoint columns (starting_waypoint, ending_waypoint, "
+                 "waypoints) are reported as stored without decoding. The trips table also "
+                 "has global, trip_preferences and oem_data columns, which this artifact "
+                 "does not report. The table held 0 rows on ford_syncg4 and "
+                 "ford_syncg4_logical, so the format of these columns was not observed. "
+                 "How a trips row comes to be written is not established here. A row is "
+                 "not evidence the "
                  "route was driven.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
@@ -183,22 +193,24 @@ __artifacts_v2__ = {
     },
     "ford_nav_search_history": {
         "name": "Navigation Search History",
-        "description": "Destination searches recorded by the navigation application.",
+        "description": "Rows of the search_history table in the navigation application's "
+                       "data_manager.sqlite. Unexercised: the table was empty on the one tested "
+                       "extraction.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Every table this reads was empty on the one tested extraction, where no "
-                 "phone had been paired. The query was verified by staging rows into a "
-                 "scratch copy of that store and confirming it executes, joins across the "
-                 "related tables and returns its declared columns, so the SQL is proven "
-                 "while the artifact remains unexercised against real device data. Treat a "
-                 "zero row result as unconfirmed rather than as evidence the feature was "
-                 "unused. The table carries a deleted flag, reported as stored, so rows "
-                 "the application marked deleted are included and labelled rather than "
-                 "dropped. A search string is text someone entered; it does not establish "
+        "notes": "Every table this reads was empty on the one tested extraction. The query "
+                 "was verified by staging rows into a scratch copy of that store and "
+                 "confirming it executes and returns its declared columns, so the SQL is "
+                 "proven while the artifact remains unexercised against real device data. "
+                 "Treat a zero row result as unconfirmed rather than as evidence the "
+                 "feature was unused. The table carries a deleted flag, reported as "
+                 "stored, so rows the application marked deleted are included and labelled "
+                 "rather than dropped. A search string does not establish who entered it "
+                 "or "
                  "that the vehicle travelled there.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {

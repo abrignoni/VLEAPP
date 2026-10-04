@@ -2,8 +2,7 @@ __artifacts_v2__ = {
     "ford_nav_user_settings": {
         "name": "Navigation User Settings",
         "description": "Settings the built-in navigation application stored against a user "
-                       "profile, each with the value as stored and the time the row was "
-                       "written.",
+                       "profile, each with the value as stored and the row's time_stamp.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
@@ -11,16 +10,18 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the user_setting table in the navigation application's "
-                 "data_manager.sqlite. time_stamp is a Unix time in seconds. Setting names "
-                 "are the application's own and most values are undocumented integers, so "
-                 "values are reported as stored and no meaning is assigned to them. The "
-                 "timestamps are worth reading as a group rather than individually: on the "
-                 "tested image most rows shared a timestamp within a few seconds, which is "
-                 "consistent with one bulk write, and a smaller number carried later and "
-                 "well separated times. On the tested image that bulk write fell 22 seconds after the reset recorded in the unit's own reset-reason.txt, which is two stores written by different code paths agreeing on one event. A row records the value in effect and when it was "
-                 "written; it does not establish who changed it, which matters in a vehicle "
-                 "more than one person may use. isBinary marks rows whose value is not "
-                 "plain text, and those are reported as stored without decoding.",
+                 "data_manager.sqlite. time_stamp is read as a Unix time, with the unit chosen "
+                 "from the value's magnitude. Setting names are the application's own and most "
+                 "values are undocumented integers, so values are reported as stored and no "
+                 "meaning is assigned to them. The timestamps are worth reading as a group rather "
+                 "than individually: on the tested image most rows shared a timestamp within a "
+                 "few seconds, and a smaller number carried later and well separated times. On "
+                 "the tested image that shared timestamp fell 22 seconds after the reset recorded "
+                 "in the unit's own reset-reason.txt, which is one observation. A row holds a "
+                 "setting value and a time_stamp. Whether that time is when the value was set, "
+                 "and whether a row flagged isDeleted is still in effect, are not established. A "
+                 "row does not establish who changed it, which matters in a vehicle more than one "
+                 "person may use. isBinary is reported as stored, and no value is decoded.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync G4 | 50 rows",
@@ -31,8 +32,7 @@ __artifacts_v2__ = {
     "ford_nav_global_settings": {
         "name": "Navigation Global Settings",
         "description": "Settings the built-in navigation application stored without a user "
-                       "profile, each with the value as stored and the time the row was "
-                       "written.",
+                       "profile, each with the value as stored and the row's time_stamp.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
@@ -40,10 +40,10 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the global_setting table in the same store as the user settings, with "
-                 "the same columns except that no profile is recorded. time_stamp is a Unix "
-                 "time in seconds and values are reported as stored. This table is where a "
-                 "setting that applies to the unit rather than to one profile is kept, which "
-                 "on the tested image included the identifier of the profile in use.",
+                 "the same columns except that no profile is recorded. time_stamp is read as "
+                 "a Unix time, with the unit chosen from the value's magnitude, and values "
+                 "are reported as stored. On the tested image one of its settings held a "
+                 "profile identifier.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync G4 | 44 rows",

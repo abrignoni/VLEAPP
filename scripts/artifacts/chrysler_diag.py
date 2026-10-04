@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Chrysler Vehicles",
-        "notes": "Lines are read as alternating key / value pairs, as in the original.",
+        "notes": "Lines are read as alternating key / value pairs.",
         "paths": ('*/persistence/nonvol_*.ps',),
         "output_types": "standard",
         "artifact_icon": "activity",

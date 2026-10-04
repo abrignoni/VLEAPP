@@ -1,18 +1,20 @@
 __artifacts_v2__ = {
     "bmw_sxm_session": {
         "name": "SiriusXM Session Times",
-        "description": "Times the SiriusXM application recorded for its own last reboot, "
-                       "last online connection and last heartbeat, read from single-value "
-                       "files in the head unit's persistence volume.",
+        "description": "Times stored in the single-value files lastRebootTimeKey, "
+                       "lastOnlineTimeKey and lastHeartbeatTime in the head unit's "
+                       "persistence volume; what each time marks is taken from the file "
+                       "name only.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "BMW Vehicles",
-        "notes": "Each value is stored as a whole file holding a Unix time in milliseconds, "
-                 "converted here by dividing by 1000 at the call site because the unit is "
-                 "known rather than inferred from magnitude. These are times the application "
+        "notes": "Each value is a whole file holding an integer, read as a Unix time in "
+                 "milliseconds and divided by 1000. No source for the unit is cited; the "
+                 "reading rests on the one comparison described below. These are times the "
+                 "application "
                  "wrote about itself; they are not a record of who was in the vehicle. On the "
                  "one tested image the recorded online time fell 20 seconds after the "
                  "containing ext4 filesystem's own last mount time, so the two agree on the "
@@ -29,8 +31,10 @@ __artifacts_v2__ = {
     },
     "bmw_sxm_account": {
         "name": "SiriusXM Account and Device",
-        "description": "Account and device identifiers the SiriusXM application stored in the "
-                       "head unit's persistence volume, each as a single-value file.",
+        "description": "Values of eight single-value files (lastUserLoggedIn, "
+                       "lastAvailableUsername, LastEpisodeDownloadUser, DeviceIdKey, "
+                       "ClientDeviceIdKey, vehicle_info_metric_id, appRegion, freeToAir) in "
+                       "the head unit's persistence volume.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
@@ -40,11 +44,12 @@ __artifacts_v2__ = {
         "notes": "Values are reported as stored. The file name is the application's own key "
                  "name; no meaning beyond that is asserted here. lastUserLoggedIn and "
                  "lastAvailableUsername held the same 20 character value on the tested "
-                 "image, which is one observation and not a rule. This store sits beside an "
-                 "eCryptfs-encrypted subtree on the same volume, so an extraction of this "
-                 "volume may be only partly readable. The store sits under a directory named "
-                 "golden_package, which reads like a shipped default set, but on the tested "
-                 "image it is the only copy of this store present and its values are device "
+                 "image, which is one observation and not a rule. On the tested image this "
+                 "store sat beside an eCryptfs-encrypted subtree on the same volume, so an "
+                 "extraction of this volume may be only partly readable. On the tested image "
+                 "the store sat under a directory named golden_package, which reads like a "
+                 "shipped default set, but it was the only copy of this store present there "
+                 "and its values were device "
                  "specific, so the name should not be taken to mean the contents are factory "
                  "defaults.",
         "paths": ('*/data_localStorage/private/shared/lastUserLoggedIn',

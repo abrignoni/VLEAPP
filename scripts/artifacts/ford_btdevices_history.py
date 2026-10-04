@@ -1,15 +1,21 @@
 __artifacts_v2__ = {
     "get_bt_device_hist": {
         "name": "BT Device History",
-        "description": "Bluetooth connect/disconnect history from a Ford smartdevicelink.log.",
+        "description": "Device appeared and disappeared lines (name, serial, uuid, device type) "
+                       "from a Ford smartdevicelink.log.",
         "author": "@JaysonU25",
         "version": "0.2",
         "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Time is parsed from the log's [DD Mon YYYY HH:MM:SS...] stamp and normalized to "
-                 "UTC; unparseable values are kept as stored.",
+        "notes": "Time is the log's [DD Mon YYYY HH:MM:SS...] stamp. No zone is read from "
+                 "the line; the value is stored as if it were UTC with no conversion, so "
+                 "the true offset is not established. Unparseable values are kept as "
+                 "stored. Connection Type holds the Device type text from the log. The "
+                 "column headed Incoming/Outgoing holds \"Device Connected\" or \"Device "
+                 "Disconnected\", set from whether the line reads \"appeared\" or "
+                 "\"disappeared\".",
         "paths": ('*/*smartdevicelink.log',),
         "output_types": "standard",
         "artifact_icon": "bluetooth",

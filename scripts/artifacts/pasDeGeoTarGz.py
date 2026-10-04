@@ -5,24 +5,42 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
         "notes": "Latitude/Longitude exposed for the KML map. The log is read in-memory from the "
-                 "tar.gz (the original extracted it to the report folder).",
+                 "tar.gz. Timestamp is the log line's clock reading. No zone is read from the "
+                 "line. The value is stored as if it were UTC, and the offset from UTC is not "
+                 "established. A line with a single digit month, day or hour is left as text.",
         "paths": ('*/archivedata/*.tar.gz',),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'], "artifact_icon": "map-pin",
     },
     "pasDeGeoTarGzSpeed": {
         "name": "RAM - PAS Road Speed Limits",
-        "description": "Road speed limits from a RAM pas_debug.log.1 (tar.gz).",
+        "description": "Speed limit values (no road name is reported) from a RAM pas_debug.log.1 "
+                       "(tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
-        "notes": "", "paths": ('*/archivedata/*.tar.gz',),
+        "notes": "Timestamp is the log line's clock "
+                 "reading. No zone is read from the "
+                 "line. The value is stored as if it "
+                 "were UTC, and the offset from UTC "
+                 "is not established. A line with a "
+                 "single digit month, day or hour "
+                 "is left as text. Lines containing "
+                 "\"Speed limit invalid\" are left "
+                 "out.", "paths": ('*/archivedata/*.tar.gz',),
         "output_types": "standard", "artifact_icon": "alert-triangle",
     },
     "pasDeGeoTarGzApInfo": {
         "name": "RAM - PAS Access Point List",
-        "description": "Wi-Fi access points from a RAM pas_debug.log.1 (tar.gz).",
+        "description": "Wi-Fi SSID and signal lines, each shown with the BSSID from the most "
+                       "recent \"Extracted BSSID\" line before it, from a RAM pas_debug.log.1 "
+                       "(tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
-        "notes": "", "paths": ('*/archivedata/*.tar.gz',),
+        "notes": "Timestamp is the log line's clock "
+                 "reading. No zone is read from the line. "
+                 "The value is stored as if it were UTC, "
+                 "and the offset from UTC is not "
+                 "established. A line with a single digit "
+                 "month, day or hour is left as text.", "paths": ('*/archivedata/*.tar.gz',),
         "output_types": "standard", "artifact_icon": "wifi",
     },
     "pasDeGeoTarGzVSpeed": {
@@ -30,7 +48,12 @@ __artifacts_v2__ = {
         "description": "Vehicle speed (kmph) from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
-        "notes": "", "paths": ('*/archivedata/*.tar.gz',),
+        "notes": "Timestamp is the log line's clock "
+                 "reading. No zone is read from the line. "
+                 "The value is stored as if it were UTC, "
+                 "and the offset from UTC is not "
+                 "established. A line with a single digit "
+                 "month, day or hour is left as text.", "paths": ('*/archivedata/*.tar.gz',),
         "output_types": "standard", "artifact_icon": "navigation",
     },
     "pasDeGeoTarGzTransm": {
@@ -38,7 +61,12 @@ __artifacts_v2__ = {
         "description": "Transmission status from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
-        "notes": "", "paths": ('*/archivedata/*.tar.gz',),
+        "notes": "Timestamp is the log line's clock "
+                 "reading. No zone is read from the line. "
+                 "The value is stored as if it were UTC, "
+                 "and the offset from UTC is not "
+                 "established. A line with a single digit "
+                 "month, day or hour is left as text.", "paths": ('*/archivedata/*.tar.gz',),
         "output_types": "standard", "artifact_icon": "settings",
     },
     "pasDeGeoTarGzTemp": {
@@ -46,15 +74,30 @@ __artifacts_v2__ = {
         "description": "Outside air temperature from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
-        "notes": "", "paths": ('*/archivedata/*.tar.gz',),
+        "notes": "Timestamp is the log line's clock "
+                 "reading. No zone is read from the line. "
+                 "The value is stored as if it were UTC, "
+                 "and the offset from UTC is not "
+                 "established. A line with a single digit "
+                 "month, day or hour is left as text.", "paths": ('*/archivedata/*.tar.gz',),
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "pasDeGeoTarGzOdometer": {
         "name": "RAM - PAS Odometer",
-        "description": "Odometer readings from a RAM pas_debug.log.1 (tar.gz).",
+        "description": "Odometer values (each shown with the time of the most recent "
+                       "CAppLinkService line before it, not the time of the odometer line itself) "
+                       "from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
-        "notes": "", "paths": ('*/archivedata/*.tar.gz',),
+        "notes": "Timestamp is the clock reading of the "
+                 "most recent CAppLinkService line before "
+                 "the odometer line, not of the odometer "
+                 "line itself, and is blank when there is "
+                 "none. No zone is read from the line. The "
+                 "value is stored as if it were UTC, and "
+                 "the offset from UTC is not established. "
+                 "A line with a single digit month, day or "
+                 "hour is left as text.", "paths": ('*/archivedata/*.tar.gz',),
         "output_types": "standard", "artifact_icon": "activity",
     },
     "pasDeGeoTarGzCurRoad": {
@@ -62,7 +105,12 @@ __artifacts_v2__ = {
         "description": "Current road from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
-        "notes": "", "paths": ('*/archivedata/*.tar.gz',),
+        "notes": "Timestamp is the log line's clock "
+                 "reading. No zone is read from the line. "
+                 "The value is stored as if it were UTC, "
+                 "and the offset from UTC is not "
+                 "established. A line with a single digit "
+                 "month, day or hour is left as text.", "paths": ('*/archivedata/*.tar.gz',),
         "output_types": "standard", "artifact_icon": "map",
     },
     "pasDeGeoTarGzVehicle": {
@@ -71,8 +119,12 @@ __artifacts_v2__ = {
                        "(tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
-        "notes": "Surfaces the make/model/VIN/platform the original only wrote to the "
-                 "device-info log.", "paths": ('*/archivedata/*.tar.gz',),
+        "notes": "Make, model, VIN and platform version "
+                 "values, also written to the device "
+                 "information log. Make and model show the "
+                 "last value seen; Platform Version is "
+                 "the Version Number from a USBUPDT_MID "
+                 "line.", "paths": ('*/archivedata/*.tar.gz',),
         "output_types": "standard", "artifact_icon": "truck",
     },
 }

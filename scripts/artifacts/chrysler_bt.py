@@ -1,7 +1,8 @@
 __artifacts_v2__ = {
     "chryslerBtDevices": {
         "name": "Chrysler - Bluetooth Devices",
-        "description": "Paired Bluetooth devices (address + friendly name) from a Chrysler "
+        "description": "Bluetooth device addresses and names read from bdAddr and name "
+                       "lines (repeated pairs listed once) in a Chrysler "
                        "betula/bt_log.txt.",
         "author": "Joe Dinsmoor",
         "version": "0.2",

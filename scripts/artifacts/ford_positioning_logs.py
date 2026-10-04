@@ -2,7 +2,7 @@ __artifacts_v2__ = {
     "ford_positioning_fixes": {
         "name": "Positioning Log Coordinates",
         "description": "Latitude and longitude values the head unit's positioning service "
-                       "wrote to its own log, with the stage of the positioning chain each "
+                       "wrote to its own log, with the label of the log line each "
                        "one came from.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
@@ -14,9 +14,9 @@ __artifacts_v2__ = {
                  "artifact parses only the dead reckoning lines, which carry speed and "
                  "heading and no coordinates; these are the other lines in the same file, "
                  "which do carry coordinates. Four line shapes are read and the Source "
-                 "column says which produced each row, because they are not equivalent: "
-                 "Raw GPS and UbloxReader are receiver output, Trimble Input is what was "
-                 "fed to the fusion engine, and Trimble Output is what the engine returned. "
+                 "column carries the label on the log line (Raw GPS, UbloxReader, Trimble "
+                 "Input or Trimble Output). What stage each label stands for is not "
+                 "established here. "
                  "The Result column is reported as stored, and on the tested image every "
                  "Trimble Output line recorded Failure, so those rows should not be read as "
                  "confirmed fixes. A coordinate in a service log is a value the software "
@@ -32,23 +32,25 @@ __artifacts_v2__ = {
     },
     "ford_nav_search_events": {
         "name": "Navigation Analytics Events",
-        "description": "Events the navigation interface recorded in its analytics log, "
-                       "with the phase reached, the attributes in effect and the "
-                       "identifiers it assigned.",
+        "description": "Events from hmi.analytics lines in the head unit's "
+                       "fdplog.vn.txt, each with its phase, attributes, redacted field "
+                       "names and thread id.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "From the hmi.analytics lines in fdplog.vn.txt. Each event spans several "
-                 "consecutive lines sharing a thread id: a name and phase, an attributes "
-                 "line, and a line naming the fields the application withheld. Those "
-                 "withheld fields are reported by name in the Redacted Fields column and "
-                 "their values are not in the log: the application logged the field names "
-                 "and redacted the coordinates itself, so no position can be recovered "
-                 "here. Attributes are reported as stored. On the tested image the events "
-                 "spanned 53 seconds of one session, which bounds what this artifact can "
+        "notes": "From the hmi.analytics lines in fdplog.vn.txt. Each event is read as "
+                 "consecutive hmi.analytics lines in file order: a name and phase, an "
+                 "attributes line, and a line naming withheld fields. The thread id is "
+                 "reported but is not used to group lines, so interleaved lines from two "
+                 "threads would be joined to the wrong event. The withheld fields are "
+                 "reported by name in the Redacted Fields column: the log line is "
+                 "labelled \"PII Attributes (PII redacted)\" and lists field names without "
+                 "values, so the withheld values cannot be recovered from this log. "
+                 "Attributes are reported as stored. On the tested image the events "
+                 "spanned 53 seconds, which bounds what this artifact can "
                  "show to whatever the log still held rather than to the life of the "
                  "vehicle.",
         "paths": ('*/*fdplog.vn.txt*',),

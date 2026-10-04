@@ -8,8 +8,13 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Time Stamp normalized to UTC where parseable; unparseable values kept as stored. "
-                 "These dead reckoning records carry speed and heading and no latitude or longitude, so this artifact has no map. Other lines in the same log do carry coordinates and are read by the positioning log artifact.",
+        "notes": "Time Stamp is the date and time inside the DR data line, stored as if it were "
+                 "UTC with no conversion; the zone of that value is not established here. "
+                 "Unparseable values are kept as stored. Only DR data lines marked GPSDataValid=1 "
+                 "are reported, and identical rows are listed once. These dead reckoning records "
+                 "carry speed and heading and no latitude or longitude, so this artifact has no "
+                 "map. Other lines in the same log do carry coordinates and are read by the "
+                 "positioning log artifact.",
         "paths": ('*/*fdplog.np.txt*',),
         "output_types": "standard",
         "artifact_icon": "navigation",

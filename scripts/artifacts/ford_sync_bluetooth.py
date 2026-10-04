@@ -14,9 +14,10 @@ from scripts.ilapfuncs import artifact_processor, open_sqlite_db_readonly
 __artifacts_v2__ = {
     "ford_sync_bt_contacts": {
         "name": "Bluetooth Phonebook",
-        "description": "Contacts the head unit downloaded from each paired handset, with "
-                       "the names, the phone numbers the record carried, email and postal "
-                       "address as stored. One row per contact per handset slot.",
+        "description": "Contacts in the head unit's numbered PhoneBook tables, with the "
+                       "names, the phone numbers the record carried, email and postal "
+                       "address as stored. One row per contact per table number, shown as "
+                       "Device Slot.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-30",
@@ -24,20 +25,19 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the PhoneBook<N> tables of BT/btpbk, an extension-less SQLite store "
-                 "on the user data partition. The unit numbers its tables per paired "
-                 "handset, slots 1 to 12, and the slot is reported so contacts from "
-                 "different handsets stay separable. A phonebook entry records what the "
-                 "unit downloaded over Bluetooth; it does not establish that any number was "
-                 "dialled or that the handset owner was present. TelType is not surfaced "
-                 "because nothing available here documents its values. The store carries no "
-                 "write-ahead log or journal on the tested unit. A Berla iVe export run "
-                 "with -t iva reads these rows from the raw image the export carries, "
-                 "through the head unit's own QNX6 volumes, so the values are the "
-                 "unit's rather than iVe's parse of them. The same rows were also "
-                 "reproduced from the file set iVe itself extracted: both routes gave "
-                 "507 contacts, 126 calls and 2 paired devices, and the two stores "
-                 "were byte-identical by SHA-256, so neither extraction is a "
-                 "bottleneck for what these artifacts report.",
+                 "on the user data partition. On the tested unit the tables were numbered 1 "
+                 "to 12, and this artifact reads PhoneBook1 to PhoneBook12 only. That each "
+                 "number corresponds to one paired handset is not established here. The "
+                 "table number is reported as Device Slot. A phonebook entry is a row in a "
+                 "PhoneBook<N> table. How it got there is not established here, and it does "
+                 "not establish that any number was dialled or that the handset owner was "
+                 "present. TelType is not surfaced because nothing available here documents "
+                 "its values. The store carries no write-ahead log or journal on the "
+                 "tested unit. A Berla iVe export run with -t iva reads these rows from the "
+                 "raw image the export carries, through the head unit's own QNX6 volumes, "
+                 "so the values are the unit's rather than iVe's parse of them. On "
+                 "adams_ford_syncgen3_iva that route gave 507 contacts, 126 calls and 2 "
+                 "paired devices.",
         "paths": ('*/BT/btpbk*',),
         "sample_data": {
             "adams_ford_syncgen3_iva": "Ford Sync Gen3, via -t iva | 507 rows",
@@ -48,8 +48,9 @@ __artifacts_v2__ = {
     },
     "ford_sync_bt_calls": {
         "name": "Bluetooth Call History",
-        "description": "Calls the head unit recorded for each paired handset, with the time "
-                       "as stored, the direction, and the name and number the record "
+        "description": "Rows of the head unit's numbered Combined tables, with the call "
+                       "time assembled from the stored components, the direction, and the "
+                       "name and number the record "
                        "carried.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
@@ -59,17 +60,17 @@ __artifacts_v2__ = {
         "category": "Ford Vehicles",
         "notes": "From the Combined<N> tables of BT/btpbk, which the unit maintains "
                  "alongside separate InCall<N>, DialCall<N> and MissCall<N> tables. "
-                 "Combined is read because it is the union of the three: on the tested unit "
-                 "the two populated handsets gave 22+23+25=70 and 20+19+17=56, matching "
-                 "their Combined row counts exactly. Direction is decoded from CallType, "
-                 "and that mapping was derived from the data rather than assumed: filtering "
-                 "Combined by each CallType produced a (number, date, time) row set "
-                 "identical to the correspondingly named table, on both handsets "
-                 "independently, giving 1 Received, 2 Dialled, 4 Missed. Any other value is "
-                 "reported as stored. The unit writes the time as six separate text "
-                 "components and records no timezone anywhere in the store, so the "
-                 "timestamp is assembled as written and no conversion is applied. A call "
-                 "record is what the handset reported to the unit over Bluetooth; it does "
+                 "Combined is the table read. Direction is decoded from CallType, and that "
+                 "mapping was derived from the data: on the tested unit, filtering Combined "
+                 "by each CallType produced a (number, date, time) row set identical to "
+                 "the correspondingly named table, for both populated table numbers, giving "
+                 "1 Received, 2 Dialled, 4 Missed. Any other value is reported as stored. "
+                 "The time is stored as six separate text components and no timezone is "
+                 "read from the store, so the Call Time is assembled from those components "
+                 "and stored as if it were UTC with no offset applied; it is a clock "
+                 "reading and not an established instant. A missing hour, minute or second "
+                 "is shown as 00. A call record is a row in a Combined<N> table, and how it "
+                 "came to be written is not established here; it does "
                  "not establish who used the handset or that the vehicle was moving.",
         "paths": ('*/BT/btpbk*',),
         "sample_data": {
@@ -81,9 +82,9 @@ __artifacts_v2__ = {
     },
     "ford_sync_bt_paired_devices": {
         "name": "Bluetooth Paired Devices",
-        "description": "Handsets currently paired with the head unit, with the name, model, "
+        "description": "Rows of the head unit's PairedDevInfo table, with the name, model, "
                        "manufacturer, network name, software version, Bluetooth address and "
-                       "subscriber number the unit stored for each.",
+                       "subscriber number stored in each.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-30",
@@ -91,12 +92,14 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From PairedDevInfo in BT/btpersist, joined to DeviceOrder and "
-                 "HFPdeviceOrder on DeviceID for the primary-device flags, which are "
-                 "reported as stored because nothing available here documents their values. "
-                 "This table holds the pairings the unit currently retains, which is a "
-                 "narrower set than the handsets it has ever seen: the devlog_*.txt files "
-                 "in the same BT directory, which btDevices.py parses, covered five "
-                 "handsets on the tested unit while this table held two. Read both. Class "
+                 "HFPdeviceOrder on DeviceID (shown as Device Slot; that it matches the "
+                 "PhoneBook table number is not established here) for the primary-device "
+                 "flags, which are reported as stored because nothing available here "
+                 "documents their values. Whether a row here means the pairing was still "
+                 "active is not established. On the tested unit this table held fewer "
+                 "handsets than the devlog files: the devlog_*.txt files in the same BT "
+                 "directory, which the Bluetooth Devices artifact reads, covered five "
+                 "handsets while this table held two. Read both. Class "
                  "of device, vendor id and product id are reported as stored.",
         "paths": ('*/BT/btpersist*',),
         "sample_data": {

@@ -8,7 +8,12 @@ __artifacts_v2__ = {
         "last_update_date": "2026-09-03",
         "requirements": "none",
         "category": "Hyundai Vehicles",
-        "notes": "Parses binary structured records from wireless_dev_list.dat to extract paired device MAC addresses and friendly names. Validated against a single Hyundai/Kia head unit from an extraction that could not be shared publicly, so no test fixture accompanies this artifact. The friendly name runs to the next control byte in the record.",
+        "notes": "Scans wireless_dev_list.dat for an ASCII MAC address followed by a NUL byte, an "
+                 "optional second MAC and a run of printable bytes taken as the friendly name. "
+                 "Whether a listed device was paired is not established. A repeated address and "
+                 "name pair is listed once. Built from one Hyundai/Kia head unit extraction that "
+                 "could not be shared. No row counts are recorded here and no test fixture "
+                 "accompanies this artifact. The friendly name runs to the next control byte.",
         "paths": ('*/wireless_dev_list.dat',),
         "output_types": "standard",
         "artifact_icon": "bluetooth",

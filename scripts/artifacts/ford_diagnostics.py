@@ -1,9 +1,9 @@
 __artifacts_v2__ = {
     "ford_diag_events": {
         "name": "Diagnostic Events",
-        "description": "Diagnostic events the head unit recorded, with the subsystem that "
-                       "raised each one and the time it was uploaded where the record "
-                       "carries one.",
+        "description": "Rows of the head unit's events_metadata table, with the "
+                       "creator_id of each one and the uploaded value where the record "
+                       "carries a date string.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
@@ -11,15 +11,19 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From events_metadata in diagnostics_slave.sqlite. The uploaded column is "
-                 "declared INTEGER but holds a human readable date string once an event has "
-                 "been uploaded and 0 before that, so both the parsed value and the string "
-                 "as stored are reported. That string carries no timezone, so it is taken as "
-                 "written with no conversion applied. On the tested image 180 of 424 rows "
-                 "carried a date. create_time is NOT reported as a time: its values range "
-                 "from 19 to 238080, it does not track uptime, and nothing available "
-                 "establishes what it counts, so reporting it as a clock would be a guess. "
-                 "event_type, event_severity and status are undocumented integers and are "
-                 "reported as stored. creator_id names the subsystem; it is not an "
+                 "declared INTEGER but holds either a human readable date string or 0 on the "
+                 "tested image; that the string marks an upload is taken from the column "
+                 "name and is not established. Both the parsed value and the string as "
+                 "stored are reported. That string carries no timezone. The Uploaded column "
+                 "stores it as if it were UTC with no offset applied, so it is a clock "
+                 "reading and not an established instant; Uploaded (as stored) holds the "
+                 "original text. On the tested image 180 of 424 rows carried a date. "
+                 "create_time is NOT reported as a time: its values range from 19 to 238080, "
+                 "it does not track uptime, and nothing available establishes what it "
+                 "counts, so reporting it as a clock would be a guess. event_type, "
+                 "event_severity and status are undocumented integers and are reported as "
+                 "stored. creator_id is reported as stored and what it identifies is not "
+                 "established; it is not an "
                  "indication of who was in the vehicle.",
         "paths": ('*/diagnostics/db/diagnostics_slave.sqlite*',),
         "sample_data": {
@@ -38,12 +42,12 @@ __artifacts_v2__ = {
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "From upload_errors in diagnostics_slave.sqlite. timestamp is a Unix time in "
-                 "seconds. start_time is a separate human readable string with no timezone "
-                 "and is reported as stored. boot_count is the unit's own counter and is "
-                 "useful as a sequence: on the tested image 281 errors spanned boot counts "
-                 "736 to 775 over six days, so the counter advances with power cycles, but "
-                 "what exactly increments it is not established here. That range falls "
+        "notes": "From upload_errors in diagnostics_slave.sqlite. timestamp is read as a Unix "
+                 "time, with the unit chosen from the value's magnitude. start_time is a "
+                 "separate human readable string with no timezone and is reported as stored. "
+                 "boot_count is the unit's own counter and is useful as a sequence: on the "
+                 "tested image 281 errors spanned boot counts 736 to 775 over six days; what "
+                 "increments the counter is not established here. That range falls "
                  "inside the 677 to 776 window the unit's reset-history.txt records, so the "
                  "two stores can be read against each other. error_code is an "
                  "undocumented integer, reported as stored.",
@@ -64,15 +68,15 @@ __artifacts_v2__ = {
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Each file holds a single 64 character hexadecimal value on one line, and "
-                 "the file name is the unit's own name for it. A 64 character hex string is "
-                 "the length a SHA-256 digest prints to, but what was hashed is not "
-                 "established here: the VIN in the same folder was tested as a preimage in "
-                 "several spellings and did not match any of the three, so no derivation is "
-                 "asserted and the values are reported as stored. On the tested image the "
-                 "three values were distinct from one another. The VIN itself is covered "
-                 "separately by the artifact reading vin.txt, so these are an independent "
-                 "identity record rather than a restatement of it.",
+        "notes": "On the tested image each file held a single 64 character hexadecimal "
+                 "value on one line, and the file name is the unit's own name for it. A 64 "
+                 "character hex string is the length a SHA-256 digest prints to, but what "
+                 "was hashed is not established here: the VIN in the same folder was tried "
+                 "as the hashed input in several spellings, which are not recorded here, "
+                 "and did not match any of the three, so no derivation is asserted and the "
+                 "values are reported as stored. On the tested image the three values were "
+                 "distinct from one another. The VIN itself is covered separately by the "
+                 "artifact reading vin.txt.",
         "paths": ('*/diagnostics/*_id.txt',),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync G4 | 3 rows",

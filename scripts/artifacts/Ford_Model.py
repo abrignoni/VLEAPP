@@ -1,15 +1,16 @@
 __artifacts_v2__ = {
     "get_Model": {
         "name": "Vehicle Model",
-        "description": "Vehicle/head-unit model from a Ford bluetooth_v1.ddb.",
+        "description": "The device_name value from a Ford bluetooth_v1.ddb, reported as stored. "
+                       "Whether it names the vehicle model is not established.",
         "author": "@JaysonU25",
         "version": "0.2",
         "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Original only wrote the model to the device-info log; it is now also surfaced as a "
-                 "table.",
+        "notes": "The value is also written to the device information log. A repeated value is "
+                 "listed once.",
         "paths": ('*/bluetooth_v1.ddb',),
         "output_types": "standard",
         "artifact_icon": "truck",

@@ -9,7 +9,9 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "RAM Vehicles",
-        "notes": "Timestamp is the log's epoch normalized to UTC. Latitude/Longitude exposed for "
+        "notes": "Timestamp is the numeric time field of the matched log line, read as a Unix "
+                 "time (unit chosen by magnitude) and shown in UTC. Latitude/Longitude exposed "
+                 "for "
                  "the KML map. (Shares the persistentLogs/*/Log* path with the Chrysler Location "
                  "Logs artifact; each only matches its own log lines.)",
         "paths": ('*/persistentLogs/*/Log*',),

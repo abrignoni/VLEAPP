@@ -1,7 +1,9 @@
 __artifacts_v2__ = {
     "hyundaiInfotainment": {
         "name": "Hyundai - Infotainment Data",
-        "description": "Infotainment/wifi settings (key=value) from a Hyundai wifi/settings file.",
+        "description": "Key=value lines from a Hyundai wifi/settings file. Lines containing a "
+                       "square bracket and lines that do not hold exactly one \"=\" are not "
+                       "reported.",
         "author": "Nixy Camacho",
         "version": "0.2",
         "creation_date": "2023-06-09",
