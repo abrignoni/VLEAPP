@@ -2,7 +2,8 @@
 
 The head unit keeps these in two extension-less SQLite stores under BT/ on the user
 data partition: btpbk (phonebook and call lists) and btpersist (paired devices and
-their settings). Both are numbered per paired handset, slots 1 to 12.
+their settings). The btpbk tables are numbered 1 to 12; btpersist rows carry a
+DeviceID. Nothing in either store records that the two numberings are the same.
 """
 
 import os
@@ -17,18 +18,18 @@ __artifacts_v2__ = {
         "description": "Contacts in the head unit's numbered PhoneBook tables, with the "
                        "names, the phone numbers the record carried, email and postal "
                        "address as stored. One row per contact per table number, shown as "
-                       "Device Slot.",
+                       "Table Number.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-30",
-        "last_update_date": "2026-08-30",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the PhoneBook<N> tables of BT/btpbk, an extension-less SQLite store "
                  "on the user data partition. On the tested unit the tables were numbered 1 "
                  "to 12, and this artifact reads PhoneBook1 to PhoneBook12 only. That each "
                  "number corresponds to one paired handset is not established here. The "
-                 "table number is reported as Device Slot. A phonebook entry is a row in a "
+                 "table number is reported as Table Number. A phonebook entry is a row in a "
                  "PhoneBook<N> table. How it got there is not established here, and it does "
                  "not establish that any number was dialled or that the handset owner was "
                  "present. TelType is not surfaced because nothing available here documents "
@@ -55,7 +56,7 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-30",
-        "last_update_date": "2026-08-30",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the Combined<N> tables of BT/btpbk, which the unit maintains "
@@ -69,7 +70,8 @@ __artifacts_v2__ = {
                  "read from the store, so the Call Time is assembled from those components "
                  "and stored as if it were UTC with no offset applied; it is a clock "
                  "reading and not an established instant. A missing hour, minute or second "
-                 "is shown as 00. A call record is a row in a Combined<N> table, and how it "
+                 "is shown as 00. Table Number is the number in the name of the Combined "
+                 "table the row came from. A call record is a row in a Combined<N> table, and how it "
                  "came to be written is not established here; it does "
                  "not establish who used the handset or that the vehicle was moving.",
         "paths": ('*/BT/btpbk*',),
@@ -88,18 +90,21 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-30",
-        "last_update_date": "2026-08-30",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From PairedDevInfo in BT/btpersist, joined to DeviceOrder and "
-                 "HFPdeviceOrder on DeviceID (shown as Device Slot; that it matches the "
-                 "PhoneBook table number is not established here) for the primary-device "
+                 "HFPdeviceOrder on DeviceID (shown as Device ID) for the primary-device "
                  "flags, which are reported as stored because nothing available here "
                  "documents their values. Whether a row here means the pairing was still "
                  "active is not established. On the tested unit this table held fewer "
                  "handsets than the devlog files: the devlog_*.txt files in the same BT "
                  "directory, which the Bluetooth Devices artifact reads, covered five "
-                 "handsets while this table held two. Read both. Class "
+                 "handsets while this table held two. Read both. On "
+                 "adams_ford_syncgen3_iva the two DeviceID values were 1 and 2 and the "
+                 "populated PhoneBook and Combined tables of BT/btpbk were numbers 1 and "
+                 "2. No column in either store links a DeviceID to a table number, so "
+                 "that the two numberings are the same is not established. Class "
                  "of device, vendor id and product id are reported as stored.",
         "paths": ('*/BT/btpersist*',),
         "sample_data": {
@@ -113,7 +118,7 @@ __artifacts_v2__ = {
 
 
 
-# Slots the head unit numbers its per-handset tables with.
+# Table numbers read: PhoneBook1 to PhoneBook12 and Combined1 to Combined12.
 DEVICE_SLOTS = range(1, 13)
 
 # Proven on the tested unit, not assumed: for both populated handsets the
@@ -198,7 +203,7 @@ def ford_sync_bt_contacts(context):
         if read_any:
             source_paths.append(file_found)
 
-    data_headers = ('Device Slot', 'Last Name', 'First Name', 'Sort Name',
+    data_headers = ('Table Number', 'Last Name', 'First Name', 'Sort Name',
                     'Phone Number', 'Other Numbers', 'Number Count', 'Email',
                     'Address', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
@@ -238,7 +243,7 @@ def ford_sync_bt_calls(context):
             source_paths.append(file_found)
 
     data_headers = (('Call Time', 'datetime'), 'Direction', 'Name',
-                    'Phone Number', 'Number Type (as stored)', 'Device Slot',
+                    'Phone Number', 'Number Type (as stored)', 'Table Number',
                     'Record ID', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
@@ -289,7 +294,7 @@ def ford_sync_bt_paired_devices(context):
                 primary.get(r[0], ''), hfp_primary.get(r[0], ''),
                 r[9], r[10], context.get_relative_path(file_found)))
 
-    data_headers = ('Device Slot', 'Device Name', 'Model', 'Manufacturer',
+    data_headers = ('Device ID', 'Device Name', 'Model', 'Manufacturer',
                     'Network Name', 'Device Software Version', 'Bluetooth Address',
                     'Subscriber Number', 'Class of Device (as stored)',
                     'Primary Device (as stored)', 'HFP Primary (as stored)',

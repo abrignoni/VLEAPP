@@ -26,8 +26,9 @@ __artifacts_v2__ = {
                  "related tables and returns its declared columns, so the SQL is proven "
                  "while the artifact remains unexercised against real device data. Treat a "
                  "zero row result as unconfirmed rather than as evidence the feature was "
-                 "unused. Device type, subtype and connection order are stored as integers "
-                 "the application defines and are reported as stored.",
+                 "unused. Device type, subtype and connection order are reported as "
+                 "stored. The schema declares device_type and device_subtype as TEXT; what "
+                 "their values mean is not established here.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync G4 | 0 rows",
@@ -120,8 +121,8 @@ __artifacts_v2__ = {
                  "zero row result as unconfirmed rather than as evidence the feature was "
                  "unused. One contact can own several numbers, emails and addresses, so a "
                  "contact appears once per combination and repeated names are not "
-                 "duplication. The type columns are integers the application defines and "
-                 "are reported as stored.",
+                 "duplication. The type columns (phone_number_type, email_type) are "
+                 "declared TEXT in the schema and are reported as stored.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync G4 | 0 rows",
@@ -132,12 +133,13 @@ __artifacts_v2__ = {
     "ford_nav_calendar": {
         "name": "Navigation Calendar",
         "description": "Rows of the calendar_event table in the navigation application's "
-                       "data_manager.sqlite. Unexercised: the table was empty on the "
-                       "one tested extraction.",
+                       "data_manager.sqlite, with the event_instance start and end times "
+                       "linked to each. Unexercised: the tables were empty on the one "
+                       "tested extraction.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
-        "last_update_date": "2026-08-27",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
@@ -145,8 +147,14 @@ __artifacts_v2__ = {
                  "confirming it executes, joins across the related tables and returns its "
                  "declared columns, so the SQL is proven while the artifact remains "
                  "unexercised against real device data. Treat a zero row result as "
-                 "unconfirmed rather than as evidence the feature was unused. No event "
-                 "start or end time is reported by this artifact. The table's timezone "
+                 "unconfirmed rather than as evidence the feature was unused. The "
+                 "calendar_event table has no time column. Start and end times come from "
+                 "the event_instance table, which the schema links to calendar_event "
+                 "through a foreign key on calendar_event_id, and are reported as stored, "
+                 "not converted. Nothing available here establishes their epoch or units. "
+                 "An event with several event_instance rows appears once per instance, so "
+                 "a repeated Event ID is not duplication, and an event with no "
+                 "event_instance row appears once with blank times. The table's timezone "
                  "column is reported as stored. The all day column is reported as stored.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
@@ -163,7 +171,7 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
-        "last_update_date": "2026-08-27",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
@@ -171,16 +179,17 @@ __artifacts_v2__ = {
                  "confirming it executes and returns its declared columns, so the SQL is "
                  "proven while the artifact remains unexercised against real device data. "
                  "Treat a zero row result as unconfirmed rather than as evidence the "
-                 "feature was unused. The time columns are reported as stored, not "
-                 "converted. Nothing available here establishes their epoch or units, and "
-                 "while the settings tables in the same store are read as Unix times, a "
+                 "feature was unused. The time columns (modified_timestamp, "
+                 "pending_timestamp) are declared TEXT in the schema and are reported as "
+                 "stored, not converted. Nothing available here establishes their format, "
+                 "and while the settings tables in the same store are read as Unix times, a "
                  "column in one table is not evidence about a column in another. Confirm "
-                 "the epoch against a populated sample before reading these values as "
+                 "the format against a populated sample before reading these values as "
                  "times. The waypoint columns (starting_waypoint, ending_waypoint, "
-                 "waypoints) are reported as stored without decoding. The trips table also "
-                 "has global, trip_preferences and oem_data columns, which this artifact "
-                 "does not report. The table held 0 rows on ford_syncg4 and "
-                 "ford_syncg4_logical, so the format of these columns was not observed. "
+                 "waypoints) and the global, trip_preferences and oem_data columns are "
+                 "reported as stored without decoding. The table held 0 rows on "
+                 "ford_syncg4 and ford_syncg4_logical, so the format of these columns was "
+                 "not observed. "
                  "How a trips row comes to be written is not established here. A row is "
                  "not evidence the "
                  "route was driven.",
@@ -317,32 +326,36 @@ def ford_nav_contacts(context):
 @artifact_processor
 def ford_nav_calendar(context):
     rows, path = _query(context, '''
-        SELECT e.subject, e.organizer, e.location, e.timezone, e.all_day, e.body,
-               cal.calendar_name, d.device_name, e.calendar_event_id
+        SELECT i.start_time, i.end_time, e.subject, e.organizer, e.location,
+               e.timezone, e.all_day, e.body, cal.calendar_name, d.device_name,
+               e.calendar_event_id
         FROM calendar_event e
+        LEFT JOIN event_instance i ON i.calendar_event_id = e.calendar_event_id
         LEFT JOIN calendar cal ON cal.calendar_id = e.calendar_id
         LEFT JOIN device d ON d.device_id = e.device_id
-        ORDER BY e.calendar_event_id
+        ORDER BY i.start_time, e.calendar_event_id
     ''')
-    return (('Subject', 'Organizer', 'Location', 'Timezone (as stored)',
-             'All Day (as stored)', 'Body', 'Calendar', 'Device', 'Event ID',
-             'Source File'), rows, path)
+    return (('Start Time (as stored)', 'End Time (as stored)', 'Subject', 'Organizer',
+             'Location', 'Timezone (as stored)', 'All Day (as stored)', 'Body',
+             'Calendar', 'Device', 'Event ID', 'Source File'), rows, path)
 
 
 @artifact_processor
 def ford_nav_trips(context):
     rows, path = _query(context, '''
-        SELECT modified_timestamp, trip_name, trip_description, starting_waypoint,
-               ending_waypoint, waypoints, trip_status, data_source, profile_id,
-               is_visible, pending_delete, pending_timestamp, guid
-        FROM trips
-        ORDER BY modified_timestamp
+        SELECT t.modified_timestamp, t.trip_name, t.trip_description,
+               t.starting_waypoint, t.ending_waypoint, t.waypoints, t.trip_status,
+               t.data_source, t.profile_id, t.is_visible, t.pending_delete,
+               t.pending_timestamp, t."global", t.trip_preferences, t.oem_data, t.guid
+        FROM trips t
+        ORDER BY t.modified_timestamp
     ''')
     return (('Modified (as stored)', 'Trip Name', 'Description', 'Start Waypoint',
              'End Waypoint', 'Waypoints (as stored)', 'Status (as stored)',
              'Data Source (as stored)', 'Profile', 'Is Visible (as stored)',
-             'Pending Delete (as stored)', 'Pending (as stored)', 'GUID',
-             'Source File'), rows, path)
+             'Pending Delete (as stored)', 'Pending Timestamp (as stored)',
+             'Global (as stored)', 'Trip Preferences (as stored)',
+             'OEM Data (as stored)', 'GUID', 'Source File'), rows, path)
 
 
 @artifact_processor
