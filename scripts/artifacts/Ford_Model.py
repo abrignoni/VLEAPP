@@ -6,11 +6,13 @@ __artifacts_v2__ = {
         "author": "@JaysonU25",
         "version": "0.2",
         "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "The value is also written to the device information log. A repeated value is "
-                 "listed once.",
+        "notes": "Reads the Value that follows the device_name Key in the file's KeyValuePairs. "
+                 "The Device Name column holds that value. The value is also written to the "
+                 "device information log. A repeated value is listed once.",
+        "sample_data": {"ford_syncg4_logical": "1 row"},
         "paths": ('*/bluetooth_v1.ddb',),
         "output_types": "standard",
         "artifact_icon": "truck",
@@ -37,7 +39,7 @@ def get_Model(context):
                 model = value_line.split("<Value>")[1].split("<")[0].strip()
                 if model and (model,) not in data_list:
                     data_list.append((model,))
-                    logdevinfo(f"Model from Bluetooth_v1.ddb: {model}")
+                    logdevinfo(f"device_name from bluetooth_v1.ddb: {model}")
 
-    data_headers = ('Vehicle Model',)
+    data_headers = ('Device Name',)
     return data_headers, data_list, context.get_relative_path(source_path)

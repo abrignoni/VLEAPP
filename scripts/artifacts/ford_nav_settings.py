@@ -6,12 +6,15 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
-        "last_update_date": "2026-08-27",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the user_setting table in the navigation application's "
                  "data_manager.sqlite. time_stamp is read as a Unix time, with the unit chosen "
-                 "from the value's magnitude. Setting names are the application's own and most "
+                 "from the value's magnitude. The table's own definition gives the column a "
+                 "default of strftime('%s', 'now'), which is Unix seconds, and all 50 values "
+                 "on ford_syncg4_logical were ten digit integers. The column is reported "
+                 "under the header Time Stamp. Setting names are the application's own and most "
                  "values are undocumented integers, so values are reported as stored and no "
                  "meaning is assigned to them. The timestamps are worth reading as a group rather "
                  "than individually: on the tested image most rows shared a timestamp within a "
@@ -36,13 +39,17 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
-        "last_update_date": "2026-08-27",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the global_setting table in the same store as the user settings, with "
                  "the same columns except that no profile is recorded. time_stamp is read as "
                  "a Unix time, with the unit chosen from the value's magnitude, and values "
-                 "are reported as stored. On the tested image one of its settings held a "
+                 "are reported as stored. The table's own definition gives the column a "
+                 "default of strftime('%s', 'now'), which is Unix seconds, and all 44 values "
+                 "on ford_syncg4_logical were ten digit integers. The column is reported "
+                 "under the header Time Stamp. Whether that time is when the value was set "
+                 "is not established. On the tested image one of its settings held a "
                  "profile identifier.",
         "paths": ('*/com.garmin.sync.garmin-app/user-data/data_manager.sqlite*',),
         "sample_data": {
@@ -83,7 +90,7 @@ def ford_nav_user_settings(context):
         FROM user_setting
         ORDER BY time_stamp, setting_id
     ''')
-    data_headers = (('Written', 'datetime'), 'Setting', 'Value (as stored)',
+    data_headers = (('Time Stamp', 'datetime'), 'Setting', 'Value (as stored)',
                     'Profile', 'Is Binary (as stored)', 'Is Deleted (as stored)',
                     'Source File')
     return data_headers, data_list, relative_path
@@ -96,6 +103,6 @@ def ford_nav_global_settings(context):
         FROM global_setting
         ORDER BY time_stamp, setting_id
     ''')
-    data_headers = (('Written', 'datetime'), 'Setting', 'Value (as stored)',
+    data_headers = (('Time Stamp', 'datetime'), 'Setting', 'Value (as stored)',
                     'Is Binary (as stored)', 'Is Deleted (as stored)', 'Source File')
     return data_headers, data_list, relative_path

@@ -5,15 +5,16 @@ __artifacts_v2__ = {
         "author": "@JaysonU25",
         "version": "0.2",
         "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Phone Number(s) is a comma-joined list. Each number is rebuilt from its "
-                 "digits with dashes after the third and sixth digit, or, when it has 11 or "
-                 "more digits, as + and the first digit followed by dashed groups of "
-                 "three, three and the rest, so it is not shown as stored. Entries shorter "
-                 "than 10 characters, repeated numbers and contacts with no number are not "
-                 "listed.",
+        "notes": "Phone Number(s) is a comma-joined list of the tab-separated entries "
+                 "that follow NUMBERS on an address insert line, each shown as the file "
+                 "holds it. Only entries of 10 or more characters that end in a digit are "
+                 "listed. An entry repeated character for character on the same line is "
+                 "listed once, and a contact with no listed number is not reported. This "
+                 "behaviour was checked on a constructed file; no registered corpus holds "
+                 "a BTPhonebook file.",
         "paths": ('*/BTPhonebook*',),
         "output_types": "standard",
         "artifact_icon": "phone",
@@ -21,19 +22,6 @@ __artifacts_v2__ = {
 }
 
 from scripts.ilapfuncs import artifact_processor
-
-
-def format_number(number):
-    formatted_number = ""
-    for num in number:
-        if num.isdigit():
-            formatted_number = formatted_number + num
-    if len(formatted_number) <= 10:
-        formatted_number = f"{formatted_number[0:3]}-{formatted_number[3:6]}-{formatted_number[6:]}"
-    elif len(formatted_number) >= 11:
-        formatted_number = (f"+{formatted_number[0]}-{formatted_number[1:4]}-"
-                            f"{formatted_number[4:7]}-{formatted_number[7:]}")
-    return formatted_number
 
 
 @artifact_processor
@@ -47,7 +35,8 @@ def get_PhoneBook(context):
             for line in f:
                 if "address\tinsert" not in line:
                     continue
-                name = phone_number = ''
+                name = ''
+                numbers = []
                 found_num = False
                 lineparts = line.split("ADDRESS")[0].split("\t")
                 for entry in lineparts:
@@ -55,9 +44,9 @@ def get_PhoneBook(context):
                         continue
                     if found_num:
                         if entry[-1].isnumeric() and len(entry) >= 10:
-                            new_number = format_number(entry)
-                            if new_number not in phone_number:
-                                phone_number = phone_number + new_number + ", "
+                            new_number = entry
+                            if new_number not in numbers:
+                                numbers.append(new_number)
                     elif entry in ("address", "insert") or entry.isnumeric():
                         continue
                     elif entry == "NUMBERS":
@@ -65,7 +54,7 @@ def get_PhoneBook(context):
                     else:
                         name += entry + " "
                 name = name.strip()
-                phone_number = phone_number.strip()[0:-1]
+                phone_number = ', '.join(numbers)
                 if name and phone_number and (name, phone_number) not in data_list:
                     data_list.append((name, phone_number))
 

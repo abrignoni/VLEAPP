@@ -7,18 +7,25 @@ __artifacts_v2__ = {
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
-        "last_update_date": "2026-08-27",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the Reset Details section of reset-history.txt. The file also opens "
                  "with a shorter summary table covering the same cycles; the detail blocks "
-                 "are parsed instead because they carry more fields. Powered On is the "
-                 "block's \"reset end time\" and Previous Shutdown is its \"AP shutdown time\"; "
-                 "reading them as power on and shutdown rests on those field names. Neither "
-                 "timestamp records a timezone. Both are stored as if they were UTC with no "
-                 "offset applied, so they are clock readings and not established instants. Up "
-                 "Time is the up-time figure on the \"reset end time\" line, shown as stored; "
-                 "the header gives seconds and no source for that unit is cited here. Wake "
+                 "are parsed instead because they carry more fields. The file's own Notes "
+                 "section says \"reset end time\" is the time in the current boot cycle when "
+                 "the record was last updated, normally after boot-complete, that \"AP "
+                 "shutdown time\" is the time in the last boot cycle when graceful service "
+                 "termination started, and that up-time and total up-time are in seconds. "
+                 "Reset End Time and AP Shutdown Time show the clock reading of each line "
+                 "as text, exactly as stored. They record no timezone and are not converted "
+                 "or presented as UTC. On ford_syncg4_logical the reading is not one "
+                 "continuous clock: in 2 of the 100 blocks (boot counts 763 and 771) the "
+                 "\"reset end time\" reads 3 hours 58 minutes and 3 hours 55 minutes earlier "
+                 "than the \"AP shutdown time\" of the boot before it. Within a boot cycle "
+                 "the readings and the up-time figures advanced together to within 2 "
+                 "seconds on all 99 cycles that have both lines. Up Time and Total Up Time "
+                 "are the figures on the \"reset end time\" line. Wake "
                  "source is reported as stored: on the tested image some values are words "
                  "(WakeupSource_Ignition, WakeupSource_DriverDoorAjar, "
                  "WakeupSource_PassengerDoorAjar, WakeupSource_DoorUnLocked, "
@@ -49,7 +56,10 @@ __artifacts_v2__ = {
         "category": "Ford Vehicles",
         "notes": "From last-shutdown.txt, a file that held a single record on the tested "
                  "image. real time is read as a Unix time in milliseconds and divided by "
-                 "1000. up-time and total up-time are reported as stored. On the tested "
+                 "1000. On ford_syncg4_logical that reading and the record's up-time, taken "
+                 "as milliseconds, fall within 1 millisecond of the clock reading and "
+                 "up-time on the smlog.1 line for the same boot count in the same folder. "
+                 "up-time and total up-time are reported as stored. On the tested "
                  "image this record sat one boot count ahead of the last block in "
                  "reset-history.txt, which shows the history file did not include the most "
                  "recent cycle.",
@@ -89,7 +99,6 @@ __artifacts_v2__ = {
 }
 
 import re
-from datetime import datetime, timezone
 
 from scripts.ilapfuncs import (artifact_processor, convert_unix_ts_to_utc,
                                get_file_path)
@@ -101,20 +110,15 @@ _FIELD = re.compile(r'^\s*([A-Za-z][A-Za-z /]*?):\s{2,}(.*?)\s*$')
 
 
 def _parse_stamp(value):
-    """The datetime from a stamped line, or None.
+    """The clock reading from a stamped line as stored text, or ''.
 
-    The device writes no timezone, so the value is taken as written rather
-    than shifted.
+    The device writes no timezone and the reading steps backwards between
+    some boot cycles, so it is kept as text and no instant is asserted.
     """
     match = _STAMP.search(value or '')
     if not match:
-        return None, '', ''
-    try:
-        parsed = datetime.strptime(match.group(1),
-                                   '%Y-%m-%d %H:%M:%S.%f').replace(tzinfo=timezone.utc)
-    except ValueError:
-        return None, '', ''
-    return parsed, match.group(2) or '', match.group(3) or ''
+        return '', '', ''
+    return match.group(1), match.group(2) or '', match.group(3) or ''
 
 
 @artifact_processor
@@ -153,11 +157,11 @@ def ford_power_history(context):
                           fields.get('reset reason', ''), fields.get('reboot source', ''),
                           uptime, total_uptime))
 
-    data_headers = (('Powered On', 'datetime'), ('Previous Shutdown', 'datetime'),
+    data_headers = ('Reset End Time (as stored)', 'AP Shutdown Time (as stored)',
                     'Boot Count', 'Wake Source (as stored)', 'Target Mode (as stored)',
                     'Reset Type', 'Reset Initiator', 'Reset Reason',
                     'Reboot Source (as stored)', 'Up Time (seconds)',
-                    'Total Up Time (as stored)')
+                    'Total Up Time (seconds)')
     return data_headers, data_list, context.get_relative_path(source_path)
 
 

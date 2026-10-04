@@ -6,15 +6,15 @@ __artifacts_v2__ = {
         "author": "@JaysonU25",
         "version": "0.2",
         "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29",
+        "last_update_date": "2026-10-04",
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "Time is the log's [DD Mon YYYY HH:MM:SS...] stamp. No zone is read from "
                  "the line; the value is stored as if it were UTC with no conversion, so "
                  "the true offset is not established. Unparseable values are kept as "
-                 "stored. Connection Type holds the Device type text from the log. The "
-                 "column headed Incoming/Outgoing holds \"Device Connected\" or \"Device "
-                 "Disconnected\", set from whether the line reads \"appeared\" or "
+                 "stored. Device Type holds the Device type text from the log. Event "
+                 "holds \"Device Connected\" or \"Device Disconnected\", set by "
+                 "this artifact from whether the line reads \"appeared\" or "
                  "\"disappeared\".",
         "paths": ('*/*smartdevicelink.log',),
         "output_types": "standard",
@@ -73,6 +73,6 @@ def get_bt_device_hist(context):
                 if name and serial and uuid and connection_type and row not in data_list:
                     data_list.append(row)
 
-    data_headers = (('Time', 'datetime'), 'Serial', 'Name', 'uuid', 'Connection Type',
-                    'Incoming/Outgoing')
+    data_headers = (('Time', 'datetime'), 'Serial', 'Name', 'uuid', 'Device Type',
+                    'Event')
     return data_headers, data_list, context.get_relative_path(source_path)
