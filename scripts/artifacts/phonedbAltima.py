@@ -1,7 +1,8 @@
 __artifacts_v2__ = {
     "phoneBookAltima": {
         "name": "Nissan - Phone Book Contacts",
-        "description": "Phonebook contacts (per paired device) from a Nissan Altima "
+        "description": "Phonebook contacts (per numbered phonebook table) from a "
+                       "Nissan Altima "
                        "ffs/phone_db.db.",
         "author": "@AlexisBrignoni",
         "version": "0.2",
@@ -9,9 +10,10 @@ __artifacts_v2__ = {
         "last_update_date": "2026-09-25",
         "requirements": "none",
         "category": "Nissan Vehicles",
-        "notes": "The DB holds one phonebook per paired device (NUM_PHONEBOOK_<n>/phonebook_<n>); "
-                 "the original emitted one report per phonebook, here flattened into a single "
-                 "table with a Phone Book column. Phone Number/s is a '; '-joined list, sorted. "
+        "notes": "The database holds numbered table pairs (NUM_PHONEBOOK_<n> and phonebook_<n>), "
+                 "reported in one table with a Phone Book column. That each pair belongs to one "
+                 "paired device is not established here. An entry with no number row is not "
+                 "listed. Phone Number/s is a '; '-joined list, sorted. "
                  "Rows are listed by phone book, then entry ID.",
         "paths": ('*/ffs/phone_db.db*',),
         "output_types": "standard",

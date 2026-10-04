@@ -11,13 +11,12 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Ford Vehicles",
         "notes": "From the packages table in pacman.db, the unit's own package manager "
-                 "store. The table records no install or update time, so this is an "
-                 "inventory of what is present rather than a history of when it arrived. "
-                 "The type column separates applications from asset packages; on the tested "
-                 "image the asset packages were map regions, so the set of regions present "
-                 "bounds where the built-in navigation could route without a further "
-                 "download. Package identifiers can name the vehicle line the unit was "
-                 "built for. state, format and signature type are reported as stored.",
+                 "store. The query reads no install or update time, and none was found in "
+                 "the table on the tested image, so this is an inventory of what is present "
+                 "rather than a history of when it arrived. The type column is reported as "
+                 "stored. On the tested image its values split rows named as applications "
+                 "from rows named for map regions. state, format and signature type are "
+                 "reported as stored.",
         "paths": ('*/alm/pacman/pacman.db*',),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync G4 | 30 rows",

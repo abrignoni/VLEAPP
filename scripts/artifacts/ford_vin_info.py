@@ -8,8 +8,8 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Original only wrote the VIN to the device-info log; it is now also surfaced as a "
-                 "table.",
+        "notes": "Each distinct non-empty line of vin.txt is reported and written to the device "
+                 "information log.",
         "paths": ('*/vin.txt',),
         "output_types": "standard",
         "artifact_icon": "hash",

@@ -1,29 +1,51 @@
 __artifacts_v2__ = {
     "chryslerTarGps": {
         "name": "Chrysler - Tar GZ GPS Locations",
-        "description": "GPS locations (dev_loc_results) from a pas_debug log inside a Chrysler "
+        "description": "Latitude, longitude and heading from lines carrying \"lat:\", "
+                       "\"lon:\" and \"heading:\" in a pas_debug log inside a Chrysler "
                        "[H-M]_*.tar.gz archive.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude exposed for the KML map. The log is read in-memory from the "
-                 "tar.gz (the original extracted it to the report folder).",
+        "notes": "Latitude/Longitude exposed for the KML map. The log is read in memory from "
+                 "the tar.gz. pas_debug.log.1 is read when present; pas_debug.log is read only "
+                 "when it is not. Timestamp is the log line's clock reading. No zone is read "
+                 "from the line. The value is stored as if it were UTC, and the offset from UTC "
+                 "is not established. A line with a single digit month, day or hour is left as "
+                 "text.",
         "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'], "artifact_icon": "map-pin",
     },
     "chryslerTarSpeed": {
         "name": "Chrysler - Tar GZ Road Speed Limits",
-        "description": "Road speed limits from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
+        "description": "Speed limit values (no road name is reported) from a pas_debug log inside "
+                       "a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Timestamp is the log line's clock "
+                 "reading. No zone is read from the line. "
+                 "The value is stored as if it were UTC, "
+                 "and the offset from UTC is not "
+                 "established. A line with a single digit "
+                 "month, day or hour is left as text. "
+                 "Lines containing \"Speed limit invalid\" "
+                 "are left out.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "alert-triangle",
     },
     "chryslerTarApInfo": {
         "name": "Chrysler - Tar GZ Access Point List",
-        "description": "Wi-Fi access points from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
+        "description": "Wi-Fi SSID and signal lines, each shown with the BSSID and time of "
+                       "the most recent \"Extracted BSSID\" line before it, from a pas_debug "
+                       "log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Timestamp is the clock reading of the "
+                 "most recent \"Extracted BSSID\" line "
+                 "before the SSID line, not of the SSID "
+                 "line itself. No zone is read from the "
+                 "line. The value is stored as if it were "
+                 "UTC, and the offset from UTC is not "
+                 "established. A line with a single digit "
+                 "month, day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "wifi",
     },
     "chryslerTarVSpeed": {
@@ -31,7 +53,11 @@ __artifacts_v2__ = {
         "description": "Vehicle speed (kmph) from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Timestamp is the log line's clock reading. No "
+                 "zone is read from the line. The value is "
+                 "stored as if it were UTC, and the offset from "
+                 "UTC is not established. A line with a single "
+                 "digit month, day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "navigation",
     },
     "chryslerTarTransm": {
@@ -39,57 +65,149 @@ __artifacts_v2__ = {
         "description": "Transmission status from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Timestamp is the log line's clock reading. No "
+                 "zone is read from the line. The value is "
+                 "stored as if it were UTC, and the offset from "
+                 "UTC is not established. A line with a single "
+                 "digit month, day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "settings",
     },
     "chryslerTarBrake": {
         "name": "Chrysler - Tar GZ Brake Status",
-        "description": "Brake pedal status (with nearest GPS fix) from a pas_debug log inside a "
+        "description": "eBrakePedalStatus values, shown as Brake Pedal Pressed for 1 and Brake "
+                       "Pedal Released for 0 with no source recorded for that mapping, each "
+                       "with the coordinates last logged before it, from a pas_debug log "
+                       "inside a "
                        "Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the most recent 'Received Lat' fix within the same minute "
-                 "(blank when none).", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Latitude/Longitude are the last coordinates "
+                 "the parser read before the event line, from "
+                 "either a 'Received Lat' line or a 'lat: ... "
+                 "lon: ... heading:' line. They are blank when "
+                 "the event's timestamp, less its last three "
+                 "characters, differs from that of the last "
+                 "'Received Lat' line, and stay blank until the "
+                 "next coordinate line. The pairing is by line "
+                 "order and is not a link the log records. Other "
+                 "eBrakePedalStatus values are not listed and a "
+                 "repeated row is listed once. Timestamp is the "
+                 "log line's clock reading. No zone is read "
+                 "from the line. The value is stored as if it "
+                 "were UTC, and the offset from UTC is not "
+                 "established. A line with a single digit month, "
+                 "day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "octagon",
     },
     "chryslerTarEngineTemp": {
         "name": "Chrysler - Tar GZ Engine Temperature",
-        "description": "Engine coolant temperature (with nearest GPS fix) from a pas_debug log "
+        "description": "The first two characters of the logged engine coolant temperature "
+                       "value, each with the coordinates last logged before it, from a "
+                       "pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the most recent 'Received Lat' fix within the same minute "
-                 "(blank when none).", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Latitude/Longitude are the last "
+                 "coordinates the parser read before the "
+                 "event line, from either a 'Received Lat' "
+                 "line or a 'lat: ... lon: ... heading:' "
+                 "line. They are blank when the event's "
+                 "timestamp, less its last three "
+                 "characters, differs from that of the "
+                 "last 'Received Lat' line, and stay blank "
+                 "until the next coordinate line. The "
+                 "pairing is by line order and is not a "
+                 "link the log records. Only the first two "
+                 "characters of the value after \"iTemp "
+                 "C:\" are kept, so a three digit or signed "
+                 "value is not shown in full. Timestamp "
+                 "is the log line's clock reading. No zone "
+                 "is read from the line. The value is "
+                 "stored as if it were UTC, and the offset "
+                 "from UTC is not established. A line "
+                 "with a single digit month, day or hour "
+                 "is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "chryslerTarInteriorTemp": {
         "name": "Chrysler - Tar GZ Interior Temperature",
-        "description": "Vehicle interior temperature (with nearest GPS fix) from a pas_debug log "
+        "description": "Vehicle interior temperature value as logged (unit not established), "
+                       "each with the coordinates last logged before it, from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the most recent 'Received Lat' fix within the same minute "
-                 "(blank when none).", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Latitude/Longitude are the last "
+                 "coordinates the parser read before the "
+                 "event line, from either a 'Received Lat' "
+                 "line or a 'lat: ... lon: ... heading:' "
+                 "line. They are blank when the event's "
+                 "timestamp, less its last three "
+                 "characters, differs from that of the "
+                 "last 'Received Lat' line, and stay blank "
+                 "until the next coordinate line. The "
+                 "pairing is by line order and is not a "
+                 "link the log records. The value is the "
+                 "text after \"after scaling:\"; the column "
+                 "header gives degrees Celsius and no unit "
+                 "is read from the line. Timestamp is the "
+                 "log line's clock reading. No zone is "
+                 "read from the line. The value is stored "
+                 "as if it were UTC, and the offset from "
+                 "UTC is not established. A line with a "
+                 "single digit month, day or hour is left "
+                 "as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "chryslerTarTirePressure": {
         "name": "Chrysler - Tar GZ Tire Pressure",
-        "description": "Per-tire pressure readings (with nearest GPS fix) from a pas_debug log "
+        "description": "Tire pressure readings for the position tokens the parser recognises "
+                       "(REAR_LEFT, REAR_REAR, FRONT_LEFT, FRONT_REAR as logged), each with "
+                       "the coordinates last logged before it, from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the most recent 'Received Lat' fix within the same minute "
-                 "(blank when none).", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Latitude/Longitude are the last coordinates "
+                 "the parser read before the event line, from "
+                 "either a 'Received Lat' line or a 'lat: ... "
+                 "lon: ... heading:' line. They are blank when "
+                 "the event's timestamp, less its last three "
+                 "characters, differs from that of the last "
+                 "'Received Lat' line, and stay blank until the "
+                 "next coordinate line. The pairing is by line "
+                 "order and is not a link the log records. "
+                 "REAR_REAR is shown as Rear Right Tire and "
+                 "FRONT_REAR as Front Right Tire. A line with "
+                 "any other position token produces no row. "
+                 "Timestamp is the log line's clock reading. No "
+                 "zone is read from the line. The value is "
+                 "stored as if it were UTC, and the offset from "
+                 "UTC is not established. A line with a single "
+                 "digit month, day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "disc",
     },
     "chryslerTarGearState": {
         "name": "Chrysler - Tar GZ Gear State",
-        "description": "Transmission gear state (with nearest GPS fix) from a pas_debug log inside "
+        "description": "eGearState values (shown as Park for 1, Neutral for 2, Drive for 3 and "
+                       "Reverse for 4; no source for that mapping is recorded and other values "
+                       "are not listed), each with the coordinates last logged before it, from a "
+                       "pas_debug log inside "
                        "a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the most recent 'Received Lat' fix within the same minute "
-                 "(blank when none).", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Latitude/Longitude are the last coordinates "
+                 "the parser read before the event line, from "
+                 "either a 'Received Lat' line or a 'lat: ... "
+                 "lon: ... heading:' line. They are blank when "
+                 "the event's timestamp, less its last three "
+                 "characters, differs from that of the last "
+                 "'Received Lat' line, and stay blank until the "
+                 "next coordinate line. The pairing is by line "
+                 "order and is not a link the log records. "
+                 "Timestamp is the log line's clock reading. No "
+                 "zone is read from the line. The value is "
+                 "stored as if it were UTC, and the offset from "
+                 "UTC is not established. A line with a single "
+                 "digit month, day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "sliders",
     },
     "chryslerTarOutTemp": {
@@ -98,25 +216,55 @@ __artifacts_v2__ = {
                        "[H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Timestamp is the log line's clock reading. No "
+                 "zone is read from the line. The value is "
+                 "stored as if it were UTC, and the offset from "
+                 "UTC is not established. A line with a single "
+                 "digit month, day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "chryslerTarDoor": {
         "name": "Chrysler - Tar GZ Door Status",
-        "description": "Door / trunk ajar status (with nearest GPS fix) from a pas_debug log "
+        "description": "Driver door and trunk lift gate ajar status (0 shown as Closed, 1 "
+                       "as Open; no source for that mapping is recorded, and other doors "
+                       "are not reported), each with the coordinates last logged before it, "
+                       "from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are the most recent 'Received Lat' fix within the same minute "
-                 "(blank when none).", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Latitude/Longitude are the last coordinates "
+                 "the parser read before the event line, from "
+                 "either a 'Received Lat' line or a 'lat: ... "
+                 "lon: ... heading:' line. They are blank when "
+                 "the event's timestamp, less its last three "
+                 "characters, differs from that of the last "
+                 "'Received Lat' line, and stay blank until the "
+                 "next coordinate line. The pairing is by line "
+                 "order and is not a link the log records. A row "
+                 "is produced only for _AJAR_ lines naming "
+                 "TRUNK_LIFT_GATE or containing DRIVE. Timestamp "
+                 "is the log line's clock reading. No zone is "
+                 "read from the line. The value is stored as if "
+                 "it were UTC, and the offset from UTC is not "
+                 "established. A line with a single digit month, "
+                 "day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "log-out",
     },
     "chryslerTarOdometer": {
         "name": "Chrysler - Tar GZ Odometer",
-        "description": "Odometer readings from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
+        "description": "Odometer values (each shown with the time of the most recent "
+                       "CAppLinkService line before it, not the time of the odometer line itself) "
+                       "from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Timestamp is the clock reading of the most "
+                 "recent CAppLinkService line before the "
+                 "odometer line, not of the odometer line "
+                 "itself, and is blank when there is none. No "
+                 "zone is read from the line. The value is "
+                 "stored as if it were UTC, and the offset from "
+                 "UTC is not established. A line with a single "
+                 "digit month, day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "activity",
     },
     "chryslerTarCurRoad": {
@@ -124,7 +272,11 @@ __artifacts_v2__ = {
         "description": "Current road from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Timestamp is the log line's clock reading. No "
+                 "zone is read from the line. The value is "
+                 "stored as if it were UTC, and the offset from "
+                 "UTC is not established. A line with a single "
+                 "digit month, day or hour is left as text.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "map",
     },
     "chryslerTarVehicle": {
@@ -133,8 +285,12 @@ __artifacts_v2__ = {
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
-        "notes": "Surfaces the make/model/year/VIN/platform the original only wrote to the "
-                 "device-info log.", "paths": ('*/[H-M]_*.tar.gz',),
+        "notes": "Make, model, model year, VIN and "
+                 "platform version values, also written "
+                 "to the device information log. Make, "
+                 "model and year show the last value "
+                 "seen; Platform Version is the Version "
+                 "Number from a USBUPDT_MID line.", "paths": ('*/[H-M]_*.tar.gz',),
         "output_types": "standard", "artifact_icon": "truck",
     },
 }

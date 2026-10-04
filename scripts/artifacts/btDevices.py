@@ -1,7 +1,9 @@
 __artifacts_v2__ = {
     "btDevices": {
         "name": "Bluetooth Devices",
-        "description": "Bluetooth device details from Ford SYNC devlog text logs (BT/devlog_*.txt).",
+        "description": "Bluetooth device details from Ford SYNC devlog text logs "
+                       "(BT/devlog_*.txt), one row per file. Each column shows the last matching "
+                       "line in the file.",
         "author": "@AlexisBrignoni",
         "version": "0.2",
         "creation_date": "2021-07-02",

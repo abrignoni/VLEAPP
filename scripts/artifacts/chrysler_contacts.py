@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Chrysler Vehicles",
-        "notes": "Lines are read as alternating name / information pairs, as in the original.",
+        "notes": "Lines are read as alternating name / information pairs.",
         "paths": ('*/voice/asr/context/phonebook/*.txt',),
         "output_types": "standard",
         "artifact_icon": "user",

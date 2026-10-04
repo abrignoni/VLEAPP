@@ -1,7 +1,9 @@
 __artifacts_v2__ = {
     "contactsInfo": {
         "name": "Contacts",
-        "description": "Contact records (with phone, email and address) from a vehicle "
+        "description": "Contact records (with phone, email, address and the device_id "
+                       "each contact is linked to; a contact with several numbers or "
+                       "addresses appears once per combination) from a vehicle "
                        "infotainment contact.db.",
         "author": "gforce4n6",
         "version": "0.2",
@@ -9,7 +11,7 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Contacts",
-        "notes": "Date of Birth is kept as stored (text); its format varies by head unit.",
+        "notes": "Date of Birth is kept as stored (text).",
         "paths": ('*/contact.db*',),
         "output_types": "standard",
         "artifact_icon": "user",

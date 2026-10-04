@@ -8,7 +8,14 @@ __artifacts_v2__ = {
         "last_update_date": "2026-09-03",
         "requirements": "none",
         "category": "Hyundai Vehicles",
-        "notes": "Extracts call logs per device and derives device Bluetooth MAC directly from the database filename (CH_{mac}.db). Validated against a single Hyundai/Kia head unit from an extraction that could not be shared publicly, so no test fixture accompanies this artifact.",
+        "notes": "Reads bluetooth_callhistory from each CH_*.db and reports the token in the file "
+                 "name as Device MAC; that the token is the phone's Bluetooth address is taken "
+                 "from its shape and is not established here. date and date_sort are read as Unix "
+                 "time (a value above 1e11 as milliseconds, 0 shown blank) and shown in UTC; "
+                 "zone-less ISO text is taken as UTC. The epoch was not confirmed against a second "
+                 "source. Built from one Hyundai/Kia head unit extraction that could not be "
+                 "shared. No row counts are recorded here and no test fixture accompanies this "
+                 "artifact.",
         "paths": ('*/bluetooth/DB_BMS/CH_*.db*',),
         "output_types": "standard",
         "artifact_icon": "phone-call",

@@ -9,9 +9,8 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Nissan Vehicles",
-        "notes": "The original emitted one report per [section]; the sections are flattened into a "
-                 "single table with a Section column (a fixed LAVA table can't have a "
-                 "per-file-variable number of sub-reports).",
+        "notes": "Sections are reported in one table with a Section column. Underscores in section "
+                 "names are shown as spaces, and keys with an empty value are not listed.",
         "paths": ('*/ffs/phone_config.dat',),
         "output_types": "standard",
         "artifact_icon": "settings",

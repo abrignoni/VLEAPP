@@ -1,7 +1,11 @@
 __artifacts_v2__ = {
     "hyundaiTelematicsGps": {
         "name": "Hyundai - Telematics GPS Detail",
-        "description": "GPS Detail parsed from a Hyundai telematics.log.",
+        "description": "Rows from initLastGpsDetail lines in a Hyundai telematics.log. Timestamp "
+                       "is the log line's own month, day and time with the year shown as XXXX "
+                       "because the line carries none. Date is the time inside the line, stored as "
+                       "if it were UTC; the Date Offset value on the same line is reported and "
+                       "not applied.",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2023-02-08",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Hyundai Vehicles",
         "notes": "", "paths": ('*/telematics.log*',),
@@ -17,7 +21,7 @@ __artifacts_v2__ = {
     },
     "hyundaiTelematicsWeather": {
         "name": "Hyundai - Telematics Weather Waypoint",
-        "description": "Weather waypoints parsed from a Hyundai telematics.log.",
+        "description": "Address_name values parsed from a Hyundai telematics.log.",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2023-02-08",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Hyundai Vehicles",
         "notes": "", "paths": ('*/telematics.log*',),
@@ -25,7 +29,7 @@ __artifacts_v2__ = {
     },
     "hyundaiTelematicsEngineIdle": {
         "name": "Hyundai - Telematics Engine Idle Alarm",
-        "description": "Engine idle alarm events parsed from a Hyundai telematics.log.",
+        "description": "EngineIdleAlarmTask log lines parsed from a Hyundai telematics.log.",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2023-02-08",
         "last_update_date": "2026-06-29", "requirements": "none", "category": "Hyundai Vehicles",
         "notes": "", "paths": ('*/telematics.log*',),

@@ -9,8 +9,10 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Chrysler Vehicles",
-        "notes": "Last Connected / Last Disconnected interpreted as Unix epochs and normalized to "
-                 "UTC; non-numeric values kept as stored.",
+        "notes": "Numeric Last Connected / Last Disconnected values are interpreted as Unix "
+                 "epochs and normalized to UTC; text that parses as an ISO date and time is "
+                 "converted, with a zone-less value taken as UTC; any other text is kept as "
+                 "stored.",
         "paths": ('*/*PhoneBookDeviceList.bz*',),
         "output_types": "standard",
         "artifact_icon": "phone",

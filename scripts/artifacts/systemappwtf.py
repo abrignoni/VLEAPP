@@ -9,7 +9,8 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Kia Vehicles",
-        "notes": "Timestamp is the GpsLocationProvider millisecond epoch normalized to UTC; Date is "
+        "notes": "Timestamp is the number after \"timestamp:\" on the reportLocation line, "
+                 "read as a Unix time (unit chosen by magnitude) and shown in UTC; Date is "
                  "the raw log line time. Latitude/Longitude exposed for the KML map.",
         "paths": ('*/system_app_wtf@*.txt.gz', '*/tombstones/tombstone_*',
                   '*/system_app_crash@*.txt.gz', '*/SYSTEM_TOMBSTONE@*.txt.gz'),
@@ -26,7 +27,9 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Kia Vehicles",
-        "notes": "Date is the raw log line time.",
+        "notes": "Date is the raw log line time. Phone Number, Incoming and State are taken by "
+                 "position from [BTCallTracker] lines and shown as the log prints them; what the "
+                 "values mean is not established here.",
         "paths": ('*/system_app_wtf@*.txt.gz', '*/tombstones/tombstone_*',
                   '*/system_app_crash@*.txt.gz', '*/SYSTEM_TOMBSTONE@*.txt.gz'),
         "output_types": "standard",

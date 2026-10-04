@@ -1,7 +1,8 @@
 __artifacts_v2__ = {
     "get_location_logs": {
         "name": "Location Logs",
-        "description": "GPS location fixes (with accuracy, speed, course) parsed from Chrysler "
+        "description": "Location records (with accuracy, speed, course and the location method "
+                       "each line names) parsed from Chrysler "
                        "JSR179 persistent logs.",
         "author": "@JaysonU25",
         "version": "0.2",
@@ -9,7 +10,9 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Chrysler Vehicles",
-        "notes": "Latitude/Longitude are exposed for the KML map.",
+        "notes": "Latitude/Longitude are exposed for the KML map. Date and Time are text taken "
+                 "from the start of each line and no time zone is applied. An empty zip code is "
+                 "shown as \"Not found\" and an empty location method as \"N/A\".",
         "paths": ('*/persistentLogs/*/Log*',),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'],
         "artifact_icon": "map-pin",

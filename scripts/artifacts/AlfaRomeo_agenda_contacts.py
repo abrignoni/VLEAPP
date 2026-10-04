@@ -1,7 +1,8 @@
 __artifacts_v2__ = {
     "alfaRomeoContacts": {
         "name": "Alfa Romeo - Contacts",
-        "description": "Contacts (with phone numbers and paired BT device) from an Alfa Romeo "
+        "description": "Contacts (with phone numbers and the Bluetooth address of the "
+                       "BT_Device row each contact links to) from an Alfa Romeo "
                        "agenda.sqlite.",
         "author": "gforce4n6",
         "version": "0.2",

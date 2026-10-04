@@ -1,8 +1,11 @@
 __artifacts_v2__ = {
     "get_fav_places": {
         "name": "Favorite places",
-        "description": "Saved/recent navigation places (label, address, coordinates) from Ford "
-                       "places storage.",
+        "description": "Places from Ford recents_storage and favorites_storage files (id, "
+                       "label, address, coordinates). The table does not say which of the two "
+                       "files a row came from. An empty label or address is shown as \"None\", "
+                       "an entry with no coordinates is not listed and a repeated entry is "
+                       "listed once.",
         "author": "@JaysonU25",
         "version": "0.2",
         "creation_date": "2024-11-20",

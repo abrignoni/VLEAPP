@@ -8,8 +8,12 @@ __artifacts_v2__ = {
         "last_update_date": "2026-06-29",
         "requirements": "none",
         "category": "Ford Vehicles",
-        "notes": "Phone Number(s) is a comma-joined list, so it is left as text (not tagged "
-                 "phonenumber).",
+        "notes": "Phone Number(s) is a comma-joined list. Each number is rebuilt from its "
+                 "digits with dashes after the third and sixth digit, or, when it has 11 or "
+                 "more digits, as + and the first digit followed by dashed groups of "
+                 "three, three and the rest, so it is not shown as stored. Entries shorter "
+                 "than 10 characters, repeated numbers and contacts with no number are not "
+                 "listed.",
         "paths": ('*/BTPhonebook*',),
         "output_types": "standard",
         "artifact_icon": "phone",

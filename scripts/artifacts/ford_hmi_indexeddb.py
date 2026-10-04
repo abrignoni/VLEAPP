@@ -2,8 +2,8 @@ __artifacts_v2__ = {
     "ford_hmi_app_state": {
         "name": "HMI Application State",
         "description": "State the head unit's HMI applications persisted to IndexedDB, "
-                       "including the valet mode record, the profile and phone as a key "
-                       "record, trailer settings and software update state.",
+                       "reported by application, database, object store and key with "
+                       "the value as stored.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
@@ -16,11 +16,14 @@ __artifacts_v2__ = {
                  "cannot see Snappy compressed table blocks, cannot recover the key a value "
                  "belonged to, and would misread V8 values as JSON. IndexedDB records carry "
                  "no timestamp of their own, unlike the Local Storage artifact, so no time "
-                 "is reported. Every version of a key is reported, so a key appears once "
-                 "per write and the values can be read as a sequence. The theme store is "
-                 "deliberately not included: it holds display styling. On the tested image "
-                 "the valet record showed the mode off with no PIN set, and the profile "
-                 "record appeared in three different states. Values are reported as stored "
+                 "is reported. Every record version still present in the store's files is "
+                 "reported, so a key can appear more than once. No sequence number is "
+                 "reported, so the order of the versions is not shown. The theme store is "
+                 "not included: it holds display styling. The topic map database is "
+                 "reported by the Vehicle Capability Values artifact and is not repeated "
+                 "here. An object store the reader cannot iterate is skipped without a log "
+                 "entry. On the tested image the store held a record named for valet mode "
+                 "and three versions of a profile record. Values are reported as stored "
                  "and no meaning is assigned to the application's own field names.",
         "paths": ('*/system_handled/IndexedDB/*',),
         "sample_data": {
@@ -31,9 +34,10 @@ __artifacts_v2__ = {
     },
     "ford_vehicle_capabilities": {
         "name": "Vehicle Capability Values",
-        "description": "The last value the head unit cached for each of its internal HMI "
-                       "topics, which record the equipment and configuration the vehicle "
-                       "reported.",
+        "description": "One stored value for each topic in the HMI applications' "
+                       "MQTT_API_TOPIC_MAP database, taken from the first record the "
+                       "reader returns for that topic, which need not be the newest "
+                       "record.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
@@ -42,12 +46,17 @@ __artifacts_v2__ = {
         "category": "Ford Vehicles",
         "notes": "From the topic map the HMI applications keep in IndexedDB, read with the "
                  "vendored ccl_chromium_indexeddb reader. Each row is one topic and the "
-                 "last value cached against it, deduplicated across applications because "
-                 "several applications cache the same topic. On the tested image these were "
-                 "overwhelmingly equipment flags, such as whether a camera view or a "
-                 "climate feature is present, rather than a record of use, so this answers "
-                 "what the vehicle was built with rather than what was done in it. One "
-                 "value on the tested image was live telemetry rather than a capability. "
+                 "first record the reader returned for it. Where several applications or "
+                 "several versions hold the same topic only that first one is reported, so "
+                 "a differing value elsewhere is not shown. On ford_syncg4 and "
+                 "ford_syncg4_logical (re-counted 3 Oct 2026) the 153 topics came from "
+                 "2,835 stored records, and on 2 of the 153 topics the reported value "
+                 "differed from the highest-sequence record of the store it was taken from. "
+                 "Keys beginning com.ford.sdk__customStorage are left out. On the tested "
+                 "image most of these were equipment flags, such as whether a camera view "
+                 "or a climate feature is present; what a cached value establishes about "
+                 "the vehicle is not determined here. One value on the tested image was not "
+                 "an equipment flag; the topic is not named here. "
                  "Topics and values are reported as stored, and the records carry no "
                  "timestamp, so when a value was cached is not established.",
         "paths": ('*/system_handled/IndexedDB/*',),

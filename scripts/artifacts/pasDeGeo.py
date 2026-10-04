@@ -1,10 +1,48 @@
 __artifacts_v2__ = {
     "pasDeGeoDevLoc": {
         "name": "Ford - PAS Dev Loc Results",
-        "description": "Device location results (lat/long/alt/heading) from a Ford pas_debug.log.",
+        "description": "Latitude, longitude, altitude and heading from NAV_FRAMEWORK_IF "
+                       "dev_loc_results lines (altitude as logged; its unit is not established) in "
+                       "a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Latitude/Longitude exposed for the KML map. Supports the PAS log timestamp format, including single-digit month/day/hour values, and the Lon:/Lat: location format; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamp is the head unit's local clock as recorded, with no zone on the line. Timestamp UTC is derived from the offset the log itself records in its VS_CLOCK_QUEUE lines, taken from the nearest one within 10 minutes and left blank when there is none, so it is never extrapolated across a gap; UTC Offset Applied names the offset used. On the tested case all 24,581 readings derived, every one at -04:00, and the derived instants agree with all 409 published UTC lines the log carries. The offset belongs to the moment rather than to the extraction: on a Sync Gen3 extraction the same comparison gave 4 hours in most periods, 5 hours in one and 6 hours in another, the head unit reporting its clock already correct in ten of those eleven. A log that records no offset lines leaves both derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "notes": "Latitude/Longitude exposed for the KML "
+                 "map. Supports the PAS log timestamp "
+                 "format, including single-digit "
+                 "month/day/hour values, and the "
+                 "Lon:/Lat: location format; "
+                 "dev_loc_results lines carrying the "
+                 "ERROR RPT!!! marker are left out; reads "
+                 "plain and gzip-compressed logs, skips "
+                 "directory paths, and continues past "
+                 "unreadable or truncated logs. Timestamp "
+                 "is the head unit's local clock as "
+                 "recorded, with no zone on the line. "
+                 "Timestamp UTC is derived from the "
+                 "offset the log itself records in its "
+                 "VS_CLOCK_QUEUE lines (the difference "
+                 "from a published UTC line is rounded to "
+                 "the nearest 15 minutes, a stated "
+                 "total_offset is cut to whole minutes, "
+                 "and reference lines from all matched "
+                 "log files are used together), taken "
+                 "from the nearest one within 10 minutes "
+                 "and left blank when there is none, so "
+                 "it is never extrapolated across a gap; "
+                 "UTC Offset Applied names the offset "
+                 "used. On the tested case all 24,581 "
+                 "readings derived, every one at -04:00. "
+                 "The 409 published UTC lines the log "
+                 "carries are themselves used as offset "
+                 "references, so agreement with them is "
+                 "not an independent check. The offset "
+                 "belongs to the moment rather than to "
+                 "the extraction: on a Sync Gen3 "
+                 "extraction the same comparison gave 4 "
+                 "hours in most periods, 5 hours in one "
+                 "and 6 hours in another. A log that "
+                 "records no offset lines leaves both "
+                 "derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'], "artifact_icon": "map-pin",
     },
     "pasDeGeoSpeed": {
@@ -12,15 +50,79 @@ __artifacts_v2__ = {
         "description": "Road speed limits from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamp is the head unit's local clock as recorded, with no zone on the line. Timestamp UTC is derived from the offset the log itself records in its VS_CLOCK_QUEUE lines, taken from the nearest one within 10 minutes and left blank when there is none, so it is never extrapolated across a gap; UTC Offset Applied names the offset used. On the tested case all 24,581 readings derived, every one at -04:00, and the derived instants agree with all 409 published UTC lines the log carries. The offset belongs to the moment rather than to the extraction: on a Sync Gen3 extraction the same comparison gave 4 hours in most periods, 5 hours in one and 6 hours in another, the head unit reporting its clock already correct in ten of those eleven. A log that records no offset lines leaves both derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "notes": "Supports the PAS log timestamp format, "
+                 "including single-digit month/day/hour "
+                 "values; reads plain and gzip-compressed "
+                 "logs, skips directory paths, and "
+                 "continues past unreadable or truncated "
+                 "logs. Timestamp is the head unit's "
+                 "local clock as recorded, with no zone "
+                 "on the line. Timestamp UTC is derived "
+                 "from the offset the log itself records "
+                 "in its VS_CLOCK_QUEUE lines (the "
+                 "difference from a published UTC line is "
+                 "rounded to the nearest 15 minutes, a "
+                 "stated total_offset is cut to whole "
+                 "minutes, and reference lines from all "
+                 "matched log files are used together), "
+                 "taken from the nearest one within 10 "
+                 "minutes and left blank when there is "
+                 "none, so it is never extrapolated "
+                 "across a gap; UTC Offset Applied names "
+                 "the offset used. On the tested case all "
+                 "24,581 readings derived, every one at "
+                 "-04:00. The 409 published UTC lines the "
+                 "log carries are themselves used as "
+                 "offset references, so agreement with "
+                 "them is not an independent check. The "
+                 "offset belongs to the moment rather "
+                 "than to the extraction: on a Sync Gen3 "
+                 "extraction the same comparison gave 4 "
+                 "hours in most periods, 5 hours in one "
+                 "and 6 hours in another. A log that "
+                 "records no offset lines leaves both "
+                 "derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "alert-triangle",
     },
     "pasDeGeoApInfo": {
         "name": "Ford - PAS Access Point List",
-        "description": "Wi-Fi access points (BSSID/SSID/signal) from a Ford pas_debug.log.",
+        "description": "Wi-Fi SSID and signal lines from a Ford pas_debug.log, each shown "
+                       "with the BSSID from the most recent \"Extracted BSSID\" line before "
+                       "it. That pairing is by line order.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamp is the head unit's local clock as recorded, with no zone on the line. Timestamp UTC is derived from the offset the log itself records in its VS_CLOCK_QUEUE lines, taken from the nearest one within 10 minutes and left blank when there is none, so it is never extrapolated across a gap; UTC Offset Applied names the offset used. On the tested case all 24,581 readings derived, every one at -04:00, and the derived instants agree with all 409 published UTC lines the log carries. The offset belongs to the moment rather than to the extraction: on a Sync Gen3 extraction the same comparison gave 4 hours in most periods, 5 hours in one and 6 hours in another, the head unit reporting its clock already correct in ten of those eleven. A log that records no offset lines leaves both derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "notes": "Supports the PAS log timestamp format, "
+                 "including single-digit month/day/hour "
+                 "values; reads plain and gzip-compressed "
+                 "logs, skips directory paths, and "
+                 "continues past unreadable or truncated "
+                 "logs. Timestamp is the head unit's "
+                 "local clock as recorded, with no zone "
+                 "on the line. Timestamp UTC is derived "
+                 "from the offset the log itself records "
+                 "in its VS_CLOCK_QUEUE lines (the "
+                 "difference from a published UTC line is "
+                 "rounded to the nearest 15 minutes, a "
+                 "stated total_offset is cut to whole "
+                 "minutes, and reference lines from all "
+                 "matched log files are used together), "
+                 "taken from the nearest one within 10 "
+                 "minutes and left blank when there is "
+                 "none, so it is never extrapolated "
+                 "across a gap; UTC Offset Applied names "
+                 "the offset used. On the tested case all "
+                 "24,581 readings derived, every one at "
+                 "-04:00. The 409 published UTC lines the "
+                 "log carries are themselves used as "
+                 "offset references, so agreement with "
+                 "them is not an independent check. The "
+                 "offset belongs to the moment rather "
+                 "than to the extraction: on a Sync Gen3 "
+                 "extraction the same comparison gave 4 "
+                 "hours in most periods, 5 hours in one "
+                 "and 6 hours in another. A log that "
+                 "records no offset lines leaves both "
+                 "derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "wifi",
     },
     "pasDeGeoVSpeed": {
@@ -28,7 +130,38 @@ __artifacts_v2__ = {
         "description": "Vehicle speed readings from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamp is the head unit's local clock as recorded, with no zone on the line. Timestamp UTC is derived from the offset the log itself records in its VS_CLOCK_QUEUE lines, taken from the nearest one within 10 minutes and left blank when there is none, so it is never extrapolated across a gap; UTC Offset Applied names the offset used. On the tested case all 24,581 readings derived, every one at -04:00, and the derived instants agree with all 409 published UTC lines the log carries. The offset belongs to the moment rather than to the extraction: on a Sync Gen3 extraction the same comparison gave 4 hours in most periods, 5 hours in one and 6 hours in another, the head unit reporting its clock already correct in ten of those eleven. A log that records no offset lines leaves both derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "notes": "Supports the PAS log timestamp format, "
+                 "including single-digit month/day/hour "
+                 "values; reads plain and gzip-compressed "
+                 "logs, skips directory paths, and "
+                 "continues past unreadable or truncated "
+                 "logs. Timestamp is the head unit's "
+                 "local clock as recorded, with no zone "
+                 "on the line. Timestamp UTC is derived "
+                 "from the offset the log itself records "
+                 "in its VS_CLOCK_QUEUE lines (the "
+                 "difference from a published UTC line is "
+                 "rounded to the nearest 15 minutes, a "
+                 "stated total_offset is cut to whole "
+                 "minutes, and reference lines from all "
+                 "matched log files are used together), "
+                 "taken from the nearest one within 10 "
+                 "minutes and left blank when there is "
+                 "none, so it is never extrapolated "
+                 "across a gap; UTC Offset Applied names "
+                 "the offset used. On the tested case all "
+                 "24,581 readings derived, every one at "
+                 "-04:00. The 409 published UTC lines the "
+                 "log carries are themselves used as "
+                 "offset references, so agreement with "
+                 "them is not an independent check. The "
+                 "offset belongs to the moment rather "
+                 "than to the extraction: on a Sync Gen3 "
+                 "extraction the same comparison gave 4 "
+                 "hours in most periods, 5 hours in one "
+                 "and 6 hours in another. A log that "
+                 "records no offset lines leaves both "
+                 "derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "navigation",
     },
     "pasDeGeoTransm": {
@@ -36,7 +169,38 @@ __artifacts_v2__ = {
         "description": "Transmission status readings from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamp is the head unit's local clock as recorded, with no zone on the line. Timestamp UTC is derived from the offset the log itself records in its VS_CLOCK_QUEUE lines, taken from the nearest one within 10 minutes and left blank when there is none, so it is never extrapolated across a gap; UTC Offset Applied names the offset used. On the tested case all 24,581 readings derived, every one at -04:00, and the derived instants agree with all 409 published UTC lines the log carries. The offset belongs to the moment rather than to the extraction: on a Sync Gen3 extraction the same comparison gave 4 hours in most periods, 5 hours in one and 6 hours in another, the head unit reporting its clock already correct in ten of those eleven. A log that records no offset lines leaves both derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "notes": "Supports the PAS log timestamp format, "
+                 "including single-digit month/day/hour "
+                 "values; reads plain and gzip-compressed "
+                 "logs, skips directory paths, and "
+                 "continues past unreadable or truncated "
+                 "logs. Timestamp is the head unit's "
+                 "local clock as recorded, with no zone "
+                 "on the line. Timestamp UTC is derived "
+                 "from the offset the log itself records "
+                 "in its VS_CLOCK_QUEUE lines (the "
+                 "difference from a published UTC line is "
+                 "rounded to the nearest 15 minutes, a "
+                 "stated total_offset is cut to whole "
+                 "minutes, and reference lines from all "
+                 "matched log files are used together), "
+                 "taken from the nearest one within 10 "
+                 "minutes and left blank when there is "
+                 "none, so it is never extrapolated "
+                 "across a gap; UTC Offset Applied names "
+                 "the offset used. On the tested case all "
+                 "24,581 readings derived, every one at "
+                 "-04:00. The 409 published UTC lines the "
+                 "log carries are themselves used as "
+                 "offset references, so agreement with "
+                 "them is not an independent check. The "
+                 "offset belongs to the moment rather "
+                 "than to the extraction: on a Sync Gen3 "
+                 "extraction the same comparison gave 4 "
+                 "hours in most periods, 5 hours in one "
+                 "and 6 hours in another. A log that "
+                 "records no offset lines leaves both "
+                 "derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "settings",
     },
     "pasDeGeoTemp": {
@@ -44,7 +208,38 @@ __artifacts_v2__ = {
         "description": "Outside air temperature readings from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamp is the head unit's local clock as recorded, with no zone on the line. Timestamp UTC is derived from the offset the log itself records in its VS_CLOCK_QUEUE lines, taken from the nearest one within 10 minutes and left blank when there is none, so it is never extrapolated across a gap; UTC Offset Applied names the offset used. On the tested case all 24,581 readings derived, every one at -04:00, and the derived instants agree with all 409 published UTC lines the log carries. The offset belongs to the moment rather than to the extraction: on a Sync Gen3 extraction the same comparison gave 4 hours in most periods, 5 hours in one and 6 hours in another, the head unit reporting its clock already correct in ten of those eleven. A log that records no offset lines leaves both derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "notes": "Supports the PAS log timestamp format, "
+                 "including single-digit month/day/hour "
+                 "values; reads plain and gzip-compressed "
+                 "logs, skips directory paths, and "
+                 "continues past unreadable or truncated "
+                 "logs. Timestamp is the head unit's "
+                 "local clock as recorded, with no zone "
+                 "on the line. Timestamp UTC is derived "
+                 "from the offset the log itself records "
+                 "in its VS_CLOCK_QUEUE lines (the "
+                 "difference from a published UTC line is "
+                 "rounded to the nearest 15 minutes, a "
+                 "stated total_offset is cut to whole "
+                 "minutes, and reference lines from all "
+                 "matched log files are used together), "
+                 "taken from the nearest one within 10 "
+                 "minutes and left blank when there is "
+                 "none, so it is never extrapolated "
+                 "across a gap; UTC Offset Applied names "
+                 "the offset used. On the tested case all "
+                 "24,581 readings derived, every one at "
+                 "-04:00. The 409 published UTC lines the "
+                 "log carries are themselves used as "
+                 "offset references, so agreement with "
+                 "them is not an independent check. The "
+                 "offset belongs to the moment rather "
+                 "than to the extraction: on a Sync Gen3 "
+                 "extraction the same comparison gave 4 "
+                 "hours in most periods, 5 hours in one "
+                 "and 6 hours in another. A log that "
+                 "records no offset lines leaves both "
+                 "derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "pasDeGeoOdometer": {
@@ -52,7 +247,41 @@ __artifacts_v2__ = {
         "description": "Odometer readings from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Supports the PAS log timestamp format, including single-digit month/day/hour values; reads plain and gzip-compressed logs, skips directory paths, and continues past unreadable or truncated logs. Timestamp is the head unit's local clock as recorded, with no zone on the line. Timestamp UTC is derived from the offset the log itself records in its VS_CLOCK_QUEUE lines, taken from the nearest one within 10 minutes and left blank when there is none, so it is never extrapolated across a gap; UTC Offset Applied names the offset used. On the tested case all 24,581 readings derived, every one at -04:00, and the derived instants agree with all 409 published UTC lines the log carries. The offset belongs to the moment rather than to the extraction: on a Sync Gen3 extraction the same comparison gave 4 hours in most periods, 5 hours in one and 6 hours in another, the head unit reporting its clock already correct in ten of those eleven. A log that records no offset lines leaves both derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
+        "notes": "Supports the PAS log timestamp format, "
+                 "including single-digit month/day/hour "
+                 "values; reads plain and gzip-compressed "
+                 "logs, skips directory paths, and "
+                 "continues past unreadable or truncated "
+                 "logs. Timestamp is not taken from the "
+                 "odometer line. It is the local clock "
+                 "reading of the most recent "
+                 "CAppLinkService line before it, with no "
+                 "zone, and is blank when there is none. "
+                 "Timestamp UTC is derived from the "
+                 "offset the log itself records in its "
+                 "VS_CLOCK_QUEUE lines (the difference "
+                 "from a published UTC line is rounded to "
+                 "the nearest 15 minutes, a stated "
+                 "total_offset is cut to whole minutes, "
+                 "and reference lines from all matched "
+                 "log files are used together), taken "
+                 "from the nearest one within 10 minutes "
+                 "and left blank when there is none, so "
+                 "it is never extrapolated across a gap; "
+                 "UTC Offset Applied names the offset "
+                 "used. On the tested case all 24,581 "
+                 "readings derived, every one at -04:00. "
+                 "The 409 published UTC lines the log "
+                 "carries are themselves used as offset "
+                 "references, so agreement with them is "
+                 "not an independent check. The offset "
+                 "belongs to the moment rather than to "
+                 "the extraction: on a Sync Gen3 "
+                 "extraction the same comparison gave 4 "
+                 "hours in most periods, 5 hours in one "
+                 "and 6 hours in another. A log that "
+                 "records no offset lines leaves both "
+                 "derived columns blank.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "activity",
     },
     "pasDeGeoVehicle": {
@@ -60,8 +289,10 @@ __artifacts_v2__ = {
         "description": "Vehicle identity (VIN/make/model/platform) from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
         "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford Vehicles",
-        "notes": "Surfaces the make/model/VIN/platform the original only wrote to the device-info "
-                 "log. Supports the PAS log timestamp format, including single-digit month/day/hour "
+        "notes": "Make, model, VIN and platform version values, also written to the device "
+                 "information log. Make and model show the last value seen in the logs; Platform "
+                 "Version is the Version Number from a USBUPDT_MID line. Supports the PAS log "
+                 "timestamp format, including single-digit month/day/hour "
                  "values; reads plain and gzip-compressed logs, skips directory paths, and continues "
                  "past unreadable or truncated logs.", "paths": ('*/fordlogs/pas_debug.log*',),
         "output_types": "standard", "artifact_icon": "truck",

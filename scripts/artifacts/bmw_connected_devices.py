@@ -1,29 +1,28 @@
 __artifacts_v2__ = {
     "bmw_connected_apple_devices": {
         "name": "Connected Apple Devices",
-        "description": "Apple devices the head unit indexed over the iAP2 accessory "
-                       "protocol, with the identifier the unit used to name each store and "
-                       "the media libraries it recorded for that device.",
+        "description": "Media library records from the head unit's iap2 stores "
+                       "(iap2_library table), with the identifier parsed from each store's "
+                       "file name and the device UDID each record holds.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
         "category": "BMW Vehicles",
-        "notes": "The unit keeps one store per device under a directory whose name carries "
-                 "the identifier it indexed the device by, either a Bluetooth MAC or a "
-                 "device serial. That identifier is parsed from the path and reported "
-                 "alongside the device UDID held in the iap2_library table, so the two can be "
-                 "compared rather than one being inferred from the other. Identifier Type and "
-                 "Identifier are parsed from the store's file name and are blank when the name "
-                 "carries no identifier, so they do not separate two such stores, and Source File "
-                 "names the store each row came from. Only backup "
-                 "copies of these stores were present on the tested image, so what is "
-                 "reported is the state when the unit wrote that backup, which is not "
-                 "necessarily the state at acquisition. A row means the unit indexed a "
-                 "device's media library; it does not establish who was in the vehicle, and "
-                 "a library named for a streaming service is the service rather than "
-                 "content the device carried.",
+        "notes": "On the tested image each store's file name carried an identifier tagged btmac "
+                 "or serial. That the unit keeps one store per device is not established here. "
+                 "The identifier is parsed from the file name and reported alongside the device "
+                 "UDID held in the iap2_library table, so the two can be compared rather than one "
+                 "being inferred from the other. Identifier Type and Identifier are parsed from "
+                 "the store's file name and are blank when the name carries no identifier, so "
+                 "they do not separate two such stores, and Source File names the store each row "
+                 "came from. This artifact reads only the .db.backup copies, because the declared "
+                 "path matches nothing else, so what is reported is the content of those copies, "
+                 "which is not necessarily the state at acquisition. On the tested image no "
+                 "other copy of these stores was found. A row is one iap2_library record; it does "
+                 "not establish who was in the vehicle, and what a library row named for a "
+                 "streaming service represents is not established.",
         "paths": ('*/iap2_*.db.backup',),
         "sample_data": {
             "bmw_mgu_2024_pers_logical": "2024 BMW MGU | 12 rows",
@@ -46,10 +45,9 @@ __artifacts_v2__ = {
                  "composer tables in the same store. Playback duration is reported as "
                  "stored because nothing available here establishes its units. The type and "
                  "rating columns are undocumented integers and are also reported as stored. "
-                 "These rows are an index the unit built of a connected device's library: "
-                 "they record what was available to play, not what was played, and the "
-                 "store carries no play count and no last played time. The identifier "
-                 "columns carry the value from the store's directory name so a row can be "
+                 "The query reads no play count or last played column, so a row does not show "
+                 "that an item was played. The identifier columns carry the value from the "
+                 "store's file name so a row can be "
                  "attributed to the device it came from. They are blank when the store's file name"
                  " carries no identifier, so Identifier does not separate two such stores, and "
                  "Source File names the store each row came from.",

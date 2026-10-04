@@ -1,7 +1,8 @@
 __artifacts_v2__ = {
     "dipoAudio": {
         "name": "Hyundai - Dipo Audio UUIDs",
-        "description": "Audio app preference UUIDs (incl. local BT address) from a Hyundai Santa Fe "
+        "description": "Preference entry names (with the stored value of pref_key_local_bt_address "
+                       "only; values of other entries are not reported) from a Hyundai Santa Fe "
                        "com.daudio.app.dipo pref_dipo.xml.",
         "author": "@AlexisBrignoni",
         "version": "0.2",

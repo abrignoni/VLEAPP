@@ -1,7 +1,9 @@
 __artifacts_v2__ = {
     "chryslerGps": {
         "name": "Chrysler - GPS",
-        "description": "GPS latitude/longitude fixes scraped from Chrysler slog files.",
+        "description": "Latitude and longitude values from \"Latitude read from PS\" and "
+                       "\"Longitude read from PS\" lines in Chrysler slog files. No time is "
+                       "reported and a repeated pair is listed once.",
         "author": "Joe Dinsmoor",
         "version": "0.2",
         "creation_date": "2023-06-05",
@@ -9,9 +11,8 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Chrysler Vehicles",
         "notes": "Latitude/Longitude are exposed for the KML map. Each longitude is paired with "
-                 "the most recently seen latitude, so fixes split across consecutive log lines are "
-                 "captured (the original required both on one line and could raise on a "
-                 "latitude-only line).",
+                 "the most recently seen latitude, so values split across consecutive log lines "
+                 "are paired.",
         "paths": ('*/log/slogs*',),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'],
         "artifact_icon": "map-pin",

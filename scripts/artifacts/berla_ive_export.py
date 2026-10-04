@@ -20,40 +20,38 @@ __artifacts_v2__ = {
         "name": "Berla iVe Export Record",
         "description": "The vehicle and acquisition record an iVe .iVa export carries, "
                        "with one row per acquisition giving the module, the acquisition "
-                       "type, the status iVe recorded and the counts iVe reported parsing.",
+                       "type, the error message iVe recorded (shown as \"no error reported\" "
+                       "when the field is empty) and the counts iVe reported parsing.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-08-30",
         "last_update_date": "2026-08-30",
         "requirements": "none",
         "category": "Vehicle Acquisition",
-        "notes": "From Vehicle.json at the top of a Berla iVe .iVa export. The .iVa is a "
-                 "ZIP holding another ZIP, and the seekers do not descend into nested "
-                 "archives, so with any input type other than iva a .iVa reaches only "
-                 "this file and the vehicle's own data is not seen. Run the export "
-                 "with -t iva, which reaches through to the raw image inside; "
-                 "admin/scripts/unwrap_berla_iva.py remains the way to keep the "
-                 "intermediate zip for cheap re-runs. The counts in these rows are what iVe reported "
-                 "for its own parse; they are not produced by VLEAPP and this artifact does "
-                 "not verify them. iVe's parsed database, AcquireDB.ive, is encrypted and "
-                 "is not read. A row here records that an acquisition was attempted and "
-                 "what the tool reported, not what the vehicle contains. Four columns "
-                 "are uniform on a single-vehicle export and are kept because they "
-                 "vary between exports and identify which unit the rows belong to: "
-                 "Module, Driver and Collection Date each hold one value when a "
-                 "collection covers one module, and VIN was empty on the tested "
-                 "export because iVe carries the field but it was not populated "
-                 "there, which is worth showing rather than hiding. Note what the "
-                 "unwrapped export does and does not give you: iVe carries both the raw "
-                 "image and the file set it extracted from the head unit's filesystems, "
-                 "and VLEAPP reads only the extracted files. On the tested export those "
-                 "filesystems are QNX6, which no filesystem type Sleuth Kit supports can "
-                 "walk, so the raw image is not reachable with that tooling. It is "
-                 "reachable with the vendored qnxprobe, which is what -t iva uses: it "
-                 "reaches through the export to the raw image and reads its QNX6 "
-                 "volumes directly. On the tested export that route produced the same "
-                 "rows as the vendor's own extracted file set and also surfaced a "
-                 "fourth QNX6 volume the export carried no extracted files for.",
+        "notes": "From Vehicle.json at the top of a Berla iVe .iVa export. The .iVa is a ZIP "
+                 "holding another ZIP, and the seekers do not descend into nested archives, so "
+                 "with any input type other than iva a .iVa reaches only this file and the "
+                 "vehicle's own data is not seen. Run the export with -t iva, which reaches "
+                 "through to the raw image inside; admin/scripts/unwrap_berla_iva.py remains the "
+                 "way to keep the intermediate zip for cheap re-runs. The counts in these rows "
+                 "are what iVe reported for its own parse; they are not produced by VLEAPP and "
+                 "this artifact does not verify them. iVe's own database in the export, "
+                 "AcquireDB.ive, is not read by this artifact. A row here records that an "
+                 "acquisition was attempted and what the tool reported, not what the vehicle "
+                 "contains. Four columns are uniform on a single-vehicle export and are kept "
+                 "because they vary between exports and identify which unit the rows belong to: "
+                 "Module, Driver and Collection Date each hold one value when a collection covers "
+                 "one module, and the VIN field was present and empty on the tested export. An "
+                 "unwrapped export carries both the raw image and the file set iVe extracted from "
+                 "the head unit's filesystems, and VLEAPP reads only the extracted files from "
+                 "it. On the tested export those filesystems are QNX6, which is not among the "
+                 "filesystem types The Sleuth Kit 4.12.1 lists (tsk/fs/fs_types.c at tag "
+                 "sleuthkit-4.12.1), so the raw image is not reachable with that tooling. It is "
+                 "reachable with the vendored qnxprobe, which is what -t iva uses: it reaches "
+                 "through the export to the raw image and reads its QNX6 volumes directly. On the "
+                 "tested export (adams_ford_syncgen3_iva) that route produced the same rows as "
+                 "the vendor's own extracted file set and also listed a fourth QNX6 volume the "
+                 "export carried no extracted files for.",
         "paths": ('*/Vehicle.json',),
         "sample_data": {
             "adams_ford_syncgen3_iva": "Berla iVe export, Ford Sync Gen3 | 4 rows",

@@ -1,7 +1,9 @@
 __artifacts_v2__ = {
     "mediaService": {
         "name": "Ford - Media Service",
-        "description": "Connected media-store devices from a Ford SYNC mediaservice_db.",
+        "description": "Rows of the mediastores table in a Ford SYNC mediaservice_db. The "
+                       "attached, active_onshutdown and remote columns are shown as Yes for 1, No "
+                       "for 0 and \"Not Specified\" otherwise.",
         "author": "gforce4n6",
         "version": "0.2",
         "creation_date": "2024-03-28",
