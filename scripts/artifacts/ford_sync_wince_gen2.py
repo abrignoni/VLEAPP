@@ -6,6 +6,7 @@ files the two generations share are read by that module.
 
     UserData/SMS_<address>.db     table SMSstore, one database per handset
     UserData/WiFiList.db          table WiFiNetworkList
+    UserData/Profiles/Vehicle.db  table UserProfile, compared with DefaultUser.db beside it
 """
 
 import os
@@ -18,9 +19,9 @@ from scripts.ilapfuncs import artifact_processor, logfunc, open_sqlite_db_readon
 __artifacts_v2__ = {
     "ford_sync_wince_gen2_text_messages": {
         "name": "Ford SYNC WinCE Gen2 - Text Messages",
-        "description": "Rows of the text message store the module keeps for each handset, "
-                       "with the message time, the address, name and body stored in each "
-                       "row and the read status as stored.",
+        "description": "Rows of the text message store the module keeps for each handset, with "
+                       "the message time, the address, name and body stored in each row and "
+                       "the read status as stored.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-10-09",
@@ -28,23 +29,22 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Ford SYNC WinCE",
         "notes": "From the SMSstore table of UserData/SMS_<address>.db, one database per "
-                 "handset. Tested on two SYNC Gen2 units, a 2014 Ford Edge SEL and a 2011 "
-                 "Ford Explorer XLT, read from the file sets extracted from each unit's "
-                 "flash image. The Edge held 49 messages in one database and the Explorer "
-                 "held none. Message Time is the time column, stored as text with the "
-                 "month first: across the 49 rows a value above 12 occurs 20 times in the "
-                 "second position and never in the first. It has no time zone and is "
-                 "written out as if it were UTC with no offset applied. The tested rows "
-                 "ran from 2011 to 2014, so the reading is the unit's clock or the "
-                 "handset's and which is not established here. Whether a row is a received "
-                 "or a sent message is not recorded in a column. Read Status is the "
-                 "readstatus column as stored and held 0 on every tested row; the Name "
-                 "column was empty on every tested row. Handset Address is the twelve hex "
-                 "digits in the file name, shown with colons; a database named with twelve "
-                 "zeros was present and empty on both units. The SMS_CANNED databases "
-                 "beside these hold the same 15 stock replies in every file on both units "
-                 "and are not read. A row establishes that the module stored this text for "
-                 "the handset. It does not establish who read or wrote it.",
+                 "handset. Tested on two SYNC Gen2 units, a 2014 Ford Edge SEL and a 2011 Ford "
+                 "Explorer XLT, read from the file sets extracted from each unit's flash "
+                 "image. The Edge held 49 messages in one database and the Explorer held none. "
+                 "Message Time is the time column, stored as text with the month first: across "
+                 "the 49 rows a value above 12 occurs 20 times in the second position and "
+                 "never in the first. It has no time zone and is written out as if it were UTC "
+                 "with no offset applied. The tested rows ran from 2011 to 2014, so the "
+                 "reading is the unit's clock or the handset's and which is not established "
+                 "here. Whether a row is a received or a sent message is not recorded in a "
+                 "column. Read Status is the readstatus column as stored and held 0 on every "
+                 "tested row; the Name column was empty on every tested row. Handset Address "
+                 "is the twelve hex digits in the file name, shown with colons; a database "
+                 "named with twelve zeros was present and empty on both units. The SMS_CANNED "
+                 "databases beside these hold the same 15 stock replies in every file on both "
+                 "units and are not read. A row establishes that the module stored this text "
+                 "for the handset. It does not establish who read or wrote it.",
         "paths": ('*/UserData/SMS_*.db*',),
         "sample_data": {
             "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, extracted file set | 49 rows",
@@ -56,9 +56,9 @@ __artifacts_v2__ = {
     },
     "ford_sync_wince_gen2_wifi_networks": {
         "name": "Ford SYNC WinCE Gen2 - Wi-Fi Network List",
-        "description": "Rows of the module's Wi-Fi network list, with the network name, "
-                       "access point address, stored location text, signal strength and "
-                       "priority of each network.",
+        "description": "Rows of the module's Wi-Fi network list, with the network name, access "
+                       "point address, stored location text, signal strength and priority of "
+                       "each network.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-10-09",
@@ -67,11 +67,11 @@ __artifacts_v2__ = {
         "category": "Ford SYNC WinCE",
         "notes": "From the WiFiNetworkList table of UserData/WiFiList.db. Both tested SYNC "
                  "Gen2 units (a 2014 Ford Edge SEL and a 2011 Ford Explorer XLT) held the "
-                 "table with no rows, so this artifact is written from the table's own "
-                 "column names and has not been exercised on real rows. Columns are "
-                 "reported as stored. The key material and key length columns are not "
-                 "surfaced. A row would record that the module stored the network. It "
-                 "would not establish that the vehicle was at the stored location.",
+                 "table with no rows, so this artifact is written from the table's own column "
+                 "names and has not been exercised on real rows. Columns are reported as "
+                 "stored. The key material and key length columns are not surfaced. A row "
+                 "would record that the module stored the network. It would not establish that "
+                 "the vehicle was at the stored location.",
         "paths": ('*/UserData/WiFiList.db*',),
         "sample_data": {
             "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, extracted file set | 0 rows, "
@@ -81,6 +81,42 @@ __artifacts_v2__ = {
         },
         "output_types": "standard",
         "artifact_icon": "wifi",
+    },
+    "ford_sync_wince_gen2_profile_settings": {
+        "name": "Ford SYNC WinCE Gen2 - Profile Settings",
+        "description": "Rows of the module's profile settings table, with each feature name "
+                       "and stored value beside the value the DefaultUser.db in the same "
+                       "folder holds for that feature.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From the UserProfile table of the databases in UserData/Profiles other than "
+                 "DefaultUser.db; on the tested units that was Vehicle.db alone. Tested on two "
+                 "Ford SYNC Gen2 units read from their extracted file sets, a 2014 Ford Edge "
+                 "SEL and a 2011 Ford Explorer XLT, which gave 255 rows each. A tested SYNC "
+                 "Gen1v5 unit has no such folder. The table holds one row per feature: radio "
+                 "preset banks, equalizer, clock and time zone, units, navigation and route "
+                 "preferences, navigation favourites, avoid areas and the travel link places "
+                 "and teams among them. Value is the stored value, a number on all but two "
+                 "tested rows and text on those two. Differs From DefaultUser.db is Yes when "
+                 "the same feature id holds another value in DefaultUser.db; 12 rows differed "
+                 "on each unit, not the same 12. That the other file holds factory values is a "
+                 "reading of its name, not something established here, and a value equal to it "
+                 "is not evidence the setting was never changed. Nothing available here "
+                 "documents what a number stands for, so no value is labelled. MyKey Limited "
+                 "and Personalization Type are the text the row stores.",
+        "paths": ('*/UserData/Profiles/*.db*',),
+        "sample_data": {
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, extracted file set | 0 rows, no "
+                             "UserData/Profiles folder",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, extracted file set | 255 rows",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, extracted file set | 255 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "settings",
     },
 }
 
@@ -174,4 +210,44 @@ def ford_sync_wince_gen2_wifi_networks(context):
     data_headers = ('Network Name', 'Access Point Address', 'Location Text (as stored)',
                     'Signal Strength (as stored)', 'Priority', 'Privacy (as stored)',
                     'Authentication Mode (as stored)', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+def _profile_rows(db):
+    return db.execute('SELECT FeatId, FeatName, FeatNum, MyKeyLimited, PersonalizationType, '
+                      'CfgVal FROM UserProfile ORDER BY FeatId').fetchall()
+
+
+@artifact_processor
+def ford_sync_wince_gen2_profile_settings(context):
+    data_list = []
+    source_paths = []
+    profiles = {}
+    for file_found, db in _databases(context, lambda name: name.endswith('.db')):
+        if not _has_table(db, 'UserProfile'):
+            continue
+        try:
+            profiles[file_found] = _profile_rows(db)
+        except sqlite3.Error as ex:
+            logfunc(f'Ford SYNC WinCE Gen2: could not read UserProfile: {ex}')
+    for file_found in sorted(profiles):
+        if os.path.basename(file_found) == 'DefaultUser.db':
+            continue
+        # The comparison is with the DefaultUser.db that sits in the same folder.
+        beside = os.path.join(os.path.dirname(file_found), 'DefaultUser.db')
+        other = {row[0]: row[5] for row in profiles.get(beside, ())}
+        source_paths.append(file_found)
+        for feat_id, name, number, limited, kind, value in profiles[file_found]:
+            if feat_id in other:
+                default = other[feat_id]
+                differs = 'Yes' if default != value else 'No'
+            else:
+                default = ''
+                differs = ''
+            data_list.append((name, '' if value is None else value,
+                              '' if default is None else default, differs, feat_id, number,
+                              limited, kind, context.get_relative_path(file_found)))
+
+    data_headers = ('Feature Name', 'Value', 'Value In DefaultUser.db',
+                    'Differs From DefaultUser.db', 'Feature ID', 'Feature Number',
+                    'MyKey Limited (as stored)', 'Personalization Type', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
