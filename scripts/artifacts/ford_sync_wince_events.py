@@ -10,6 +10,7 @@ file system has released, so this module reads both:
 
     Windows/LogFiles/MsgLog<n>.txt      the live log files
     DiskImages/partition<n>.img         the raw partition, read as bytes
+    LargeOutputFiles/image.nbo          the raw NAND image, read for call list documents
 
 In an image no file system is followed. An event line is found by its own text, and the
 lines around it are used only when the bytes between them are all log text, so a clock
@@ -90,6 +91,59 @@ __artifacts_v2__ = {
         },
         "output_types": "standard",
         "artifact_icon": "activity",
+    },
+    "ford_sync_wince_flash_call_history": {
+        "name": "Ford SYNC WinCE - Call History In Flash Image",
+        "description": "Call list entries read from the call list documents in the module's "
+                       "raw NAND image, with the list, name, number and call time of each "
+                       "entry and how many documents in the image hold it.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From LargeOutputFiles/image.nbo, the raw NAND image an acquisition carries, "
+                 "matched inside an acquisition folder or given on its own with the "
+                 "single-file input type. The image stores each 2,048-byte page followed by 64 "
+                 "spare bytes; the spare bytes are dropped and the result is searched for "
+                 "complete call list documents, the same <Device> XML the module keeps as "
+                 "Windows/phonebook/CH<address>.xml. No file system is followed, and only a "
+                 "document complete from its opening to its closing tag is read. Tested on the "
+                 "images of eight SYNC Gen1 units (Ford Escape 2010 to 2014, Edge 2013, Fusion "
+                 "2019). The page layout is checked by the data: on the seven units of "
+                 "versions 2 to 4, dropping the spare bytes gave exactly the entries of the "
+                 "live call list files, no more and no fewer, where reading the image as "
+                 "stored gave the same on two units and fewer or none on five. On the version "
+                 "5 unit (2019 Ford Fusion) the image held 33 distinct documents, older and "
+                 "current, with 161 distinct entries against 59 in the live files. An "
+                 "independent parse of that unit listed 130 distinct calls and all 130 are "
+                 "among the 161, with the same time, number and list. Entries that are also in "
+                 "the live files appear here too. Call List decodes the list type as the Call "
+                 "History artifact does. Call Time comes from the entry's time attribute, "
+                 "which only version 5 writes, and has no time zone; it is written out as if "
+                 "it were UTC with no offset applied. Documents Holding It counts the distinct "
+                 "documents in the image that contain the entry. An image whose size is not a "
+                 "whole number of 2,112-byte pages is not read; that was the case for the two "
+                 "tested SYNC Gen2 images. An entry records that the module held this call "
+                 "list entry at some time. It does not establish who used the handset.",
+        "paths": ('*/LargeOutputFiles/image.nbo',),
+        "sample_data": {
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, NAND image | 14 rows",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, NAND image | 31 rows",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, NAND image | 83 rows",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, NAND image | 138 rows",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, NAND image | 154 rows",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, NAND image | 161 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, NAND image | 0 rows, image size "
+                             "is not a whole number of 2,112-byte pages, not read",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, NAND image | 0 rows, image "
+                             "size is not a whole number of 2,112-byte pages, not read",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, NAND image | 123 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, NAND image | 150 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "phone",
     },
 }
 
@@ -248,4 +302,101 @@ def ford_sync_wince_log_events(context):
     data_headers = (('Derived Clock', 'datetime'), 'Event', 'Detail', 'Value (as stored)',
                     'Second Value (as stored)', 'Tick', ('Nearest Save Clock', 'datetime'),
                     'Seconds From Save Line', 'Times Found', 'Offset', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+# ---------------------------------------------------------------------------
+# Call lists in the raw NAND image
+# ---------------------------------------------------------------------------
+
+# Derived by comparison, not documented: see the Call History artifact of ford_sync_wince.
+_CALL_LISTS = {'0x10000': 'Incoming', '0x20000': 'Outgoing', '0x40000': 'Missed'}
+_NAND_PAGE = 2112
+_NAND_DATA = 2048
+_PAGES_PER_READ = 16384
+_DOCUMENT_LIMIT = 65536
+_DEVICE_DOCUMENT = re.compile(
+    rb'<Device id="([0-9a-fA-F]{12})">([\t\r\n\x20-\x7e\x80-\xff]{0,65536}?)</Device>')
+_CALL_HISTORY = re.compile(rb'<CallHistory type="([^"]*)">(.*?)</CallHistory>', re.S)
+_CALL = re.compile(rb'<Call\b([^>]*?)/?>')
+_ATTRIBUTE = re.compile(rb'(\w+)="([^"]*)"')
+
+
+def _nand_data(path):
+    """The data bytes of a NAND image in order, in pieces that overlap by one document.
+
+    The image stores each 2,048-byte page followed by 64 spare bytes. The spare bytes
+    are dropped so text that crosses a page reads on. A file whose size is not a whole
+    number of 2,112-byte pages does not have that layout and is not read.
+    """
+    try:
+        size = os.path.getsize(path)
+        if size == 0 or size % _NAND_PAGE:
+            return
+        with open(path, 'rb') as handle:
+            carry = b''
+            while True:
+                raw = handle.read(_NAND_PAGE * _PAGES_PER_READ)
+                if not raw:
+                    break
+                piece = carry + b''.join(raw[i:i + _NAND_DATA]
+                                         for i in range(0, len(raw), _NAND_PAGE))
+                yield piece
+                carry = piece[-_DOCUMENT_LIMIT - 64:]
+    except OSError:
+        return
+
+
+def _xml_text(raw):
+    text = raw.decode('utf-8', 'replace')
+    for entity, char in (('&lt;', '<'), ('&gt;', '>'), ('&quot;', '"'), ('&apos;', "'"),
+                         ('&amp;', '&')):
+        text = text.replace(entity, char)
+    return text
+
+
+def _compact_time(text):
+    try:
+        return datetime.strptime(text, '%Y%m%dT%H%M%S').strftime('%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        return ''
+
+
+@artifact_processor
+def ford_sync_wince_flash_call_history(context):
+    data_list = []
+    source_paths = []
+    for file_found in sorted({str(f) for f in context.get_files_found()}):
+        if os.path.isdir(file_found):
+            continue
+        documents = set()
+        rows = {}
+        for piece in _nand_data(file_found):
+            for match in _DEVICE_DOCUMENT.finditer(piece):
+                if match.group(0) in documents:
+                    continue
+                documents.add(match.group(0))
+                digits = match.group(1).decode('ascii').lower()
+                address = ':'.join(digits[i:i + 2] for i in range(0, 12, 2))
+                for list_type, body in _CALL_HISTORY.findall(match.group(2)):
+                    list_type = list_type.decode('latin-1')
+                    for call in _CALL.findall(body):
+                        attributes = dict(_ATTRIBUTE.findall(call))
+                        key = (_compact_time(attributes.get(b'time', b'').decode('latin-1')),
+                               _CALL_LISTS.get(list_type, ''), list_type,
+                               _xml_text(attributes.get(b'name', b'')),
+                               _xml_text(attributes.get(b'num', b'')), address)
+                        rows[key] = rows.get(key, 0) + 1
+        logfunc(f'Ford SYNC WinCE flash call history: {len(documents)} distinct call list '
+                f'documents, {len(rows)} distinct entries in {os.path.basename(file_found)}')
+        if rows:
+            source_paths.append(file_found)
+        relative = context.get_relative_path(file_found)
+        for key, found in rows.items():
+            data_list.append(key + (found, relative))
+    data_list.sort(key=lambda row: (row[0] == '', row[0]))
+
+    data_headers = (('Call Time', 'datetime'), 'Call List', 'Call List Type (as stored)',
+                    'Name', 'Phone Number', 'Handset Address', 'Documents Holding It',
+                    'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
