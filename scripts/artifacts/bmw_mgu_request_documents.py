@@ -7,7 +7,7 @@ The others are gzip-compressed JSON documents:
                                      dataPrivacySettings, requestReason, counter, ids, ...
 
 A file is read only when it inflates to a JSON object that has a position member. The
-document carries no time of its own.
+document carries no time of its own, so the only times reported are the file's.
 """
 
 import gzip
@@ -42,16 +42,24 @@ __artifacts_v2__ = {
                  "Altitude was -999 on 52 documents, which reads as not available, and is "
                  "shown as stored. Request Reason was LcResume on 124, PrivacyChange on 24 and "
                  "LcStartup on one, with one document lacking the key. The document holds no "
-                 "time of its own. File Modified Time is filled only when the input records a "
-                 "modified time for the file; the tested zip does not carry one in a form this "
-                 "tool reads, so the column was empty on all 150 rows, and the zip entry's own "
-                 "date is the place to look. The request number is not a reliable order: "
-                 "sorted by it, the zip entries' dates rise from one document to the next on "
-                 "107 of 149 pairs, and the counter on 107 of 148. Mileage Band and Position "
-                 "Age Band are the document's own coded values, as stored. The documents also "
-                 "carry the VIN, a list of option codes and component version lists, which are "
-                 "not surfaced here. A row records that the unit wrote a document with that "
-                 "position. It does not establish who was driving.",
+                 "time of its own. Two columns carry a time for the file, not for the event. "
+                 "File Modified Time is filled only when the input records a modified time "
+                 "this tool reads, which the tested zip does not, so it was empty on all 150 "
+                 "rows. Staged File Time is the time the tool gave its staged copy of the "
+                 "file, shown as text because its zone depends on the input: for a zip it is "
+                 "the zip entry's time exactly as the zip's writer stored it, and on the "
+                 "tested zip it equalled the entry time on all 150 rows, from 2023-12-06 to "
+                 "2026-02-25. The tested zip was written by qnxprobe --extract, which stores "
+                 "each file's own modified time as UTC (its _zip_time function), so there the "
+                 "column is the file's modified time in UTC; for a zip from another tool, or a "
+                 "folder input, the zone is that tool's or this computer's and has to be "
+                 "checked. The request number is not a reliable order: sorted by it, the zip "
+                 "entries' dates rise from one document to the next on 107 of 149 pairs, and "
+                 "the counter on 107 of 148. Mileage Band and Position Age Band are the "
+                 "document's own coded values, as stored. The documents also carry the VIN, a "
+                 "list of option codes and component version lists, which are not surfaced "
+                 "here. A row records that the unit wrote a document with that position. It "
+                 "does not establish who was driving.",
         "paths": ('*/tm/dumm/*.gzip',),
         "sample_data": {
             "bmw_mgu_2024_pers_logical": "BMW MGU, logical zip | 150 rows",
@@ -98,7 +106,7 @@ _NUMBER = re.compile(r'^(\d+)\.gzip$')
 
 
 def _documents(context):
-    """(request number, document, relative path, path, file modified time or '')."""
+    """(request number, document, relative path, path, modified time, staged time)."""
     seeker = context.get_seeker()
     infos = getattr(seeker, 'file_infos', {}) or {}
     found = []
@@ -121,7 +129,14 @@ def _documents(context):
         if isinstance(modified, (int, float)) and modified > 0:
             stamp = datetime.fromtimestamp(modified, timezone.utc).strftime(
                 '%Y-%m-%d %H:%M:%S')
-        found.append((int(named.group(1)), document, relative, file_found, stamp))
+        try:
+            # The time the tool gave the staged copy. For a zip input that is the zip
+            # entry's own time, read back as the wall clock the zip stored.
+            staged = datetime.fromtimestamp(os.path.getmtime(file_found)).strftime(
+                '%Y-%m-%d %H:%M:%S')
+        except (OSError, OverflowError, ValueError):
+            staged = ''
+        found.append((int(named.group(1)), document, relative, file_found, stamp, staged))
     return sorted(found, key=lambda item: item[0])
 
 
@@ -133,14 +148,14 @@ def _text(value):
 def bmw_mgu_request_documents(context):
     data_list = []
     source_paths = []
-    for number, document, relative, path, stamp in _documents(context):
+    for number, document, relative, path, stamp, staged in _documents(context):
         position = document['position']
         capabilities = document.get('vehicleCapabilities')
         if not isinstance(capabilities, dict):
             capabilities = {}
         source_paths.append(path)
         valid = position.get('valid')
-        data_list.append((stamp, number,
+        data_list.append((stamp, staged, number,
                           _text(position.get('latitude')) if valid else '',
                           _text(position.get('longitude')) if valid else '',
                           _text(position.get('altitude')),
@@ -152,7 +167,8 @@ def bmw_mgu_request_documents(context):
                           _text(capabilities.get('mguVersion')),
                           _text(document.get('requestIdentifier')), relative))
 
-    data_headers = (('File Modified Time', 'datetime'), 'Request Number', 'Latitude',
+    data_headers = (('File Modified Time', 'datetime'), 'Staged File Time (as staged)',
+                    'Request Number', 'Latitude',
                     'Longitude', 'Altitude (as stored)', 'Position Valid', 'Request Reason',
                     'Counter', 'Mileage Band (as stored)', 'Position Age Band (as stored)',
                     'Integration Level', 'MGU Version', 'Request Identifier', 'Source File')
@@ -163,7 +179,7 @@ def bmw_mgu_request_documents(context):
 def bmw_mgu_request_privacy_settings(context):
     folded = {}
     source_paths = []
-    for number, document, _relative, path, _stamp in _documents(context):
+    for number, document, _relative, path, _stamp, _staged in _documents(context):
         settings = document.get('dataPrivacySettings')
         if not isinstance(settings, dict):
             continue
