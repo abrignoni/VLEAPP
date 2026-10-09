@@ -8,12 +8,14 @@ generations keep different files under the same var/ tree:
                    var/BTfeature/phoneNN.pb   one self-describing phonebook per slot
                    obn/storage/gps            20-byte position records, one per second
                    obn/storage/flight         the turn-by-turn navigation text log
+                   obn/storage/ViamotoRoute.mem   a downloaded route: destination and maneuvers
     Generation 10  var/sysinfo/*.dat          text files of [section] and key=value lines
     Both           var/log/poweroff.log       one line: a clock reading and two numbers
                    var/ver.txt                the software version
 
-Generation 9 also has binary phone.dat, vifdata.dat and occ.dat files. They are raw
-structures with no framing this module can check, and they are not read.
+Generation 9 also has a binary var/sysinfo/phone.dat, read only in the one layout the
+embedded phone artifact names, and binary vifdata.dat and occ.dat files, which are raw
+structures with no framing this module can check and are not read.
 """
 
 import os
@@ -503,6 +505,104 @@ __artifacts_v2__ = {
         },
         "output_types": "standard",
         "artifact_icon": "info",
+    },
+    "gm_onstar_lg_route_destinations": {
+        "name": "GM OnStar LG Gen9 - Route File Destinations",
+        "description": "The address block of a downloaded route file: a position with the "
+                       "house number and street name stored after it.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From obn/storage/ViamotoRoute.mem on generation 9, a binary file that starts "
+                 "with the marker 0stR and a length. No description of the format was found "
+                 "and only part of it is read: most of the file is packed data this module "
+                 "does not decode. Files with identical content are read once and Identical "
+                 "Files gives how many there were; an acquisition can list earlier copies of "
+                 "the file as deleted, and those are read like the live one. Tested on four "
+                 "generation 9 units read from their extracted file sets. One, a 2012 GMC "
+                 "Acadia, held 31 such files with 11 distinct contents; the other three had "
+                 "none. One of the 11 holds a route server error text and no route, and one is "
+                 "shorter than the length it states, which is logged. Positions are two "
+                 "big-endian 32-bit numbers in units of 1/6,000,000 degree, the unit the "
+                 "module's own position records use, and a pair is accepted only when both "
+                 "numbers are at least one degree from zero, so a route within a degree of the "
+                 "equator or the prime meridian would not be read. The block is located by its "
+                 "shape: the byte 0x24, a position, the byte 0x01, then two strings each "
+                 "stored as a 16-bit length and that many characters. Seven of the ten route "
+                 "files held one such block and three held none; whether those three carry "
+                 "their destination in another form was not worked out. The seven rows are "
+                 "five distinct positions, and each of the five lies within 0.003 degree of a "
+                 "destination the Navigation Destinations artifact reads from the navigation "
+                 "text log of the same unit, which is the evidence that the block is the "
+                 "route's destination. The file holds no time; the navigation log is where a "
+                 "time for a destination can be found. A row records that the module stored a "
+                 "route to that address. It does not establish that the vehicle arrived there.",
+        "paths": ('*/obn/storage/ViamotoRoute.mem*',),
+        "sample_data": {
+            "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
+                             "rows, no ViamotoRoute.mem in the extracted set",
+            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, extracted file set | 7 rows",
+            "xtrmp_item030": "2014 GMC Sierra 1500 SLE, OnStar Gen9, extracted file set | 0 "
+                             "rows, no ViamotoRoute.mem in the extracted set",
+            "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, no "
+                             "ViamotoRoute.mem in the extracted set",
+        },
+        "output_types": "standard",
+        "artifact_icon": "map-pin",
+    },
+    "gm_onstar_lg_route_maneuvers": {
+        "name": "GM OnStar LG Gen9 - Route File Maneuver Points",
+        "description": "Positions with road names from a downloaded route file, in file order, "
+                       "with the two numbers stored between each position and its name.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From obn/storage/ViamotoRoute.mem on generation 9, a binary file that starts "
+                 "with the marker 0stR and a length. No description of the format was found "
+                 "and only part of it is read: most of the file is packed data this module "
+                 "does not decode. Files with identical content are read once and Identical "
+                 "Files gives how many there were; an acquisition can list earlier copies of "
+                 "the file as deleted, and those are read like the live one. Tested on four "
+                 "generation 9 units read from their extracted file sets. One, a 2012 GMC "
+                 "Acadia, held 31 such files with 11 distinct contents; the other three had "
+                 "none. One of the 11 holds a route server error text and no route, and one is "
+                 "shorter than the length it states, which is logged. Positions are two "
+                 "big-endian 32-bit numbers in units of 1/6,000,000 degree, the unit the "
+                 "module's own position records use, and a pair is accepted only when both "
+                 "numbers are at least one degree from zero, so a route within a degree of the "
+                 "equator or the prime meridian would not be read. A point is located by its "
+                 "shape: two zero bytes, a position, two 32-bit numbers, two zero bytes, then "
+                 "a name stored as a 16-bit length and that many characters. The ten route "
+                 "files gave 331 rows, from 12 to 56 a file. On nine files the points of one "
+                 "file stay within 0.4 degree of longitude of each other. The tenth is the "
+                 "file that is cut short; its 18 points include one that is 4.8 degrees from "
+                 "the point before it, which may be a real distant point or a misread, and it "
+                 "is reported as found. First Number and Second Number are the two values "
+                 "between the position and the name, as stored; they ran from 0 to 55,675 and "
+                 "from 0 to 2,541, and what they measure is not established. The name is the "
+                 "text stored with the point, a road name on the rows examined. Where a route "
+                 "file also has an address block, six of seven such addresses lie inside the "
+                 "area its points cover. The road name table and the instruction text at the "
+                 "end of the file are not read. A row records that the route the module stored "
+                 "passes that point. It does not establish that the vehicle drove it.",
+        "paths": ('*/obn/storage/ViamotoRoute.mem*',),
+        "sample_data": {
+            "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
+                             "rows, no ViamotoRoute.mem in the extracted set",
+            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, extracted file set | 331 rows",
+            "xtrmp_item030": "2014 GMC Sierra 1500 SLE, OnStar Gen9, extracted file set | 0 "
+                             "rows, no ViamotoRoute.mem in the extracted set",
+            "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, no "
+                             "ViamotoRoute.mem in the extracted set",
+        },
+        "output_types": "standard",
+        "artifact_icon": "navigation",
     },
 }
 
@@ -1140,4 +1240,121 @@ def gm_onstar_lg_unit_info(context):
                         sections.get('TcuID', {}).get('AssyLabel.Code', ''), file_found)
 
     data_headers = ('Property', 'Value', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+# ---------------------------------------------------------------------------
+# Generation 9: downloaded route files
+# ---------------------------------------------------------------------------
+
+_ROUTE_MAGIC = b'0stR'
+_ROUTE_SCALE = 6000000
+
+
+def _route_position(data, offset):
+    """(latitude, longitude, stored pair) at offset, or None.
+
+    Two big-endian 32-bit numbers in the unit the module's position records use. A pair
+    is taken only when both numbers are at least one degree from zero and inside the
+    range of a latitude and a longitude, which is what keeps other bytes from reading
+    as a position.
+    """
+    if offset + 8 > len(data):
+        return None
+    latitude, longitude = struct.unpack('>ii', data[offset:offset + 8])
+    if not _ROUTE_SCALE <= abs(latitude) <= 90 * _ROUTE_SCALE:
+        return None
+    if not _ROUTE_SCALE <= abs(longitude) <= 180 * _ROUTE_SCALE:
+        return None
+    return latitude / _ROUTE_SCALE, longitude / _ROUTE_SCALE, (latitude, longitude)
+
+
+def _route_text(data, offset, minimum):
+    """(text, end offset) of a string stored as a 16-bit length and that many characters."""
+    if offset + 2 > len(data):
+        return None
+    length = struct.unpack('>H', data[offset:offset + 2])[0]
+    raw = data[offset + 2:offset + 2 + length]
+    if not minimum <= length <= 64 or len(raw) != length:
+        return None
+    if any(byte < 32 or byte > 126 for byte in raw):
+        return None
+    return raw.decode('ascii'), offset + 2 + length
+
+
+def _route_destinations(data):
+    """Address blocks: 0x24, a position, 0x01, a house number and a street name."""
+    rows = []
+    for offset in range(len(data) - 12):
+        if data[offset] != 0x24 or data[offset + 9] != 1:
+            continue
+        position = _route_position(data, offset + 1)
+        number = position and _route_text(data, offset + 10, 1)
+        street = number and _route_text(data, number[1], 1)
+        if street:
+            rows.append((position, number[0], street[0], offset))
+    return rows
+
+
+def _route_maneuvers(data):
+    """Maneuver points: two zero bytes, a position, two numbers, two zero bytes, a name."""
+    rows = []
+    for offset in range(len(data) - 22):
+        if data[offset:offset + 2] != b'\x00\x00' or data[offset + 18:offset + 20] != b'\x00\x00':
+            continue
+        position = _route_position(data, offset + 2)
+        name = position and _route_text(data, offset + 20, 2)
+        if name:
+            first, second = struct.unpack('>II', data[offset + 10:offset + 18])
+            rows.append((position, name[0], first, second, offset))
+    return rows
+
+
+def _route_files(context):
+    files = [f for f in _regular_files(context) if _base_name(f) == 'ViamotoRoute.mem']
+    for file_found, data, copies in _distinct(files):
+        if data[:4] != _ROUTE_MAGIC:
+            logfunc(f'GM OnStar LG: {os.path.basename(file_found)} does not start with the '
+                    'route file marker, not read')
+            continue
+        stated = struct.unpack('>I', data[4:8])[0] + 8 if len(data) >= 8 else 0
+        if stated > len(data):
+            logfunc(f'GM OnStar LG: {os.path.basename(file_found)} states {stated} bytes '
+                    f'and holds {len(data)}; what is there is read')
+        yield file_found, data, copies
+
+
+@artifact_processor
+def gm_onstar_lg_route_destinations(context):
+    data_list = []
+    source_paths = []
+    for file_found, data, copies in _route_files(context):
+        rows = _route_destinations(data)
+        if rows:
+            source_paths.append(file_found)
+        for (latitude, longitude, stored), number, street, offset in rows:
+            data_list.append((latitude, longitude, number, street, stored[0], stored[1],
+                              offset, copies, context.get_relative_path(file_found)))
+
+    data_headers = ('Latitude', 'Longitude', 'House Number', 'Street',
+                    'Latitude (as stored)', 'Longitude (as stored)', 'Offset',
+                    'Identical Files', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+@artifact_processor
+def gm_onstar_lg_route_maneuvers(context):
+    data_list = []
+    source_paths = []
+    for file_found, data, copies in _route_files(context):
+        rows = _route_maneuvers(data)
+        if rows:
+            source_paths.append(file_found)
+        for position, ((latitude, longitude, _stored), name, first, second,
+                       offset) in enumerate(rows, start=1):
+            data_list.append((latitude, longitude, name, first, second, position, offset,
+                              copies, context.get_relative_path(file_found)))
+
+    data_headers = ('Latitude', 'Longitude', 'Road Name', 'First Number (as stored)',
+                    'Second Number (as stored)', 'Position In File', 'Offset',
+                    'Identical Files', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
