@@ -7,7 +7,7 @@ this file are a Chevrolet Equinox and a Chevrolet Malibu. Its user data partitio
     HMI_DB/pasa_addressbook_data<n>.db     one address book per number, SQLite
     HMI_DB/pasa_media_data<n>.db           song, artist and album names per number, SQLite
     storage/bk<n>/mme                      the media engine database, SQLite
-    logs/sys_error.log.<n>                 a timestamped system log
+    logs/sys_error.log.<n>                 a timestamped system log, read by system_manager_logs.py
 
 The phonebook also gives the PhoneBook records still on its freelist pages.
 
@@ -224,38 +224,6 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "music",
     },
-    "gm_ga130_system_events": {
-        "name": "GM GA-130 - System Log Shutdowns",
-        "description": "Shutdown lines from the radio's system log, with the log time of each "
-                       "'Shutdown Received' and 'Emergency Shutdown received' line.",
-        "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
-        "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
-        "requirements": "none",
-        "category": "GM GA-130",
-        "notes": "From logs/sys_error.log.0 and sys_error.log.1. Tested on two units, a 2014 "
-                 "Chevrolet Equinox LT and a 2015 Chevrolet Malibu, read from the file sets "
-                 "extracted from each unit's storage. Each line starts with a date and time in "
-                 "angle brackets. The date is read month first: across both units a value "
-                 "above 12 occurs 913 times in the second position and never in the first. The "
-                 "store records no time zone, so the time is the unit's clock reading, written "
-                 "out as if it were UTC with no offset applied. Many lines carry a 1970 date, "
-                 "written before the unit's clock was set; those are left out and counted in "
-                 "the run log, because the reading is an uptime and not a date. Every 'New "
-                 "Boot Cycle' line on both units carried a 1970 date, so boots are not listed. "
-                 "The rows that remain number 145 on the Malibu and 177 on the Equinox. The "
-                 "other messages in the log are internal status lines and are not surfaced. A "
-                 "row records that the radio logged a shutdown at that clock reading. What "
-                 "caused it is not established.",
-        "paths": ('*/logs/sys_error.log*',),
-        "sample_data": {
-            "xtrmp_item025": "2014 Chevy Equinox LT, GA-130, extracted file set | 177 rows",
-            "xtrmp_item061": "2015 Chevrolet Malibu, GA-130, extracted file set | 145 rows",
-        },
-        "output_types": "standard",
-        "artifact_icon": "power",
-    },
     "gm_ga130_media_index": {
         "name": "GM GA-130 - Media Name Index",
         "description": "Song names with the artist, album and genre the index links them to, "
@@ -294,8 +262,6 @@ __artifacts_v2__ = {
 _SQLITE_MAGIC = b'SQLite format 3\x00'
 # The call list tables name their own direction.
 _CALL_TABLES = (('InCall', 'Received'), ('DialCall', 'Dialled'), ('MissCall', 'Missed'))
-_LOG_LINE = re.compile(r'^<(\d\d)/(\d\d)/(\d{4}) (\d\d):(\d\d):(\d\d)\.(\d+)>/(.*)$')
-_LOG_EVENTS = ('Shutdown Received', 'Emergency Shutdown received')
 
 
 def _regular_files(context):
@@ -738,50 +704,6 @@ def gm_ga130_played_media(context):
 # ---------------------------------------------------------------------------
 # System log
 # ---------------------------------------------------------------------------
-
-@artifact_processor
-def gm_ga130_system_events(context):
-    data_list = []
-    source_paths = []
-    seen = set()
-    for file_found in _regular_files(context):
-        if not os.path.basename(file_found).startswith('sys_error.log'):
-            continue
-        try:
-            with open(file_found, 'rb') as handle:
-                data = handle.read()
-        except OSError:
-            continue
-        digest = hashlib.sha256(data).digest()
-        if digest in seen:
-            continue
-        seen.add(digest)
-        found = False
-        unset = 0
-        for number, line in enumerate(data.decode('utf-8', 'replace').splitlines(), start=1):
-            match = _LOG_LINE.match(line)
-            if not match or match.group(8).strip() not in _LOG_EVENTS:
-                continue
-            month, day, year, hour, minute, second = (int(v) for v in match.groups()[:6])
-            if year == 1970:
-                # The unit's clock had not been set: the reading is an uptime, not a date.
-                unset += 1
-                continue
-            try:
-                stamp = datetime(year, month, day, hour, minute,
-                                 second).strftime('%Y-%m-%d %H:%M:%S')
-            except ValueError:
-                continue
-            found = True
-            data_list.append((stamp, match.group(8).strip(), number,
-                              context.get_relative_path(file_found)))
-        if found:
-            source_paths.append(file_found)
-        logfunc(f'GM GA-130: {unset} shutdown lines with a 1970 clock left out of '
-                f'{os.path.basename(file_found)}')
-
-    data_headers = (('Log Time', 'datetime'), 'Event', 'Line', 'Source File')
-    return data_headers, data_list, '\n'.join(source_paths)
 
 @artifact_processor
 def gm_ga130_media_index(context):
