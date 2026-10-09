@@ -11,6 +11,7 @@ name:
     USER/DEBUG/LOC/LOC_DS<n>.log                                     compressed position logs
     USER/USBA/file.lst (also USBV, DATACD)                           names of media files
     USER/CLIB/cl.dtb.bak                                             the music library
+    USER/CUSTOM/ccu.edb, sccu.edb                                    disc and track titles
 
 The two generations use different record layouts for the same files. Each reader picks
 the layout from the file's own size and record markers and gives the file up, with a log
@@ -325,6 +326,43 @@ __artifacts_v2__ = {
             "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 10 rows",
             "xtrmp_item059": "Nissan 08IT generation 8000, extracted file set | 0 rows, no "
                              "CLIB folder in the extracted set",
+        },
+        "output_types": "standard",
+        "artifact_icon": "disc",
+    },
+    "nissan_08it_disc_titles": {
+        "name": "Nissan 08IT - Disc Title Records",
+        "description": "Disc records of the unit's title store: the album, album artist and "
+                       "year stored for a disc and the title and artist stored for each of its "
+                       "tracks.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Nissan 08IT",
+        "notes": "From USER/CUSTOM/ccu.edb and sccu.edb, files that start with the text "
+                 "XANAVI06IT. The layout was worked out from the files. A disc record holds a "
+                 "table of numbers and then its text as values each stored as a 32-bit length "
+                 "and that many bytes: nine values for the disc, then six for each track. A "
+                 "record is taken only when all of those can be read, the track count is a "
+                 "number from 1 to 99, the 16-bit number at offset 0x1c of the record is that "
+                 "count plus one, and the names decode as UTF-8. Tested on one generation 8000 "
+                 "unit read from its extracted file set: each of the two files held the same "
+                 "five disc records with 50 tracks between them, so the artifact gave 100 "
+                 "rows, 50 a file. A tested generation 3000 unit has neither file. What sets "
+                 "the two files apart is not established. Year is the stored text and was "
+                 "empty on two of the five discs. Track Artist was filled on 25 of the 50 "
+                 "tracks, some on every disc. Each name is also stored a second time in "
+                 "another script, and each disc and track carries an identifier and a "
+                 "32-character value; those are not surfaced. The record holds no time. A row "
+                 "records that the unit stored those titles for a disc. It does not establish "
+                 "when the disc was in the unit or that it was played.",
+        "paths": ('*/USER/CUSTOM/*.edb*',),
+        "sample_data": {
+            "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 0 rows, no "
+                             "CUSTOM folder in the extracted set",
+            "xtrmp_item059": "Nissan 08IT generation 8000, extracted file set | 100 rows",
         },
         "output_types": "standard",
         "artifact_icon": "disc",
@@ -840,4 +878,79 @@ def nissan_08it_music_library_albums(context):
 
     data_headers = ('Stored Date And Time (as stored)', 'Album Name',
                     'Stored Count (as stored)', 'Position In File', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+_DISC_MARK = b'\x00\x00\x00\x03\x00\x00\x00'
+_DISC_COUNT = 0x1c
+_DISC_TEXT = 0x1b6
+
+
+def _disc_fields(data, offset, count):
+    """count values stored as a 32-bit length and that many bytes; (values, end) or None."""
+    values = []
+    for _ in range(count):
+        if offset + 4 > len(data):
+            return None
+        length = struct.unpack('>I', data[offset:offset + 4])[0]
+        if length > 512 or offset + 4 + length > len(data):
+            return None
+        values.append(data[offset + 4:offset + 4 + length])
+        offset += 4 + length
+    return values, offset
+
+
+def _disc_records(data):
+    """(offset, album, artist, year, tracks) for each disc record whose framing holds.
+
+    A record is taken only when nine header values and then six values for each track
+    can be read as lengths and bytes, the track count is four bytes holding a number
+    from 1 to 99, the 16-bit number at 0x1c of the record is that count plus one, and
+    the names decode as UTF-8.
+    """
+    records = []
+    for start in range(len(data) - _DISC_TEXT):
+        if data[start:start + len(_DISC_MARK)] != _DISC_MARK:
+            continue
+        head = _disc_fields(data, start + _DISC_TEXT, 9)
+        if not head or len(head[0][5]) != 4 or len(head[0][6]) != 4:
+            continue
+        values, offset = head
+        count = struct.unpack('>I', values[6])[0]
+        stored = struct.unpack('>H', data[start + _DISC_COUNT:start + _DISC_COUNT + 2])[0]
+        if not 1 <= count <= 99 or stored != count + 1:
+            continue
+        tracks = []
+        try:
+            album = values[0].decode('utf-8')
+            artist = values[1].decode('utf-8')
+            year = values[4].decode('utf-8').strip('\x00')
+            for _ in range(count):
+                found = _disc_fields(data, offset, 6)
+                if not found:
+                    raise ValueError
+                offset = found[1]
+                tracks.append((found[0][0].decode('utf-8'), found[0][1].decode('utf-8')))
+        except ValueError:
+            continue
+        records.append((start, album, artist, year, tracks))
+    return records
+
+
+@artifact_processor
+def nissan_08it_disc_titles(context):
+    data_list = []
+    source_paths = []
+    for file_found in _regular_files(context):
+        relative = context.get_relative_path(file_found)
+        records = _disc_records(_read(file_found))
+        if records:
+            source_paths.append(file_found)
+        for start, album, artist, year, tracks in records:
+            for number, (title, track_artist) in enumerate(tracks, start=1):
+                data_list.append((album, artist, year, number, title, track_artist,
+                                  len(tracks), start, relative))
+
+    data_headers = ('Album', 'Album Artist', 'Year', 'Track Number', 'Track Title',
+                    'Track Artist', 'Tracks In Record', 'Record Offset', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
