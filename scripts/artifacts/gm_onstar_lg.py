@@ -411,6 +411,54 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "corner-up-right",
     },
+    "gm_onstar_lg_embedded_phone_numbers": {
+        "name": "GM OnStar LG Gen9 - Embedded Phone Stored Numbers",
+        "description": "Phone numbers held in two fixed fields of the telematics module's "
+                       "phone state file: one single-number field and one list of up to twenty "
+                       "numbers.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From var/sysinfo/phone.dat on generation 9, a fixed binary structure of "
+                 "38,295 bytes that ends with the tag <SysInfo1.00>. The file has no internal "
+                 "framing, so it is read only when it has exactly that size and tag, and a "
+                 "field is reported only when it holds nothing but dialling characters up to "
+                 "its first NUL. Tested on four generation 9 units read from their extracted "
+                 "file sets. Two had this layout, a 2012 Chevrolet Cruze LT and a 2012 GMC "
+                 "Acadia, and gave 2 and 10 rows; the other two carried a different size or "
+                 "tag and are logged and not read. Two fields are reported: one single-number "
+                 "field at offset 2468 and a list of 40-byte entries from offset 2514. What "
+                 "the module uses each for is not established here. An independent parse of "
+                 "the same two units listed every number of the list, 1 of 1 and 9 of 9, as a "
+                 "phone number of the module's embedded phone, and that is the only evidence "
+                 "of their role. Position is the entry's place in its field. Not reported from "
+                 "the same file: ten numbers at offset 816, which that parse lists as the "
+                 "service provider's own support numbers on both units, and seven short "
+                 "service codes after them; both read as stock entries. Generation 10 keeps a "
+                 "text phone.dat that the Stored Values artifact reads. Files with identical "
+                 "content are read once and Identical Files gives how many there were. A row "
+                 "records that the module's phone file held the number. It does not establish "
+                 "that it was dialled.",
+        "paths": ('*/var/sysinfo/phone.dat*',),
+        "sample_data": {
+            "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 2 "
+                             "rows",
+            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, extracted file set | 10 rows",
+            "xtrmp_item030": "2014 GMC Sierra 1500 SLE, OnStar Gen9, extracted file set | 0 "
+                             "rows, phone.dat has a different size, not read",
+            "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, "
+                             "phone.dat has a different version tag, not read",
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 0 rows, "
+                             "phone.dat is the generation 10 text format",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 0 rows, phone.dat is the "
+                             "generation 10 text format",
+        },
+        "output_types": "standard",
+        "artifact_icon": "phone",
+    },
     "gm_onstar_lg_unit_info": {
         "name": "GM OnStar LG - Unit Information",
         "description": "Identifiers and versions the telematics module stores: the VIN, the "
@@ -935,6 +983,71 @@ def gm_onstar_lg_nav_guidance(context):
 
     data_headers = (('Prompt Time', 'datetime'), 'Maneuver', 'Street', 'Distance Text',
                     'Identical Files', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+# ---------------------------------------------------------------------------
+# Generation 9: the phone state file
+# ---------------------------------------------------------------------------
+
+_PHONE_FILE_SIZE = 38295
+_PHONE_TAG_OFFSET = 38280
+_PHONE_TAG = b'<SysInfo1.00>'
+_PHONE_SINGLE_OFFSET = 2468
+_PHONE_LIST_OFFSET = 2514
+_PHONE_LIST_ENTRIES = 20
+_PHONE_ENTRY_SIZE = 40
+_DIAL_TEXT = re.compile(r'[0-9+*#]{1,32}')
+
+
+def _phone_text(data, offset):
+    text = data[offset:offset + 32].split(b'\x00', 1)[0].decode('latin-1')
+    return text if _DIAL_TEXT.fullmatch(text) else ''
+
+
+def _phone_numbers(data):
+    """(field, position, number) rows of a generation 9 phone.dat, or None for another layout.
+
+    The file is a fixed binary structure with no internal framing, so the layout is
+    taken only for the one size and version tag it was worked out on. A field is
+    reported only when it holds nothing but dialling characters up to its first NUL.
+    """
+    if len(data) != _PHONE_FILE_SIZE or \
+            data[_PHONE_TAG_OFFSET:_PHONE_TAG_OFFSET + len(_PHONE_TAG)] != _PHONE_TAG:
+        return None
+    rows = []
+    single = _phone_text(data, _PHONE_SINGLE_OFFSET)
+    if single:
+        rows.append(('Single number field', 1, single))
+    for index in range(_PHONE_LIST_ENTRIES):
+        number = _phone_text(data, _PHONE_LIST_OFFSET + _PHONE_ENTRY_SIZE * index)
+        if number:
+            rows.append(('Number list', index + 1, number))
+    return rows
+
+
+@artifact_processor
+def gm_onstar_lg_embedded_phone_numbers(context):
+    data_list = []
+    source_paths = []
+    files = [f for f in _regular_files(context) if _base_name(f) == 'phone.dat']
+    for file_found, data, copies in _distinct(files):
+        if data.startswith(b'[*]\r\n'):
+            continue
+        rows = _phone_numbers(data)
+        if rows is None:
+            # Only a file carrying the generation 9 tag is worth a line in the log.
+            if b'<SysInfo' not in data[-32:]:
+                continue
+            logfunc(f'GM OnStar LG: {os.path.basename(file_found)} ({len(data)} bytes) is not '
+                    'the phone file layout this reader knows, not read')
+            continue
+        if rows:
+            source_paths.append(file_found)
+        for field, position, number in rows:
+            data_list.append((field, position, number, copies,
+                              context.get_relative_path(file_found)))
+
+    data_headers = ('Field', 'Position', 'Phone Number', 'Identical Files', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
