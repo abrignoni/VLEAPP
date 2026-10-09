@@ -6,6 +6,8 @@ generations keep different files under the same var/ tree:
 
     Generation 9   var/sysinfo/BT.dat         five fixed Bluetooth device slots
                    var/BTfeature/phoneNN.pb   one self-describing phonebook per slot
+                   obn/storage/gps            20-byte position records, one per second
+                   obn/storage/flight         the turn-by-turn navigation text log
     Generation 10  var/sysinfo/*.dat          text files of [section] and key=value lines
     Both           var/log/poweroff.log       one line: a clock reading and two numbers
                    var/ver.txt                the software version
@@ -116,34 +118,39 @@ __artifacts_v2__ = {
                        "and longitude of each report and the elevation, speed, course, "
                        "dilution of precision and satellite count stored with it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
         "category": "GM OnStar LG",
-        "notes": "From the GPSRegularReport sections of var/sysinfo/gps.dat, a text file of "
-                 "[section] and key=value lines. Tested on two generation 10 units: a 2016 "
-                 "Chevrolet Cruze and a 2017 Buick Encore. Each held ten reports. Timestamp is "
-                 "built from the report's utc_year to utc_sec keys and is UTC: on all 20 "
-                 "tested reports the report's own GPS week and time of week, converted to a "
-                 "date, was exactly 18 seconds ahead of that reading, which is the GPS to UTC "
-                 "offset in force since 2017. Latitude and Longitude are the stored eight-byte "
-                 "values divided by 10,000,000. That scale is derived by comparison: on one "
-                 "unit an independent parse of the same data gave positions for the same "
-                 "timestamps, and they agreed to within 0.0000001 degree. Elevation, Speed "
-                 "Over Ground and Course Over Ground are shown as stored because their units "
-                 "are not established here; speed was 0 on all 20 reports. Reports whose "
-                 "latitude and longitude are both zero are left out. File Save Time is the "
-                 "TimeStamp in the file's first section, in the same clock. Report Number is "
-                 "the section's number; on the tested units number 0 was the most recent. The "
-                 "other keys of each report (variances, velocity vectors, fix flags) are not "
-                 "surfaced. An extraction can hold several copies of one file, marked "
-                 "(Deleted) or (CopyN) in the name. Files with identical content are read once "
-                 "and Identical Files gives how many there were. A report records where the "
-                 "module's receiver placed itself at that time. It does not establish who was "
-                 "in the vehicle. Generation 9 units have a zero-byte obn/storage/gps file and "
-                 "no gps.dat.",
-        "paths": ('*/var/sysinfo/gps.dat*',),
+        "notes": "From the GPSRegularReport sections of the state files under var/sysinfo. "
+                 "Tested on two generation 10 units: a 2016 Chevrolet Cruze and a 2017 Buick "
+                 "Encore. A state file is text of [section] and key=value lines that opens "
+                 "with a [*] section and ends at an end-of-file byte. The extraction also "
+                 "holds 65,535-byte copies of these files in which several such documents, of "
+                 "that file or of another, follow one another; every document in every .dat "
+                 "file is read, each from its [*] line to its end byte. A row found in more "
+                 "than one document is reported once, with Times Found, and Source File and "
+                 "Document Offset say where it was first read. The current gps.dat holds ten "
+                 "reports; reading the embedded documents as well gave 111 distinct reports on "
+                 "the Cruze and 64 on the Encore. Timestamp is built from the report's "
+                 "utc_year to utc_sec keys, with the fraction of a second dropped, and is UTC: "
+                 "on all 175 tested reports the report's own GPS week and time of week, "
+                 "converted to a date, was between 18 and 19 seconds ahead of that reading, "
+                 "and 18 seconds is the GPS to UTC offset in force since 2017. Latitude and "
+                 "Longitude are the stored eight-byte values divided by 10,000,000. That scale "
+                 "is derived by comparison: on the Encore an independent parse of the same "
+                 "unit gave a position for each of the 64 timestamps, and all 64 agreed to "
+                 "within 0.000001 degree. That parse held 541 points in all; the rest are not "
+                 "in these files. Elevation, Speed Over Ground and Course Over Ground are "
+                 "shown as stored because their units are not established here. Reports whose "
+                 "latitude and longitude are both zero are left out. The other keys of each "
+                 "report (variances, velocity vectors, fix flags) are not surfaced. Rows are "
+                 "sorted newest first. A report records where the module's receiver placed "
+                 "itself at that time. It does not establish who was in the vehicle. "
+                 "Generation 9 units have no gps.dat; their positions are in the GPS Track "
+                 "artifact.",
+        "paths": ('*/var/sysinfo/*.dat*',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, no gps.dat on generation 9",
@@ -153,8 +160,9 @@ __artifacts_v2__ = {
                              "rows, no gps.dat on generation 9",
             "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, no "
                              "gps.dat on generation 9",
-            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 10 rows",
-            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 10 rows",
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 111 "
+                             "rows",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 64 rows",
         },
         "output_types": "all",
         "artifact_icon": "map-pin",
@@ -208,34 +216,36 @@ __artifacts_v2__ = {
         "description": "Selected values from the generation 10 module's text state files: the "
                        "redial and recall numbers, the module's own mobile numbers, "
                        "destination coordinates and text, stolen-vehicle and dealer values, "
-                       "and the unit expiry date, each with the save time of the file it came "
-                       "from.",
+                       "and the unit expiry date, each with the save time of the document it "
+                       "came from.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
         "category": "GM OnStar LG",
-        "notes": "From var/sysinfo/phone.dat, miscretlog.dat, occ.dat, bill.dat and "
-                 "vifdata.dat, text files of [section] and key=value lines. Tested on two "
-                 "generation 10 units: a 2016 Chevrolet Cruze and a 2017 Buick Encore. A row "
-                 "is reported only when the key holds a value other than empty, 0 or -1, so "
-                 "most keys give no row: the two units gave four rows each (the OTUBMgmnt "
-                 "expiry year, month and day on both, a redial number on one and a lock-out "
-                 "counter on the other). Section and Key are the file's own names and no "
-                 "meaning beyond the name is established here. Values stored as hexadecimal "
-                 "bytes are shown as text when they are printable ASCII. The destination, name "
-                 "tag and recent destination lists were empty on both units; their numbered "
-                 "sections are reported whole when present, and that path has not been "
-                 "exercised on real data. File Save Time is the TimeStamp in the file's first "
-                 "section; several files carried 1970 readings. Not surfaced: the diagnostic "
-                 "trouble codes in dtc.dat, the data identifier tables in dpid.dat and "
-                 "nondid.dat, the display device and customisation tables in vifdata.dat, the "
-                 "authentication key in tcuid.dat, and the empty alerts.db. An extraction can "
-                 "hold several copies of one file, marked (Deleted) or (CopyN) in the name. "
-                 "Files with identical content are read once and Identical Files gives how "
-                 "many there were. Files of the same name that do not open with the [*] "
-                 "section are erased or partial copies and are not read.",
+        "notes": "From the state files under var/sysinfo. Tested on two generation 10 units: a "
+                 "2016 Chevrolet Cruze and a 2017 Buick Encore. A state file is text of "
+                 "[section] and key=value lines that opens with a [*] section and ends at an "
+                 "end-of-file byte. The extraction also holds 65,535-byte copies of these "
+                 "files in which several such documents, of that file or of another, follow "
+                 "one another; every document in every .dat file is read, each from its [*] "
+                 "line to its end byte. A row found in more than one document is reported "
+                 "once, with Times Found, and Source File and Document Offset say where it was "
+                 "first read. A row is reported only when the key holds a value other than "
+                 "empty, 0 or -1, so most keys give no row. The Cruze gave six rows (the "
+                 "OTUBMgmnt expiry year, month and day, and a redial number in three documents "
+                 "with different save times) and the Encore seven (the same expiry keys and a "
+                 "lock-out counter in four documents). Section and Key are the file's own "
+                 "names and no meaning beyond the name is established here. Values stored as "
+                 "hexadecimal bytes are shown as text when they are printable ASCII. The "
+                 "destination, name tag and recent destination lists were empty on both units; "
+                 "their numbered sections are reported whole when present, and that path has "
+                 "not been exercised on real data. Document Save Time is the TimeStamp in the "
+                 "document's first section; several documents carried 1970 readings. Not "
+                 "surfaced: the diagnostic trouble codes, the data identifier tables, the "
+                 "display device and customisation tables, the authentication key in "
+                 "tcuid.dat, and the empty alerts.db.",
         "paths": ('*/var/sysinfo/*.dat*',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
@@ -246,11 +256,154 @@ __artifacts_v2__ = {
                              "rows, generation 9 files are not in the text format",
             "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, "
                              "generation 9 files are not in the text format",
-            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 4 rows",
-            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 4 rows",
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 6 rows",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 7 rows",
         },
         "output_types": "standard",
         "artifact_icon": "list",
+    },
+    "gm_onstar_lg_gps_track": {
+        "name": "GM OnStar LG Gen9 - GPS Track",
+        "description": "Position records the telematics module's navigation storage holds, one "
+                       "per second, with the time, latitude, longitude, speed and heading of "
+                       "each record.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From obn/storage/gps, a file of 20-byte big-endian records. Tested on four "
+                 "generation 9 units (a 2012 Chevrolet Cruze LT, a 2012 GMC Acadia, a 2014 GMC "
+                 "Sierra 1500 SLE and a 2011 Buick Enclave), read from the file sets extracted "
+                 "from each unit's flash image. Only the Acadia held data here; on the other "
+                 "three the file was present and zero bytes long, and it is also zero bytes on "
+                 "the two tested generation 10 units. The Acadia's file held 12,800 records "
+                 "dated from November 2015 to April 2017. Latitude and Longitude are the "
+                 "stored integers divided by 6,000,000. That scale is the unit's own: the "
+                 "navigation log beside this file prints the same kind of integer next to its "
+                 "decimal degrees. It was also checked by comparison: for all 12,782 records "
+                 "whose timestamp was unique, an independent parse of the same unit gave the "
+                 "same position to within 0.000002 degree. Speed is the stored value read as "
+                 "millimetres per second and shown in km/h, and Heading is the upper nine bits "
+                 "of the stored heading value. Both readings are derived by comparison with "
+                 "that independent parse, which computed its own speed and bearing between "
+                 "points: the median difference was 0.05 km/h and 1 degree over 10,361 records "
+                 "above 30 km/h. The lower seven bits of the heading value are shown as "
+                 "stored; 6 on most records. Records whose date fields are not a real date are "
+                 "left out. The file states no time zone. An independent parse of the same "
+                 "unit labels these times UTC, and that is not established here by other "
+                 "means, so the time is written out as stored with no offset applied. Files "
+                 "with identical content are read once and Identical Files gives how many "
+                 "there were. A record states where the module's receiver placed itself at "
+                 "that time. It does not establish who was in the vehicle.",
+        "paths": ('*/obn/storage/gps*',),
+        "sample_data": {
+            "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
+                             "rows, obn/storage/gps was zero bytes",
+            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, extracted file set | 12800 rows",
+            "xtrmp_item030": "2014 GMC Sierra 1500 SLE, OnStar Gen9, extracted file set | 0 "
+                             "rows, obn/storage/gps was zero bytes",
+            "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, "
+                             "obn/storage/gps was zero bytes",
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 0 rows, "
+                             "obn/storage/gps was zero bytes",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 0 rows, obn/storage/gps was "
+                             "zero bytes",
+        },
+        "output_types": "all",
+        "artifact_icon": "navigation",
+    },
+    "gm_onstar_lg_nav_destinations": {
+        "name": "GM OnStar LG Gen9 - Navigation Destinations",
+        "description": "Destination lines from the telematics module's turn-by-turn navigation "
+                       "log, with the log time and the latitude and longitude the line states.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From the 'Dest lat' lines of obn/storage/flight, a text log of time-stamped "
+                 "lines. Tested on four generation 9 units (a 2012 Chevrolet Cruze LT, a 2012 "
+                 "GMC Acadia, a 2014 GMC Sierra 1500 SLE and a 2011 Buick Enclave), read from "
+                 "the file sets extracted from each unit's flash image. Only the Acadia held "
+                 "data here; on the other three the file was present and zero bytes long, and "
+                 "it is also zero bytes on the two tested generation 10 units. The Acadia's "
+                 "log held 26 such lines. Each line gives the destination as two integers and, "
+                 "in parentheses, the same position in decimal degrees; Latitude and Longitude "
+                 "are the parenthesised values and the integers are kept in the as-stored "
+                 "columns. The log is a fixed-size file that wraps, so the oldest lines have "
+                 "been overwritten and rows are sorted by time. The file states no time zone. "
+                 "An independent parse of the same unit labels these times UTC, and that is "
+                 "not established here by other means, so the time is written out as stored "
+                 "with no offset applied. Files with identical content are read once and "
+                 "Identical Files gives how many there were. A row records that the module "
+                 "logged a route to that destination at that time. It does not establish that "
+                 "the vehicle arrived there.",
+        "paths": ('*/obn/storage/flight*',),
+        "sample_data": {
+            "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
+                             "rows, obn/storage/flight was zero bytes",
+            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, extracted file set | 26 rows",
+            "xtrmp_item030": "2014 GMC Sierra 1500 SLE, OnStar Gen9, extracted file set | 0 "
+                             "rows, obn/storage/flight was zero bytes",
+            "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, "
+                             "obn/storage/flight was zero bytes",
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 0 rows, "
+                             "obn/storage/flight was zero bytes",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 0 rows, obn/storage/flight was "
+                             "zero bytes",
+        },
+        "output_types": "all",
+        "artifact_icon": "map-pin",
+    },
+    "gm_onstar_lg_nav_guidance": {
+        "name": "GM OnStar LG Gen9 - Navigation Guidance Prompts",
+        "description": "Guidance prompt lines from the telematics module's turn-by-turn "
+                       "navigation log, with the log time, the maneuver, the street named and "
+                       "the distance text of each prompt.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From the 'VIAMOTOSendHMIData audio' lines of obn/storage/flight. Tested on "
+                 "four generation 9 units (a 2012 Chevrolet Cruze LT, a 2012 GMC Acadia, a "
+                 "2014 GMC Sierra 1500 SLE and a 2011 Buick Enclave), read from the file sets "
+                 "extracted from each unit's flash image. Only the Acadia held data here; on "
+                 "the other three the file was present and zero bytes long, and it is also "
+                 "zero bytes on the two tested generation 10 units. The Acadia's log held 226 "
+                 "such lines, with eleven maneuver texts such as TURN LEFT, EXIT/RAMP RIGHT "
+                 "and DESTINATION AHEAD. Street is the text after 'street :' with %20 shown as "
+                 "a space, and Distance Text is the rest of the line as logged. The numeric "
+                 "prompt codes on the line are not surfaced. The log is a fixed-size file that "
+                 "wraps, so the oldest lines have been overwritten and rows are sorted by "
+                 "time. The file states no time zone. An independent parse of the same unit "
+                 "labels these times UTC, and that is not established here by other means, so "
+                 "the time is written out as stored with no offset applied. Files with "
+                 "identical content are read once and Identical Files gives how many there "
+                 "were. A row records that the module issued that prompt. It names a street on "
+                 "the planned route and does not by itself place the vehicle on it; the GPS "
+                 "Track artifact holds the positions. The log's other lines (events, settings, "
+                 "network status) are not surfaced.",
+        "paths": ('*/obn/storage/flight*',),
+        "sample_data": {
+            "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
+                             "rows, obn/storage/flight was zero bytes",
+            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, extracted file set | 226 rows",
+            "xtrmp_item030": "2014 GMC Sierra 1500 SLE, OnStar Gen9, extracted file set | 0 "
+                             "rows, obn/storage/flight was zero bytes",
+            "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, "
+                             "obn/storage/flight was zero bytes",
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 0 rows, "
+                             "obn/storage/flight was zero bytes",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 0 rows, obn/storage/flight was "
+                             "zero bytes",
+        },
+        "output_types": "standard",
+        "artifact_icon": "corner-up-right",
     },
     "gm_onstar_lg_unit_info": {
         "name": "GM OnStar LG - Unit Information",
@@ -309,23 +462,21 @@ _SECTION = re.compile(r'\[(.+)\]')
 _POWER_LINE = re.compile(r'([A-Z][a-z]{2} [A-Z][a-z]{2} [ \d]\d \d\d:\d\d:\d\d \d{4}),'
                          r'(-?\d+),(-?\d+)')
 # Sections and keys of the generation 10 text files worth a row when they hold a value.
-_STORED_KEYS = {
-    'phone.dat': (('RedialNum', 'PhoneNumber'), ('RecallNum', 'PhoneNumber'),
-                  ('NameTagList', 'NumOfNametag'), ('DestinationList', 'NumOfDestination'),
-                  ('IMSAPNLockOutInfo', 'LockOutCounter')),
-    'miscretlog.dat': (('NAD', 'MDN'), ('NAD', 'MIN'), ('OBNDestContext', 'Latitude'),
-                       ('OBNDestContext', 'Longitude'), ('OBNDestContext', 'StreetNumber'),
-                       ('OBNDestContext', 'StreetText'),
-                       ('OBNDestContext', 'CrossStreetText'), ('OBNDestContext', 'POIText'),
-                       ('OBNRecentDestList', 'TotalDestListNum')),
-    'occ.dat': (('PacketInfo', 'DestLatitude'), ('PacketInfo', 'DestLongitude'),
-                ('PacketInfo', 'DestURI'), ('TheftRecord', 'TheftActive')),
-    'bill.dat': (('OTUBMgmnt', 'ExpireYear'), ('OTUBMgmnt', 'ExpireMonth'),
-                 ('OTUBMgmnt', 'ExpireDay'), ('OTUBMgmnt', 'TotalUnits')),
-    'vifdata.dat': (('DEAMgmnt', 'Name'), ('DEAMgmnt', 'PhoneNum'), ('DEAMgmnt', 'Address'),
-                    ('DEAMgmnt', 'StreetName'), ('DEAMgmnt', 'CityName'),
-                    ('DEAMgmnt', 'State')),
-}
+_STORED_KEYS = (
+    ('RedialNum', 'PhoneNumber'), ('RecallNum', 'PhoneNumber'),
+    ('NameTagList', 'NumOfNametag'), ('DestinationList', 'NumOfDestination'),
+    ('IMSAPNLockOutInfo', 'LockOutCounter'),
+    ('NAD', 'MDN'), ('NAD', 'MIN'), ('OBNDestContext', 'Latitude'),
+    ('OBNDestContext', 'Longitude'), ('OBNDestContext', 'StreetNumber'),
+    ('OBNDestContext', 'StreetText'), ('OBNDestContext', 'CrossStreetText'),
+    ('OBNDestContext', 'POIText'), ('OBNRecentDestList', 'TotalDestListNum'),
+    ('PacketInfo', 'DestLatitude'), ('PacketInfo', 'DestLongitude'),
+    ('PacketInfo', 'DestURI'), ('TheftRecord', 'TheftActive'),
+    ('OTUBMgmnt', 'ExpireYear'), ('OTUBMgmnt', 'ExpireMonth'),
+    ('OTUBMgmnt', 'ExpireDay'), ('OTUBMgmnt', 'TotalUnits'),
+    ('DEAMgmnt', 'Name'), ('DEAMgmnt', 'PhoneNum'), ('DEAMgmnt', 'Address'),
+    ('DEAMgmnt', 'StreetName'), ('DEAMgmnt', 'CityName'), ('DEAMgmnt', 'State'),
+)
 # Numbered sections reported whole when present; none held rows on the tested units.
 _LIST_SECTIONS = re.compile(r'^(OBNRecentDestList|NameTagList|DestinationList)\d+')
 
@@ -492,27 +643,44 @@ def gm_onstar_lg_phonebook(context):
 # Generation 10: sectioned text files
 # ---------------------------------------------------------------------------
 
-def _parse_sections(data):
-    """Sections of a generation 10 .dat file as {section: {key: value}}, or None.
+def _documents(data):
+    """Every sectioned document inside a file, as (offset, {section: {key: value}}).
 
-    The file is CRLF text that opens with a [*] section holding TimeStamp and Version.
-    Anything that does not open that way is not this format and is refused.
+    A generation 10 state file is CRLF text that opens with a [*] section holding
+    TimeStamp and Version and ends at a 0x1A byte. The extraction also holds 65,535-byte
+    copies in which several such documents, of this file or another, follow one another
+    after unrelated bytes. Each document is found by its [*] opening line and read up to
+    its end byte or the next opening line; text with no TimeStamp is not a document.
     """
-    if not data.startswith(b'[*]\r\n'):
-        return None
-    sections = {}
-    name = None
-    for line in data.decode('latin-1').split('\r\n'):
-        match = _SECTION.fullmatch(line)
-        if match:
-            name = match.group(1)
-            sections.setdefault(name, {})
-        elif name is not None and '=' in line and not line.startswith('\x1a'):
-            key, value = line.split('=', 1)
-            sections[name][key] = value
-    if 'TimeStamp' not in sections.get('*', {}):
-        return None
-    return sections
+    starts = [match.start() for match in re.finditer(rb'\[\*\]\r\n', data)]
+    documents = []
+    for index, start in enumerate(starts):
+        end = starts[index + 1] if index + 1 < len(starts) else len(data)
+        chunk = data[start:end]
+        stop = chunk.find(b'\x1a')
+        if stop != -1:
+            chunk = chunk[:stop]
+        sections = {}
+        name = None
+        for line in chunk.decode('latin-1').split('\r\n'):
+            match = _SECTION.fullmatch(line)
+            if match:
+                name = match.group(1)
+                sections.setdefault(name, {})
+            elif name is not None and '=' in line:
+                key, value = line.split('=', 1)
+                sections[name][key] = value
+        if 'TimeStamp' in sections.get('*', {}):
+            documents.append((start, sections))
+    return documents
+
+
+def _parse_sections(data):
+    """The document a file opens with, or None when it does not open with one."""
+    documents = _documents(data)
+    if documents and documents[0][0] == 0:
+        return documents[0][1]
+    return None
 
 
 def _save_time(sections):
@@ -537,21 +705,19 @@ def _number(text, fmt):
     return struct.unpack(fmt, raw)[0]
 
 
-def _sectioned_files(context, name=None):
-    files = [f for f in _regular_files(context)
-             if (_base_name(f) == name if name else _base_name(f).endswith('.dat'))]
-    for file_found, data, copies in _distinct(files):
-        sections = _parse_sections(data)
-        if sections is not None:
-            yield file_found, sections, copies
+def _sectioned_documents(context):
+    """(file, offset, sections) for every document in every distinct .dat file."""
+    files = [f for f in _regular_files(context) if _base_name(f).endswith('.dat')]
+    for file_found, data, _copies in _distinct(files):
+        for offset, sections in _documents(data):
+            yield file_found, offset, sections
 
 
 @artifact_processor
 def gm_onstar_lg_gps_reports(context):
-    data_list = []
+    rows = {}
     source_paths = []
-    for file_found, sections, copies in _sectioned_files(context, 'gps.dat'):
-        found = False
+    for file_found, offset, sections in _sectioned_documents(context):
         for section, values in sections.items():
             index = re.fullmatch(r'GPSRegularReport(\d+)', section)
             if not index:
@@ -568,22 +734,26 @@ def gm_onstar_lg_gps_reports(context):
                                  int(seconds or 0)).strftime('%Y-%m-%d %H:%M:%S')
             except (KeyError, ValueError, OverflowError):
                 stamp = ''
-            found = True
-            data_list.append((
-                stamp, round(latitude / 1e7, 7), round(longitude / 1e7, 7),
-                values.get('elevation', ''), _number(values.get('sog'), '<f'),
-                _number(values.get('cog'), '<f'), _number(values.get('hdop'), '<f'),
-                values.get('sv_used_cnt', ''), values.get('gps_week', ''),
-                values.get('gps_tow', ''), int(index.group(1)), _save_time(sections),
-                copies, context.get_relative_path(file_found)))
-        if found:
-            source_paths.append(file_found)
+            row = (stamp, round(latitude / 1e7, 7), round(longitude / 1e7, 7),
+                   values.get('elevation', ''), _number(values.get('sog'), '<f'),
+                   _number(values.get('cog'), '<f'), _number(values.get('hdop'), '<f'),
+                   values.get('sv_used_cnt', ''), values.get('gps_week', ''),
+                   values.get('gps_tow', ''))
+            if row in rows:
+                rows[row][0] += 1
+            else:
+                rows[row] = [1, file_found, offset]
+                if file_found not in source_paths:
+                    source_paths.append(file_found)
+    data_list = [row + (found[0], found[2], context.get_relative_path(found[1]))
+                 for row, found in rows.items()]
+    data_list.sort(key=lambda row: row[0], reverse=True)
 
     data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude',
                     'Elevation (as stored)', 'Speed Over Ground (as stored)',
                     'Course Over Ground (as stored)', 'HDOP', 'Satellites Used',
-                    'GPS Week', 'GPS Time Of Week (as stored)', 'Report Number',
-                    ('File Save Time', 'datetime'), 'Identical Files', 'Source File')
+                    'GPS Week', 'GPS Time Of Week (as stored)', 'Times Found',
+                    'Document Offset', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
@@ -604,26 +774,157 @@ def _display(value):
 
 @artifact_processor
 def gm_onstar_lg_stored_values(context):
-    data_list = []
+    rows = {}
     source_paths = []
-    for file_found, sections, copies in _sectioned_files(context):
-        base = _base_name(file_found)
-        rows = []
-        for section, key in _STORED_KEYS.get(base, ()):
+    for file_found, offset, sections in _sectioned_documents(context):
+        found = []
+        for section, key in _STORED_KEYS:
             value = _display(sections.get(section, {}).get(key, ''))
             if value and value not in ('0', '-1'):
-                rows.append((section, key, value))
+                found.append((section, key, value))
         for section, values in sections.items():
             if _LIST_SECTIONS.match(section):
-                rows.extend((section, key, _display(value)) for key, value in values.items()
-                            if _display(value))
+                found.extend((section, key, _display(value))
+                             for key, value in values.items() if _display(value))
+        for section, key, value in found:
+            row = (_save_time(sections), section, key, value)
+            if row in rows:
+                rows[row][0] += 1
+            else:
+                rows[row] = [1, file_found, offset]
+                if file_found not in source_paths:
+                    source_paths.append(file_found)
+    data_list = [row + (found[0], found[2], context.get_relative_path(found[1]))
+                 for row, found in rows.items()]
+
+    data_headers = (('Document Save Time', 'datetime'), 'Section', 'Key', 'Value',
+                    'Times Found', 'Document Offset', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+# ---------------------------------------------------------------------------
+# Generation 9: navigation position records and flight log
+# ---------------------------------------------------------------------------
+
+_GPS_RECORD = struct.Struct('>iiBBHHHBBBB')
+_COORDINATE_UNITS = 6000000.0
+_FLIGHT_LINE = re.compile(r'(\d{4})-(\d\d)-(\d\d):(\d\d)\.(\d\d)\.(\d\d)\.(\d{3}):([^\n]*)')
+_FLIGHT_DEST = re.compile(r'^Dest lat (-?\d+) lon (-?\d+) \((-?[\d.]+),(-?[\d.]+)\)')
+_FLIGHT_PROMPT = re.compile(r'^VIAMOTOSendHMIData audio (\d+) ([\d:]+) (.*?) street :(.*?) '
+                            r'distance (.*)$')
+
+
+def _gps_records(data):
+    """Rows of an obn/storage/gps file, or None when it is not that layout.
+
+    The file is a run of 20-byte big-endian records: latitude and longitude as integers
+    of 1/6,000,000 degree, month, day, year, a speed value, a heading value, then hour,
+    minute, second and one more byte. A record whose date fields are not a real date is
+    left out, and the file is refused when more than half of them are.
+    """
+    if not data or len(data) % _GPS_RECORD.size:
+        return None
+    rows = []
+    invalid = 0
+    for offset in range(0, len(data), _GPS_RECORD.size):
+        (latitude, longitude, month, day, year, speed, heading, hour, minute, second,
+         _last) = _GPS_RECORD.unpack_from(data, offset)
+        try:
+            stamp = datetime(year, month, day, hour, minute, second)
+        except ValueError:
+            invalid += 1
+            continue
+        if not 2000 <= year <= 2100 or not (latitude or longitude):
+            invalid += 1
+            continue
+        rows.append((stamp.strftime('%Y-%m-%d %H:%M:%S'),
+                     round(latitude / _COORDINATE_UNITS, 7),
+                     round(longitude / _COORDINATE_UNITS, 7),
+                     round(speed * 0.0036, 1), heading >> 7, heading & 0x7f,
+                     offset // _GPS_RECORD.size + 1))
+    if invalid * 2 > len(data) // _GPS_RECORD.size:
+        return None
+    return rows
+
+
+@artifact_processor
+def gm_onstar_lg_gps_track(context):
+    data_list = []
+    source_paths = []
+    files = [f for f in _regular_files(context) if _base_name(f) == 'gps']
+    for file_found, data, copies in _distinct(files):
+        rows = _gps_records(data)
+        if rows is None:
+            logfunc(f'GM OnStar LG: {os.path.basename(file_found)} does not have the '
+                    'position record layout, not read')
+            continue
         if rows:
             source_paths.append(file_found)
-        for section, key, value in rows:
-            data_list.append((_save_time(sections), base, section, key, value, copies,
-                              context.get_relative_path(file_found)))
+        for row in rows:
+            data_list.append(row + (copies, context.get_relative_path(file_found)))
 
-    data_headers = (('File Save Time', 'datetime'), 'File', 'Section', 'Key', 'Value',
+    data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude', 'Speed (km/h)',
+                    'Heading (degrees)', 'Low Heading Bits (as stored)', 'Record Number',
+                    'Identical Files', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+def _flight_lines(data):
+    for match in _FLIGHT_LINE.finditer(data.decode('latin-1')):
+        year, month, day, hour, minute, second = (int(v) for v in match.groups()[:6])
+        try:
+            stamp = datetime(year, month, day, hour, minute,
+                             second).strftime('%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            continue
+        yield stamp, match.group(8).rstrip('\r')
+
+
+@artifact_processor
+def gm_onstar_lg_nav_destinations(context):
+    data_list = []
+    source_paths = []
+    files = [f for f in _regular_files(context) if _base_name(f) == 'flight']
+    for file_found, data, copies in _distinct(files):
+        found = False
+        for stamp, text in _flight_lines(data):
+            match = _FLIGHT_DEST.match(text)
+            if not match:
+                continue
+            found = True
+            data_list.append((stamp, float(match.group(3)), float(match.group(4)),
+                              int(match.group(1)), int(match.group(2)), copies,
+                              context.get_relative_path(file_found)))
+        if found:
+            source_paths.append(file_found)
+    data_list.sort(key=lambda row: row[0])
+
+    data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude',
+                    'Latitude (as stored)', 'Longitude (as stored)', 'Identical Files',
+                    'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+@artifact_processor
+def gm_onstar_lg_nav_guidance(context):
+    data_list = []
+    source_paths = []
+    files = [f for f in _regular_files(context) if _base_name(f) == 'flight']
+    for file_found, data, copies in _distinct(files):
+        found = False
+        for stamp, text in _flight_lines(data):
+            match = _FLIGHT_PROMPT.match(text)
+            if not match:
+                continue
+            found = True
+            street = match.group(4).replace('%20', ' ')
+            data_list.append((stamp, match.group(3), street, match.group(5).strip(),
+                              copies, context.get_relative_path(file_found)))
+        if found:
+            source_paths.append(file_found)
+    data_list.sort(key=lambda row: row[0])
+
+    data_headers = (('Prompt Time', 'datetime'), 'Maneuver', 'Street', 'Distance Text',
                     'Identical Files', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
