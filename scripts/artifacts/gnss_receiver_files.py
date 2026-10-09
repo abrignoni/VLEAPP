@@ -46,9 +46,8 @@ __artifacts_v2__ = {
                  "result lies within 0.01 degree of 4,674 of the 39,638 positions the Ford - "
                  "PAS Dev Loc Results artifact reads from its location log. The other numbers "
                  "in the file are not read. The row is the position the receiver had saved "
-                 "when it wrote the file, which a receiver keeps to speed up its next fix. It "
-                 "does not establish that the vehicle was at that place at the header time to "
-                 "any stated accuracy.",
+                 "when it wrote the file. It does not establish that the vehicle was at that "
+                 "place at the header time to any stated accuracy.",
         "paths": ('*/NAV/gnss/GPSPosFile',),
         "sample_data": {
             "adams_ford_syncgen3_iva": "2018 Ford Expedition, SYNC Gen3, Berla iVe export | 1 "
