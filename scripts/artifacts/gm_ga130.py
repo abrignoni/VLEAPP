@@ -164,6 +164,42 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "hard-drive",
     },
+    "gm_ga130_played_media": {
+        "name": "GM GA-130 - Played Media",
+        "description": "Tracks in the media engine's library that carry a last played time or "
+                       "a play count, with the title, file name, the media store they belong "
+                       "to and those values.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM GA-130",
+        "notes": "From the library table of storage/bk1/mme and storage/bk2/mme, joined to "
+                 "mediastores on msid for the store's name and identifier. Tested on two units "
+                 "read from their extracted file sets, a 2014 Chevrolet Equinox LT and a 2015 "
+                 "Chevrolet Malibu, which gave 31 and 120 rows. Only rows whose last_played or "
+                 "fullplay_count is above zero are reported; the rest of the library, tens of "
+                 "thousands of rows listing the contents of attached media, is not. Last "
+                 "Played is the stored integer read as nanoseconds since 1970 and shown as "
+                 "UTC, the same reading the Media Stores artifact derives for its times; on "
+                 "these rows it fell between 2014 and 2020. Every tested row carried a last "
+                 "played time and a title, and 48 rows on the Malibu carried a play count. "
+                 "Full Play Count and Duration are shown as stored. File Name was empty on 70 "
+                 "of the 151 tested rows. The database names a text collation this tool does "
+                 "not have, so a plain one is registered on the temporary copy to let the "
+                 "title column be read; it does not change the stored values. The two database "
+                 "files hold different rows and both are read. A row records that the media "
+                 "engine stamped the track as played at that time. It does not establish who "
+                 "chose it.",
+        "paths": ('*/storage/bk*/mme*',),
+        "sample_data": {
+            "xtrmp_item025": "2014 Chevy Equinox LT, GA-130, extracted file set | 31 rows",
+            "xtrmp_item061": "2015 Chevrolet Malibu, GA-130, extracted file set | 120 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "music",
+    },
     "gm_ga130_system_events": {
         "name": "GM GA-130 - System Log Shutdowns",
         "description": "Shutdown lines from the radio's system log, with the log time of each "
@@ -252,6 +288,8 @@ def _databases(context, wanted):
                 temp.write(data)
             try:
                 db = sqlite3.connect(f'file:{temp_path}?mode=ro', uri=True)
+                # The media engine database names a collation this build does not have.
+                db.create_collation('cldr', lambda x, y: (x > y) - (x < y))
             except sqlite3.Error:
                 continue
             try:
@@ -438,6 +476,36 @@ def gm_ga130_media_stores(context):
     data_headers = (('Last Seen', 'datetime'), ('Last Sync', 'datetime'), 'Name',
                     'Identifier', 'Store Kind', 'Storage Type (as stored)', 'Mount Path',
                     'Last Seen (as stored)', 'Media Store ID', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+@artifact_processor
+def gm_ga130_played_media(context):
+    data_list = []
+    source_paths = []
+    for file_found, db in _databases(context, lambda name: name.startswith('mme')):
+        names = _tables(db)
+        if 'library' not in names:
+            continue
+        stores = {row.get('msid'): row for row in _rows(db, 'mediastores')} \
+            if 'mediastores' in names else {}
+        try:
+            rows = db.execute(
+                'SELECT last_played, title, filename, fullplay_count, duration, msid, fid '
+                'FROM library WHERE last_played > 0 OR fullplay_count > 0').fetchall()
+        except sqlite3.Error as ex:
+            logfunc(f'GM GA-130: could not read library: {ex}')
+            continue
+        source_paths.append(file_found)
+        for last_played, title, filename, plays, duration, msid, fid in rows:
+            store = stores.get(msid, {})
+            data_list.append((
+                _nanoseconds(last_played), _text(title), _text(filename), plays, duration,
+                _text(store.get('name')), _text(store.get('identifier')), msid, fid,
+                context.get_relative_path(file_found)))
+
+    data_headers = (('Last Played', 'datetime'), 'Title', 'File Name', 'Full Play Count',
+                    'Duration (as stored)', 'Media Store Name', 'Media Store Identifier',
+                    'Media Store ID', 'Library ID', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
