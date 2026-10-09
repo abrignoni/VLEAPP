@@ -261,7 +261,7 @@ __artifacts_v2__ = {
                        "the audio file on the hard disk, a stored date and time and a second "
                        "stored date with the number that follows it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -283,11 +283,47 @@ __artifacts_v2__ = {
                  "That pattern fits a last-played date and a play count, but nothing available "
                  "here documents it, so both are left unlabelled. Dates are the unit's own "
                  "clock with no zone and are shown as stored. The album name records in the "
-                 "same file are not read, so a track is tied to an album only through the "
-                 "folder in its path. The audio files themselves are not in the extracted set.",
+                 "same file are read by the Music Library Albums artifact; a track is tied to "
+                 "an album through the date in its folder name. The audio files themselves are "
+                 "not in the extracted set.",
         "paths": ('*/USER/CLIB/cl.dtb*',),
         "sample_data": {
             "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 136 rows",
+            "xtrmp_item059": "Nissan 08IT generation 8000, extracted file set | 0 rows, no "
+                             "CLIB folder in the extracted set",
+        },
+        "output_types": "standard",
+        "artifact_icon": "disc",
+    },
+    "nissan_08it_music_library_albums": {
+        "name": "Nissan 08IT - Music Library Albums",
+        "description": "Album records of the unit's music library file: the album name, a "
+                       "stored date and time and the count the record stores.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Nissan 08IT",
+        "notes": "From USER/CLIB/cl.dtb.bak. The layout was worked out from the file: the "
+                 "32-bit number at the start is the number of album records, and they are 920 "
+                 "bytes each from offset 0x4a0 with a name, a count and seven bytes of date "
+                 "and time, year first. A file where any of those records does not hold a "
+                 "valid date and time is logged and not read. Tested on one generation 3000 "
+                 "unit read from its extracted file set, which gave 10 rows; a tested "
+                 "generation 8000 unit has no such file. Each album's stored date is the date "
+                 "of one track folder in the Music Library Tracks artifact, and its time is "
+                 "from 10 to 75 seconds after the time in that folder's name, which is how an "
+                 "album is tied to its tracks here; no stored link between the two records was "
+                 "worked out. Three of the ten names were a date and time text and two began "
+                 "with Unknown, which reads as a default name where none was known. Stored "
+                 "Count is the number at offset 0x100 of the record. On nine albums it was one "
+                 "more than the number of track records in the matching folder and on the "
+                 "tenth it was 17 against 5 track records; what it counts is not established. "
+                 "Dates are the unit's own clock with no zone and are shown as stored.",
+        "paths": ('*/USER/CLIB/cl.dtb*',),
+        "sample_data": {
+            "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 10 rows",
             "xtrmp_item059": "Nissan 08IT generation 8000, extracted file set | 0 rows, no "
                              "CLIB folder in the extracted set",
         },
@@ -788,6 +824,62 @@ def nissan_08it_music_library(context):
                     'Number After Other Date (as stored)', 'Title', 'Audio File Path',
                     'Offset', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
+
+_ALBUM_FIRST = 0x4a0
+_ALBUM_RECORD = 920
+_ALBUM_COUNT = 0x100
+_ALBUM_STAMP = 0x298
+
+
+def _library_albums(data):
+    """(position, name, stored count, date and time) per album record, or None.
+
+    The 32-bit number at the start of the file, big-endian, is the number of album
+    records. They are 920 bytes each from offset 0x4a0: a NUL-terminated name, a count at
+    0x100 and seven bytes of date and time at 0x298. The file is given up when any of
+    those records does not hold a valid date and time.
+    """
+    if len(data) < 4:
+        return None
+    albums = struct.unpack('>I', data[:4])[0]
+    if not 0 < albums <= 1000 or _ALBUM_FIRST + albums * _ALBUM_RECORD > len(data):
+        return None
+    rows = []
+    for position in range(albums):
+        start = _ALBUM_FIRST + position * _ALBUM_RECORD
+        year, month, day, hour, minute, second = struct.unpack(
+            '>H5B', data[start + _ALBUM_STAMP:start + _ALBUM_STAMP + 7])
+        stamp = _calendar(year, month, day)
+        if not stamp or hour > 23 or minute > 59 or second > 59:
+            return None
+        name = data[start:start + _ALBUM_COUNT].split(b'\x00', 1)[0]
+        count = struct.unpack('>I', data[start + _ALBUM_COUNT:start + _ALBUM_COUNT + 4])[0]
+        rows.append((f'{stamp} {hour:02d}:{minute:02d}:{second:02d}',
+                     name.decode('utf-8', 'replace'), count, position + 1))
+    return rows
+
+
+@artifact_processor
+def nissan_08it_music_library_albums(context):
+    data_list = []
+    source_paths = []
+    for file_found in _regular_files(context):
+        if not os.path.basename(file_found).startswith('cl.dtb'):
+            continue
+        rows = _library_albums(_read(file_found))
+        relative = context.get_relative_path(file_found)
+        if rows is None:
+            logfunc(f'Nissan 08IT music library: {relative} does not have the album '
+                    'record layout this reader knows, albums not read')
+            continue
+        source_paths.append(file_found)
+        for row in rows:
+            data_list.append(row + (relative,))
+
+    data_headers = ('Stored Date And Time (as stored)', 'Album Name',
+                    'Stored Count (as stored)', 'Position In File', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
 
 _DISC_MARK = b'\x00\x00\x00\x03\x00\x00\x00'
 _DISC_COUNT = 0x1c
