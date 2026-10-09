@@ -34,16 +34,16 @@ __artifacts_v2__ = {
                  "(charge, phone, radio, tire pressure, trip, a com.ford.mcs application and "
                  "the owner's guide), one row each. A tested BMW MGU logical zip has no such "
                  "file. The two times are stored as whole numbers. They are read as "
-                 "microseconds since 1601-01-01, the time base this browser engine uses; read "
-                 "that way the seven last accessed values fall between 2023-11-27 and "
-                 "2024-04-04, and the latest is the date of the last boot in the same unit's "
-                 "stability monitor log, which is the check made here. The engine stores them "
-                 "as UTC and they are written out with no offset applied. The stored numbers "
-                 "are shown beside them. Use Count is the number the row stores, from 3 to "
-                 "5,657 on the tested unit; what the engine counts as a use is not established "
-                 "here. Application Folder is the folder the profile sits in. A row records "
-                 "that the application's storage was last touched at that time. It does not "
-                 "establish what was done in the application or by whom.",
+                 "microseconds since 1601-01-01; read that way the seven last accessed values "
+                 "fall between 2023-11-27 and 2024-04-04, and the latest is the date of the "
+                 "last boot in the same unit's stability monitor log, which is the check made "
+                 "here. They are written out with no offset applied; whether the stored values "
+                 "are UTC was not checked here. The stored numbers are shown beside them. Use "
+                 "Count is the number the row stores, from 3 to 5,657 on the tested unit; what "
+                 "the engine counts as a use is not established here. Application Folder is "
+                 "the folder the profile sits in. A row records that the application's storage "
+                 "was last touched at that time. It does not establish what was done in the "
+                 "application or by whom.",
         "paths": ('*/system_handled/QuotaManager',),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 7 rows",
