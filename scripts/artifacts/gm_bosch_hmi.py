@@ -58,7 +58,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 3 rows",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 1 row",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 1 "
+                             "row",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 6 rows",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 2 rows",
             "xtrmp_item122": "2017 Chevy Camaro SS, HMI 2.5 | 3 rows",
@@ -108,7 +109,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 1397 rows",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 459 rows",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 459 "
+                             "rows",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 963 rows",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 1384 rows",
             "xtrmp_item122": "2017 Chevy Camaro SS, HMI 2.5 | 769 rows",
@@ -159,7 +161,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 50 rows",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 135 rows",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 135 "
+                             "rows",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 50 rows",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 63 rows",
             "xtrmp_item122": "2017 Chevy Camaro SS, HMI 2.5 | 121 rows",
@@ -208,7 +211,8 @@ __artifacts_v2__ = {
         "paths": ('*/media/db/MyMedia.db*',),
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 5 rows",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 28 rows",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 28 "
+                             "rows",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 22 rows",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 14 rows",
             "xtrmp_item122": "2017 Chevy Camaro SS, HMI 2.5 | 15 rows",
@@ -245,7 +249,8 @@ __artifacts_v2__ = {
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 0 rows, "
                              "spi/DeviceHistory.db not present",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 7 rows",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 7 "
+                             "rows",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 9 rows",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 1 row",
             "xtrmp_item122": "2017 Chevy Camaro SS, HMI 2.5 | 9 rows",
@@ -284,8 +289,8 @@ __artifacts_v2__ = {
         "paths": ('*/navstorage/navstore.db*',),
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 128 rows",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 0 rows, navstore.db not "
-                             "present",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 0 "
+                             "rows, navstore.db not present",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 0 rows, navstore.db not "
                              "present",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 0 rows, navstore.db not present",
@@ -320,8 +325,8 @@ __artifacts_v2__ = {
         "paths": ('*/navstorage/navstore.db*',),
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 9 rows",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 0 rows, navstore.db not "
-                             "present",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 0 "
+                             "rows, navstore.db not present",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 0 rows, navstore.db not "
                              "present",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 0 rows, navstore.db not present",
@@ -363,7 +368,8 @@ __artifacts_v2__ = {
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 0 rows, every "
                              "PredefMsgTable row had creation type 1",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 2 rows",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 2 "
+                             "rows",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 0 rows, every PredefMsgTable "
                              "row had creation type 1",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 0 rows, every PredefMsgTable row "
@@ -379,9 +385,10 @@ __artifacts_v2__ = {
     "gm_bosch_hmi_voice_recordings": {
         "name": "GM Bosch HMI - Voice Command Recordings",
         "description": "Audio capture files the speech interaction logger left on the unit, "
-                       "with the clock reading in each file name and the file size.",
+                       "with the clock reading in each file name, the file size and the audio "
+                       "wrapped so it can be played.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -394,16 +401,27 @@ __artifacts_v2__ = {
                  "zone, so each time is the unit's clock reading, written out as if it were "
                  "UTC with no offset applied. Readings in 1970, 2013 and 2029 occur among the "
                  "tested units beside readings years apart from them, so a reading on its own "
-                 "does not establish when an event happened. The sampled files start with "
-                 "sample-like data and no container signature; the sample format is not "
-                 "recorded in the file and is not established here, so the audio is listed and "
-                 "not converted or played. Zero-byte files are listed. Interactionlogger.txt "
-                 "beside them is a hexadecimal event log with no documented layout and is not "
-                 "parsed.",
+                 "does not establish when an event happened. The files are headerless samples "
+                 "and do not state their format. Audio is the same bytes with a WAV header "
+                 "added that declares one channel, 16-bit little-endian samples at 16,000 per "
+                 "second; the evidence file is not changed. That format is a reading of the "
+                 "data and not documented: on every tested file with content the values run "
+                 "far more smoothly as 16-bit little-endian than as big-endian and adjacent "
+                 "samples are closer than alternate ones, which fits a single channel, and on "
+                 "one unit an independent parse gave ten durations that equal file size "
+                 "divided by 32,000. The wrapped audio from that unit was also played back and "
+                 "was clear speech at normal speed. If playback sounds wrong the declared rate "
+                 "or channel count is the first thing to doubt, and the original file is named "
+                 "in Source File. Duration At 16 kHz is the file size divided by 32,000. A "
+                 "zero-byte file is listed with no audio. Interactionlogger.txt beside the "
+                 "recordings is a hexadecimal event log with no documented layout and is not "
+                 "parsed. A recording establishes that the unit captured that audio. It does "
+                 "not establish who was speaking.",
         "paths": ('*/interactionlogger/pcm_recordings/record*.pcm*',),
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 10 rows",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 10 rows",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 10 "
+                             "rows",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 10 rows",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 3 rows",
             "xtrmp_item122": "2017 Chevy Camaro SS, HMI 2.5 | 10 rows",
@@ -437,8 +455,8 @@ __artifacts_v2__ = {
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 0 rows, deviceTable "
                              "held no rows",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 0 rows, deviceTable "
-                             "held no rows",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 0 "
+                             "rows, deviceTable held no rows",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 0 rows, deviceTable held no "
                              "rows",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 3 rows",
@@ -483,7 +501,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 4 rows",
-            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 5 rows",
+            "xtrmp_item022": "2016 Chevrolet Silverado 1500, HMI 2.5, extracted file set | 5 "
+                             "rows",
             "xtrmp_item023": "2016 GMC Sierra 1500 SLE, HMI 2.5 | 7 rows",
             "xtrmp_item120": "2018 Chevy Camaro SS, HMI 2.5 | 12 rows",
             "xtrmp_item122": "2017 Chevy Camaro SS, HMI 2.5 | 11 rows",
@@ -1152,6 +1171,18 @@ def gm_bosch_hmi_custom_messages(context):
     return data_headers, data_list, '\n'.join(source_paths)
 
 
+def _wav(samples):
+    """Headerless samples wrapped as a WAV file: one channel, 16 kHz, 16-bit little-endian.
+
+    Only a header is added; the sample bytes are passed through unchanged.
+    """
+    rate, width = 16000, 2
+    header = struct.pack('<4sI4s4sIHHIIHH4sI', b'RIFF', 36 + len(samples), b'WAVE', b'fmt ',
+                         16, 1, 1, rate, rate * width, width, 8 * width, b'data',
+                         len(samples))
+    return header + samples
+
+
 @artifact_processor
 def gm_bosch_hmi_voice_recordings(context):
     data_list = []
@@ -1164,17 +1195,23 @@ def gm_bosch_hmi_voice_recordings(context):
         if not match:
             continue
         try:
-            size = os.path.getsize(file_found)
+            with open(file_found, 'rb') as handle:
+                samples = handle.read()
         except OSError:
             continue
         source_paths.append(file_found)
-        data_list.append((_call_time(match.group(1), match.group(2)),
-                          os.path.basename(file_found), size,
+        base = os.path.basename(file_found)
+        audio = None
+        if len(samples) >= 2:
+            audio = check_in_embedded_media(file_found, _wav(samples[:len(samples) & ~1]),
+                                            base + '.wav')
+        data_list.append((_call_time(match.group(1), match.group(2)), audio, base,
+                          len(samples), round(len(samples) / 32000.0, 1),
                           context.get_relative_path(file_found)))
-    data_list.sort(key=lambda row: (row[3], row[0]))
+    data_list.sort(key=lambda row: (row[5], row[0]))
 
-    data_headers = (('Timestamp', 'datetime'), 'File Name', 'File Size (bytes)',
-                    'Source File')
+    data_headers = (('Timestamp', 'datetime'), ('Audio', 'media'), 'File Name',
+                    'File Size (bytes)', 'Duration At 16 kHz (seconds)', 'Source File')
     return data_headers, data_list, '\n'.join(sorted(source_paths))
 
 
