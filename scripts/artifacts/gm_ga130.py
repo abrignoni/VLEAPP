@@ -8,6 +8,8 @@ this file are a Chevrolet Equinox and a Chevrolet Malibu. Its user data partitio
     storage/bk<n>/mme                      the media engine database, SQLite
     logs/sys_error.log.<n>                 a timestamped system log
 
+The phonebook also gives the PhoneBook records still on its freelist pages.
+
 The phonebook and address book files are stored as zlib streams that inflate to SQLite
 databases. This module inflates them in memory, writes the result to its own temporary
 file and reads that; the evidence file is only read. An acquisition can also hold an
@@ -18,6 +20,7 @@ import hashlib
 import os
 import re
 import sqlite3
+import struct
 import tempfile
 import zlib
 from datetime import datetime, timezone
@@ -27,11 +30,12 @@ from scripts.ilapfuncs import artifact_processor, logfunc
 __artifacts_v2__ = {
     "gm_ga130_phonebook": {
         "name": "GM GA-130 - Bluetooth Phonebook",
-        "description": "Contacts in the radio's numbered Bluetooth phonebook tables, with the "
-                       "sort name, first and last name, the phone numbers and their stored "
-                       "types, and the postal address the row carries.",
+        "description": "Contacts in the radio's numbered Bluetooth phonebook tables and on the "
+                       "database's freelist pages, with the sort name, first and last name, "
+                       "the phone numbers and their stored types, the postal address the row "
+                       "carries, and whether the row is a table row or a freelist row.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -47,14 +51,33 @@ __artifacts_v2__ = {
                  "in the table name; that each number is one paired handset is the natural "
                  "reading and is not established here, and the database holds no device name "
                  "or address. Number Types are the TelType values in the same order as the "
-                 "numbers; 1, 2, 4 and 64 occur and nothing available here documents them. A "
-                 "row records that the radio held the contact. It does not establish that any "
+                 "numbers; 1, 2, 4 and 64 occur and nothing available here documents them. "
+                 "Record Source is 'table row' for a row the SQLite library returns and "
+                 "'freelist page N' for a record read from a table leaf page the database has "
+                 "released to its freelist, which the library does not return. A freelist "
+                 "record is reported when it has the PhoneBook tables' 31 columns, with text "
+                 "and integers where those columns store them, carries a name or a number, and "
+                 "its reported fields differ from every table row and every freelist row "
+                 "already reported. Which PhoneBook table a freelist row came from is not "
+                 "recorded, so Table Number is empty on those rows, and their Record ID is the "
+                 "key the row had on that page. On the Malibu 28 freelist leaf pages held "
+                 "1,131 records: 710 repeat a table row, 2 repeat another freelist row and 419 "
+                 "are reported, from 21 pages. All 419 carry a sort name and a number; 4 have "
+                 "the sort name of a table row. The text of an independent parse of that unit "
+                 "holds a number of 737 of the 738 table rows that carry one of seven or more "
+                 "digits, and of 23 of the 419 freelist rows, so the freelist rows are not "
+                 "confirmed by a second reader. "
+                 "Freelist cells that continue on overflow pages are not read; none was left "
+                 "out here. The Equinox database had no freelist pages. A row records that the "
+                 "radio held the contact, and a freelist row that the database once held that "
+                 "row; when it was removed is not recorded. Neither establishes that any "
                  "number was dialled.",
         "paths": ('*/storage/NPS/BT_MID/phonebook*',),
         "sample_data": {
             "xtrmp_item025": "2014 Chevy Equinox LT, GA-130, extracted file set | 0 rows, the "
                              "PhoneBook tables held no rows",
-            "xtrmp_item061": "2015 Chevrolet Malibu, GA-130, extracted file set | 741 rows",
+            "xtrmp_item061": "2015 Chevrolet Malibu, GA-130, extracted file set | 1160 rows, "
+                             "741 table rows and 419 freelist rows",
         },
         "output_types": "standard",
         "artifact_icon": "book-open",
@@ -331,6 +354,164 @@ def _is_phonebook(name):
 
 
 # ---------------------------------------------------------------------------
+# SQLite freelist leaf pages
+# ---------------------------------------------------------------------------
+
+def _varint(data, offset):
+    value = 0
+    for i in range(9):
+        byte = data[offset + i]
+        if i == 8:
+            return (value << 8) | byte, offset + 9
+        value = (value << 7) | (byte & 0x7f)
+        if not byte & 0x80:
+            return value, offset + i + 1
+    raise ValueError('varint')
+
+
+def _decode_record(payload):
+    header_len, offset = _varint(payload, 0)
+    if header_len > len(payload):
+        raise ValueError('header')
+    serials = []
+    while offset < header_len:
+        serial, offset = _varint(payload, offset)
+        serials.append(serial)
+    values = []
+    pos = header_len
+    for serial in serials:
+        if serial == 0:
+            values.append(None)
+        elif 1 <= serial <= 6:
+            size = (1, 2, 3, 4, 6, 8)[serial - 1]
+            values.append(int.from_bytes(payload[pos:pos + size], 'big', signed=True))
+            pos += size
+        elif serial == 7:
+            values.append(struct.unpack('>d', payload[pos:pos + 8])[0])
+            pos += 8
+        elif serial in (8, 9):
+            values.append(serial - 8)
+        elif serial >= 12 and serial % 2 == 0:
+            size = (serial - 12) // 2
+            values.append(payload[pos:pos + size])
+            pos += size
+        elif serial >= 13:
+            size = (serial - 13) // 2
+            values.append(payload[pos:pos + size].decode('utf-8', 'replace'))
+            pos += size
+        else:
+            raise ValueError('serial type')
+    if pos != len(payload):
+        raise ValueError('record length')
+    return values
+
+
+def _freelist_rows(data):
+    """Records on freelist pages that are still intact table leaf pages.
+
+    Takes the bytes of a database. Returns (rows, skipped) where rows is a list of
+    (page number, rowid, values) and skipped counts cells left out because they continue
+    onto overflow pages or do not decode. Follows the freelist trunk chain from the
+    database header; a page is read only when its first byte is the table-leaf type.
+    Text is decoded as UTF-8, so a database in another encoding gives nothing.
+    """
+    rows = []
+    skipped = 0
+    if len(data) < 100 or data[:16] != _SQLITE_MAGIC:
+        return rows, skipped
+    if struct.unpack('>I', data[56:60])[0] != 1:
+        return rows, skipped
+    page_size = struct.unpack('>H', data[16:18])[0]
+    if page_size == 1:
+        page_size = 65536
+    if page_size < 512:
+        return rows, skipped
+    usable = page_size - data[20]
+    page_count = len(data) // page_size
+    trunk = struct.unpack('>I', data[32:36])[0]
+
+    free_pages = []
+    seen = set()
+    while trunk and trunk not in seen and trunk <= page_count:
+        seen.add(trunk)
+        start = (trunk - 1) * page_size
+        next_trunk, leaf_count = struct.unpack('>II', data[start:start + 8])
+        if leaf_count > (usable - 8) // 4:
+            break
+        free_pages.append(trunk)
+        free_pages.extend(struct.unpack(f'>{leaf_count}I',
+                                        data[start + 8:start + 8 + 4 * leaf_count]))
+        trunk = next_trunk
+
+    max_local = usable - 35
+    for page in free_pages:
+        if not 1 < page <= page_count:
+            continue
+        start = (page - 1) * page_size
+        if data[start] != 0x0d:
+            continue
+        cell_count = struct.unpack('>H', data[start + 3:start + 5])[0]
+        if 8 + 2 * cell_count > page_size:
+            continue
+        for index in range(cell_count):
+            pointer = struct.unpack('>H', data[start + 8 + 2 * index:
+                                               start + 10 + 2 * index])[0]
+            try:
+                payload_len, offset = _varint(data, start + pointer)
+                rowid, offset = _varint(data, offset)
+                if payload_len > max_local or offset + payload_len > start + page_size:
+                    skipped += 1
+                    continue
+                rows.append((page, rowid,
+                             _decode_record(data[offset:offset + payload_len])))
+            except (ValueError, IndexError, struct.error):
+                skipped += 1
+    return rows, skipped
+
+
+def _table_columns(db, table):
+    try:
+        return [row[1] for row in db.execute(f'PRAGMA table_info("{table}")')]
+    except sqlite3.Error:
+        return []
+
+
+def _contact(row):
+    """The reported fields of a PhoneBook row given as a dict of its columns."""
+    numbers = []
+    types = []
+    for index in range(9):
+        number = _text(row.get(f'TelNum{index}')).strip()
+        if number:
+            numbers.append(number)
+            types.append(_text(row.get(f'TelType{index}')))
+    address = ', '.join(part for part in (
+        _text(row.get(key)).strip() for key in
+        ('POBox', 'ExtendAdr', 'StreetAdr', 'Locality', 'Region', 'POCode', 'Country'))
+        if part)
+    return (_text(row.get('SortName')), _text(row.get('FirstName')),
+            _text(row.get('LastName')), '; '.join(numbers), '; '.join(types), address)
+
+
+def _freelist_contacts(data, columns):
+    """((page, rowid, row dict) list, cells left out) for freelist records that have the
+    PhoneBook tables' column count and store text and integers where those columns do."""
+    found = []
+    rows, left_out = _freelist_rows(data)
+    for page, rowid, values in rows:
+        row = dict(zip(columns, values))
+        fits = len(values) == len(columns) and all(
+            isinstance(row[name], int) if name.startswith('TelType') or name == 'SortNameId'
+            else row[name] is None or isinstance(row[name], str)
+            for name in columns if name != 'RecId')
+        if fits:
+            found.append((page, rowid, row))
+        else:
+            left_out += 1
+    return found, left_out
+
+
+# ---------------------------------------------------------------------------
 # Bluetooth phonebook and call lists
 # ---------------------------------------------------------------------------
 
@@ -343,27 +524,38 @@ def gm_ga130_phonebook(context):
         if not tables:
             continue
         source_paths.append(file_found)
+        relative = context.get_relative_path(file_found)
+        current = set()
         for table in tables:
             for row in _rows(db, table):
-                numbers = []
-                types = []
-                for index in range(9):
-                    number = _text(row.get(f'TelNum{index}')).strip()
-                    if number:
-                        numbers.append(number)
-                        types.append(_text(row.get(f'TelType{index}')))
-                address = ', '.join(part for part in (
-                    _text(row.get(key)).strip() for key in
-                    ('POBox', 'ExtendAdr', 'StreetAdr', 'Locality', 'Region', 'POCode',
-                     'Country')) if part)
-                data_list.append((
-                    int(table[len('PhoneBook'):]), _text(row.get('SortName')),
-                    _text(row.get('FirstName')), _text(row.get('LastName')),
-                    '; '.join(numbers), '; '.join(types), address, row.get('RecId'),
-                    context.get_relative_path(file_found)))
+                contact = _contact(row)
+                current.add(contact)
+                data_list.append((int(table[len('PhoneBook'):]),) + contact + (
+                    row.get('RecId'), 'table row', relative))
+
+        # Rows of earlier states that are still on the database's freelist pages.
+        layouts = {tuple(_table_columns(db, table)) for table in tables}
+        data = _database_bytes(file_found)
+        if len(layouts) != 1 or data is None:
+            logfunc(f'GM GA-130 phonebook: freelist of {os.path.basename(file_found)} not '
+                    'read, the PhoneBook tables do not share one column layout or the file '
+                    'could not be read again')
+            continue
+        found, left_out = _freelist_contacts(data, list(layouts.pop()))
+        recovered = 0
+        for page, rowid, row in found:
+            contact = _contact(row)
+            if contact in current or not any(contact[:4]):
+                continue
+            current.add(contact)
+            recovered += 1
+            data_list.append(('',) + contact + (rowid, f'freelist page {page}', relative))
+        logfunc(f'GM GA-130 phonebook: {len(found)} freelist records, {recovered} reported, '
+                f'{left_out} freelist cells left out in {os.path.basename(file_found)}')
 
     data_headers = ('Table Number', 'Sort Name', 'First Name', 'Last Name', 'Phone Numbers',
-                    'Number Types (as stored)', 'Address', 'Record ID', 'Source File')
+                    'Number Types (as stored)', 'Address', 'Record ID', 'Record Source',
+                    'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
