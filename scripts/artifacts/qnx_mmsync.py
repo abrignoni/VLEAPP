@@ -82,11 +82,10 @@ __artifacts_v2__ = {
                  "no folder path. Artist, album and genre come from joining the file's audio "
                  "metadata to the name tables, and all 43,064 rows carried an artist and an "
                  "album. Date Added is when the unit added the file to its database, from "
-                 "2021-10-18 to 2023-08-07 on the tested unit, and it clusters at each sync; "
-                 "it is not when the file was put on the device. The database also holds "
-                 "phonetic and identifier tables for voice control, which are not listed. A "
-                 "row records that the unit indexed that item from a device. It does not "
-                 "establish that the item was played.",
+                 "2021-10-18 to 2023-08-07 on the tested unit; it is not when the file was put "
+                 "on the device. The database also holds phonetic and identifier tables for "
+                 "voice control, which are not listed. A row records that the unit indexed "
+                 "that item from a device. It does not establish that the item was played.",
         "paths": ('*/bk[0-9]*/Media*.db',),
         "sample_data": {
             "adams_ford_syncgen3_iva": "2018 Ford Expedition, SYNC Gen3, Berla iVe export | "
