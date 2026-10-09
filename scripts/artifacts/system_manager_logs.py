@@ -52,8 +52,8 @@ __artifacts_v2__ = {
                  "or a wake-up is not established.",
         "paths": ('*/logs/sys_error.log*',),
         "sample_data": {
-            "adams_ford_syncgen3_iva": "2018 Ford Expedition, SYNC Gen3, logs folder staged "
-                                       "from the export | 6680 rows",
+            "adams_ford_syncgen3_iva": "2018 Ford Expedition, SYNC Gen3, Berla iVe export | "
+                                       "6680 rows",
             "xtrmp_item025": "2014 Chevy Equinox LT, GA-130, extracted file set | 6027 rows",
             "xtrmp_item061": "2015 Chevrolet Malibu, GA-130, extracted file set | 4985 rows",
         },
@@ -91,8 +91,8 @@ __artifacts_v2__ = {
                  "and logging in that boot. They do not establish that the vehicle was driven.",
         "paths": ('*/logs/sys_cpu_usage*',),
         "sample_data": {
-            "adams_ford_syncgen3_iva": "2018 Ford Expedition, SYNC Gen3, logs folder staged "
-                                       "from the export | 1409 rows",
+            "adams_ford_syncgen3_iva": "2018 Ford Expedition, SYNC Gen3, Berla iVe export | "
+                                       "1409 rows",
             "xtrmp_item025": "2014 Chevy Equinox LT, GA-130, extracted file set | 0 rows, no "
                              "sys_cpu_usage file in the extracted set",
             "xtrmp_item061": "2015 Chevrolet Malibu, GA-130, extracted file set | 0 rows, no "
