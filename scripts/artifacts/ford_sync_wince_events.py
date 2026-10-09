@@ -1,9 +1,10 @@
 """Ford SYNC on Windows CE: vehicle and device events in the module's debug log.
 
 The module writes a rolling text log, Windows/LogFiles/MsgLog<n>.txt. Among its lines are
-door, gear position, ignition, odometer, USB attach and phone connection lines. Each line
-starts with a tick count and none carries a date; the log's only wall clock is in its
-'start saving retailmsg' lines.
+door, gear position, park lamp, ignition, odometer, USB attach and phone connection lines.
+Each line starts with a tick count and none carries a date. Two other lines state a
+date and time: the 'start saving retailmsg' line and, on generation 2, the clock service
+line.
 
 The same lines survive in the raw partition image an acquisition carries, in blocks the
 file system has released, so this module reads both:
@@ -27,12 +28,13 @@ from scripts.ilapfuncs import artifact_processor, logfunc
 __artifacts_v2__ = {
     "ford_sync_wince_log_events": {
         "name": "Ford SYNC WinCE - Log Events",
-        "description": "Door, gear position, ignition, odometer, USB attach and phone "
-                       "connection lines from the module's debug log, read from the log files "
-                       "and from the raw partition image, each with its tick count and a clock "
-                       "derived from the nearest log save line.",
+        "description": "Door, gear position, park lamp, ignition, odometer, reboot source, USB "
+                       "attach and phone connection lines from the module's debug log, read "
+                       "from the log files and from the raw partition image, each with its "
+                       "tick count and a clock derived from the nearest line that states a "
+                       "date and time.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -41,40 +43,49 @@ __artifacts_v2__ = {
                  "the raw partition an acquisition carries, which is read as bytes with no "
                  "file system followed. Tested on ten units from their acquisition folders: "
                  "eight SYNC Gen1 (Ford Escape 2010 to 2014, Edge 2013, Fusion 2019) and two "
-                 "SYNC Gen2 (2014 Ford Edge SEL, 2011 Ford Explorer XLT). They gave 1,901 rows "
-                 "in all, 1,692 of them on the two Gen2 units; one Gen2 unit had no log file "
-                 "in its extracted set and gave 652 rows from its partition image alone. The "
+                 "SYNC Gen2 (2014 Ford Edge SEL, 2011 Ford Explorer XLT). They gave 2,439 rows "
+                 "in all, 2,230 of them on the two Gen2 units; one Gen2 unit had no log file "
+                 "in its extracted set and gave 886 rows from its partition image alone. The "
                  "image holds log blocks the file system has released, so it gives more than "
-                 "the files: on the 2014 Edge 47 event lines were in the files and 1,047 in "
-                 "the image. A line found in more than one place is reported once, with Times "
-                 "Found. Which lines exist depends on the generation: door, gear, ignition and "
-                 "USB lines came only from Gen2, phone lines only from the Gen1 version 5 "
-                 "unit, and odometer lines from both. No line carries a date. Derived Clock is "
-                 "the clock in the nearest 'start saving retailmsg' line plus the difference "
-                 "in ticks read as milliseconds, and it is filled only when that line and the "
-                 "event stand in one unbroken stretch of log text with ticks that never go "
-                 "down. Nearest Save Clock and Seconds From Save Line show what it was derived "
-                 "from; the further the event is from the save line, the more a clock change "
-                 "in between can put it off, and distances up to a few hours occur. The tick "
-                 "unit was checked on the log files: of 78 pairs of save lines in one stretch, "
-                 "35 agreed with milliseconds to within two seconds and the others span a "
-                 "change of the clock. 1,120 of the 1,901 rows have no save line in their "
-                 "stretch and no derived clock. The derived clock was compared with an "
-                 "independent parse of the 2014 Edge: of 94 door events with a clock, 44 "
-                 "matched a door event of the same kind within two seconds, and 47 of the "
-                 "other 50 stand in stretches of log that parse does not list at all. The "
+                 "the files. A line found in more than one place is reported once, with Times "
+                 "Found. Which lines exist depends on the generation: door, gear, park lamp, "
+                 "ignition, reboot and USB lines came only from Gen2, phone lines only from "
+                 "the Gen1 version 5 unit, and odometer lines from both. No event line carries "
+                 "a date. Two other lines do: the log save line ('start saving retailmsg at', "
+                 "written month first) and, on Gen2, the clock service line "
+                 "('SyncClockSvc!MFDMessageThreadProc: (YMDhms)', written year first, about "
+                 "once a minute). Derived Clock is the clock of the nearest such line plus the "
+                 "difference in ticks read as milliseconds, and it is filled only when that "
+                 "line and the event stand in one unbroken stretch of log text with ticks that "
+                 "never go down. Nearest Clock Line, Clock Line Kind and Seconds From Clock "
+                 "Line show what it was derived from; the further apart, the more a clock "
+                 "change in between can put it off. 1,520 of the 2,439 rows have a derived "
+                 "clock. The reading of ticks as milliseconds was checked: on the 2014 Edge "
+                 "all 76 pairs of consecutive clock service lines in one stretch agreed with "
+                 "it to within two seconds, and in the four places where a save line and a "
+                 "clock service line stood together they gave the same clock to within five "
+                 "seconds. Across the log files, 35 of 78 pairs of save lines agreed with it "
+                 "and the others span a change of the clock. The derived clock was compared "
+                 "with an independent parse of the 2014 Edge: of 167 door events with a clock, "
+                 "100 matched a door event of the same kind within two seconds. The other 67 "
+                 "have no counterpart in it within two seconds, and why was not resolved. The "
                  "clock is the module's own and can be unset; readings in 2003 and 2010 occur. "
-                 "Value is the number on the line as stored: the gear position value, the "
-                 "ignition state value, the USB port, or the odometer reading. Nothing "
-                 "available here documents the gear and ignition values, and the same gear "
-                 "value was labelled differently by that independent parse at different times, "
-                 "so no label is given. The Gen1 odometer line carries two numbers, shown as "
-                 "Value and Second Value; the Gen2 line carries one. The log repeats the "
-                 "odometer reading, so it is reported when it changes within a stretch. For "
-                 "phone lines Detail is the device name and Value is the address on the line. "
-                 "A row records that the module logged that line. It does not establish who "
-                 "opened a door or drove the vehicle. Not read: the raw NAND image "
-                 "(LargeOutputFiles/image.nbo), which interleaves spare bytes with the data.",
+                 "Clock Bias Minutes is the Bias value of the nearest clock service bias line "
+                 "in the same stretch, as stored; the log states it as time zone plus user "
+                 "offset, 300 and 360 occurred on the 2014 Edge, and it is empty where the "
+                 "stretch has no such line. It is not applied to the clock. Value is the "
+                 "number on the line as stored: the gear position, park lamp status, ignition "
+                 "state, USB port, reboot source code or odometer reading. Nothing available "
+                 "here documents the gear, ignition or reboot values, and that independent "
+                 "parse labelled the same gear value differently at different times, so no "
+                 "label is given. Where a park lamp line matched one of its events by time, "
+                 "status 0 was labelled off 32 times and status 1 on 28 times and off 4 times; "
+                 "the value is left as stored. The Gen1 odometer line carries two numbers, "
+                 "shown as Value and Second Value; the Gen2 line carries one. The log repeats "
+                 "the odometer reading, so it is reported when it changes within a stretch. "
+                 "For phone lines Detail is the device name and Value is the address on the "
+                 "line. A row records that the module logged that line. It does not establish "
+                 "who opened a door or drove the vehicle.",
         "paths": ('*/Windows/LogFiles/MsgLog*.txt*', '*/DiskImages/partition*.img'),
         "sample_data": {
             "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 0 rows, no "
@@ -84,8 +95,8 @@ __artifacts_v2__ = {
             "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 12 rows",
             "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 22 rows",
             "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 50 rows",
-            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 1040 rows",
-            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 652 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 1344 rows",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 886 rows",
             "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 74 rows",
             "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, acquisition folder | 36 rows",
         },
@@ -157,7 +168,12 @@ _EVENT = re.compile(
     rb'|CHub::HubStatusChangeThread - device attached on port (?P<usb>\d+)'
     rb"|APP-PHONE-(?P<phone>CONNECT: Current|DISCONNECT: Last) device: '(?P<name>[^\r\n]{0,80}?)'"
     rb' \(0x(?P<address>[0-9A-Fa-f]+)\)'
+    rb'|DisplayHandler:ParkLampStatus = (?P<lamp>\d+)'
+    rb'|PM: HandlePMRebootSourceComplete: Src=(?P<reboot>0x[0-9A-Fa-f]+)'
     rb'|SYSHEALTH: start saving retailmsg at (?P<save>\d\d/\d\d/\d{4} \d\d:\d\d:\d\d)'
+    rb'|SyncClockSvc!MFDMessageThreadProc: \(YMDhms\) '
+    rb'(?P<clock>\d{1,4}/\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}:\d{1,2})'
+    rb'|SyncClockSvc!MFDMessageThreadProc:  Bias = (?P<bias>-?\d+) '
     rb')')
 _NOT_LOG_TEXT = re.compile(rb'[^\t\r\n\x20-\x7e]')
 
@@ -191,7 +207,7 @@ def _address(text):
 
 
 def _describe(match):
-    """(event, detail, value, second value) for a matched event line; None for a save line."""
+    """(event, detail, value, second value) for an event line; None for a clock line."""
     if match.group('door'):
         return 'Door', match.group('door').decode('latin-1')[4:], '', ''
     if match.group('gear'):
@@ -204,6 +220,10 @@ def _describe(match):
         return 'Ignition State Change', '', int(match.group('ignition')), ''
     if match.group('usb'):
         return 'USB Device Attached', '', int(match.group('usb')), ''
+    if match.group('lamp'):
+        return 'Park Lamp Status', '', int(match.group('lamp')), ''
+    if match.group('reboot'):
+        return 'Reboot Source', '', match.group('reboot').decode('ascii'), ''
     if match.group('phone'):
         event = 'Phone Connect' if match.group('phone').startswith(b'CONNECT') \
             else 'Phone Disconnect'
@@ -212,11 +232,22 @@ def _describe(match):
     return None
 
 
-def _save_clock(match):
+def _clock_line(match):
+    """(clock, kind) for a line that states a date and time, else None.
+
+    Two lines do: the log save line, written month first, and the clock service line,
+    written year first.
+    """
     try:
-        return datetime.strptime(match.group('save').decode('ascii'), '%m/%d/%Y %H:%M:%S')
+        if match.group('save'):
+            return datetime.strptime(match.group('save').decode('ascii'),
+                                     '%m/%d/%Y %H:%M:%S'), 'log save line'
+        if match.group('clock'):
+            return datetime.strptime(match.group('clock').decode('ascii'),
+                                     '%Y/%m/%d %H:%M:%S'), 'clock service line'
     except ValueError:
         return None
+    return None
 
 
 def _sessions(data):
@@ -244,7 +275,7 @@ def _sessions(data):
 
 
 def _nearest(anchors, tick):
-    """The (tick, clock) save line closest in ticks to an event."""
+    """The clock line closest in ticks to an event, as (tick, clock, kind)."""
     best = anchors[0]
     for anchor in anchors[1:]:
         if abs(anchor[0] - tick) < abs(best[0] - tick):
@@ -253,10 +284,16 @@ def _nearest(anchors, tick):
 
 
 def _events(data):
-    """Event rows of one source, each with the clock derived from the nearest save line."""
+    """Event rows of one source, each with the clock derived from the nearest clock line."""
     for run in _sessions(data):
-        anchors = [(int(m.group('tick')), _save_clock(m)) for m in run if m.group('save')]
-        anchors = [anchor for anchor in anchors if anchor[1] is not None]
+        anchors = []
+        biases = []
+        for match in run:
+            stated = _clock_line(match)
+            if stated is not None:
+                anchors.append((int(match.group('tick')),) + stated)
+            elif match.group('bias'):
+                biases.append((int(match.group('tick')), int(match.group('bias'))))
         last_odometer = None
         for match in run:
             described = _describe(match)
@@ -268,15 +305,18 @@ def _events(data):
                 if described[2:] == last_odometer:
                     continue
                 last_odometer = described[2:]
-            derived = anchor_clock = ''
-            seconds = ''
+            derived = anchor_clock = kind = ''
+            seconds = bias = ''
             if anchors:
-                anchor_tick, clock = _nearest(anchors, tick)
+                anchor_tick, clock, kind = _nearest(anchors, tick)
                 seconds = round((tick - anchor_tick) / 1000.0, 1)
                 derived = (clock + timedelta(milliseconds=tick - anchor_tick)).strftime(
                     '%Y-%m-%d %H:%M:%S')
                 anchor_clock = clock.strftime('%Y-%m-%d %H:%M:%S')
-            yield (derived,) + described + (tick, anchor_clock, seconds), match.start()
+            if biases:
+                bias = _nearest(biases, tick)[1]
+            yield ((derived,) + described + (tick, anchor_clock, kind, seconds, bias),
+                   match.start())
 
 
 @artifact_processor
@@ -300,8 +340,10 @@ def ford_sync_wince_log_events(context):
     data_list.sort(key=lambda row: (row[0] == '', row[0], row[5]))
 
     data_headers = (('Derived Clock', 'datetime'), 'Event', 'Detail', 'Value (as stored)',
-                    'Second Value (as stored)', 'Tick', ('Nearest Save Clock', 'datetime'),
-                    'Seconds From Save Line', 'Times Found', 'Offset', 'Source File')
+                    'Second Value (as stored)', 'Tick', ('Nearest Clock Line', 'datetime'),
+                    'Clock Line Kind', 'Seconds From Clock Line',
+                    'Clock Bias Minutes (as stored)', 'Times Found', 'Offset',
+                    'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
