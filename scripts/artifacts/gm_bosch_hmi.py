@@ -409,13 +409,14 @@ __artifacts_v2__ = {
                  "far more smoothly as 16-bit little-endian than as big-endian and adjacent "
                  "samples are closer than alternate ones, which fits a single channel, and on "
                  "one unit an independent parse gave ten durations that equal file size "
-                 "divided by 32,000. If playback sounds wrong the declared rate or channel "
-                 "count is the first thing to doubt, and the original file is named in Source "
-                 "File. Duration At 16 kHz is the file size divided by 32,000. A zero-byte "
-                 "file is listed with no audio. Interactionlogger.txt beside the recordings is "
-                 "a hexadecimal event log with no documented layout and is not parsed. A "
-                 "recording establishes that the unit captured that audio. It does not "
-                 "establish who was speaking.",
+                 "divided by 32,000. The wrapped audio from that unit was also played back and "
+                 "was clear speech at normal speed. If playback sounds wrong the declared rate "
+                 "or channel count is the first thing to doubt, and the original file is named "
+                 "in Source File. Duration At 16 kHz is the file size divided by 32,000. A "
+                 "zero-byte file is listed with no audio. Interactionlogger.txt beside the "
+                 "recordings is a hexadecimal event log with no documented layout and is not "
+                 "parsed. A recording establishes that the unit captured that audio. It does "
+                 "not establish who was speaking.",
         "paths": ('*/interactionlogger/pcm_recordings/record*.pcm*',),
         "sample_data": {
             "xtrmp_item021": "2014 Chevrolet Silverado 1500, HMI 2.0 | 10 rows",
