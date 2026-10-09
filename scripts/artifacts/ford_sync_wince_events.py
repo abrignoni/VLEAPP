@@ -14,17 +14,25 @@ file system has released, so this module reads both:
     DiskImages/partition<n>.img         the raw partition, read as bytes
     LargeOutputFiles/image.nbo          the raw NAND image, read for call list documents
 
-In an image no file system is followed. An event line is found by its own text, and the
-lines around it are used only when the bytes between them are all log text, so a clock
-is never carried across a break in the log.
+In an image no file system is followed to find a hit. An event line is found by its own
+text, and the lines around it are used only when the bytes between them are all log text,
+so a clock is never carried across a break in the log. Call list documents are found the
+same way in an exFAT partition image.
+
+For an exFAT partition image the vendored reader is then asked two things, to say where
+each hit sits: which clusters the allocation bitmap has clear, and what the files the
+directory tree lists contain.
 """
 
+import bisect
 import mmap
 import os
 import re
+import struct
 from datetime import datetime, timedelta
 
 from scripts.ilapfuncs import artifact_processor, logfunc
+from scripts.raw_image import qnxprobe
 
 __artifacts_v2__ = {
     "ford_sync_wince_log_events": {
@@ -32,10 +40,10 @@ __artifacts_v2__ = {
         "description": "Door, gear position, park lamp, ignition, odometer, reboot source, USB "
                        "attach and phone connection lines from the module's debug log, read "
                        "from the log files and from the raw partition image, each with its "
-                       "tick count and a clock derived from the nearest line that states a "
-                       "date and time.",
+                       "tick count, a clock derived from the nearest line that states a "
+                       "date and time, and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.3",
+        "version": "0.4",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -89,8 +97,21 @@ __artifacts_v2__ = {
                  "shown as Value and Second Value; the Gen2 line carries one. The log repeats "
                  "the odometer reading, so it is reported when it changes within a stretch. "
                  "For phone lines Detail is the device name and Value is the address on the "
-                 "line. A row records that the module logged that line. It does not establish "
-                 "who opened a door or drove the vehicle.",
+                 "line. Where Found says where the lines of a row sit, and lists every place "
+                 "when a row was found more than once. A row from a log file of the extracted "
+                 "set reads 'extracted file'. For an exFAT partition image the vendored reader "
+                 "reads the allocation bitmap and the files the directory tree lists: 'free "
+                 "cluster' is a cluster the bitmap has clear, 'in a listed file' an allocated "
+                 "cluster whose line text a listed file also holds, and 'allocated cluster, in "
+                 "no listed file' an allocated cluster whose line text no listed file holds. "
+                 "The last two are decided by comparing text, not by following each file's "
+                 "clusters. On the 2014 Edge 935 rows sat only in free clusters, 356 only in "
+                 "allocated clusters in no listed file and 52 in a listed file; on the 2011 "
+                 "Explorer 513 and 373, with no listed file holding any. Why those clusters "
+                 "are allocated is not established. The eight Gen1 partition images are FAT "
+                 "with 2,048-byte sectors, which the reader does not read, and their rows read "
+                 "'file system not read'. A row records that the module logged that line. It "
+                 "does not establish who opened a door or drove the vehicle.",
         "paths": (
             '*/Windows/LogFiles/MsgLog*.txt*',
             '*/Windows/DumpFiles/*.RTL',
@@ -165,6 +186,79 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "phone",
     },
+    "ford_sync_wince_partition_call_history": {
+        "name": "Ford SYNC WinCE - Call History In Partition Image",
+        "description": "Call list entries read from the call list documents in an exFAT "
+                       "partition image of the module, with the list, name, number and call "
+                       "time of each entry, how many documents hold it, and whether those "
+                       "documents sit in a listed file, in an allocated cluster no listed file "
+                       "holds, or in a free cluster.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From DiskImages/partition<n>.img, the raw partition an acquisition carries. "
+                 "The image is searched as bytes for complete call list documents, the same "
+                 "<Device> XML the module keeps as Windows/phonebook/CH<address>.xml. Only a "
+                 "document complete from its opening to its closing tag, in one unbroken "
+                 "stretch of the image, is read. Only an exFAT image is searched, because "
+                 "Where Found needs the vendored reader to read its allocation bitmap and the "
+                 "files its directory tree lists. Where Found says where the documents holding "
+                 "an entry sit, and lists every place when several documents hold it: 'free "
+                 "cluster' is a cluster the bitmap has clear, 'in a listed file' an allocated "
+                 "cluster whose document text a listed file also holds, and 'allocated "
+                 "cluster, in no listed file' an allocated cluster whose document text no "
+                 "listed file holds. The last two are decided by comparing text, not by "
+                 "following each file's clusters. Run on two SYNC Gen2 units from their "
+                 "acquisition folders. On the 2011 Ford Explorer XLT no listed file held a call "
+                 "list document, and it gave 85 entries from 2 documents, 18 in free clusters and "
+                 "67 in allocated clusters in no listed file. Why those clusters are allocated "
+                 "is not established. The 2014 Ford Edge SEL gave 75 entries from 3 documents: "
+                 "68 also in a listed file, 61 of those in a free cluster as well, and 7 only "
+                 "in free clusters. Compared with an independent parse of each unit: on the "
+                 "Edge its 75 distinct calls are exactly these 75 by number, list and handset; "
+                 "on the Explorer all 78 of its calls are among the 85 by time, number, list "
+                 "and handset, and the other 7, all in allocated clusters in no listed file, "
+                 "are not in it. Entries that are also in the live call list files appear here "
+                 "too. Call List decodes the list type as the Call History artifact does. Call "
+                 "Time comes from the entry's time attribute and has no time zone; it is "
+                 "written out as if it were UTC with no offset applied. All 85 Explorer "
+                 "entries carried it and none of the 75 Edge entries did. Name held an empty "
+                 "string on 46 of the 85 and 65 of the 75, where the entry carries no name. "
+                 "Documents Holding It counts the distinct documents in the image that "
+                 "contain the entry, and First Offset is the byte offset of the first of them. "
+                 "Documents Holding It held 1 on all 85 Explorer rows and 1 to 3 on the Edge. "
+                 "Handset Address held one value on all 75 Edge rows and two across the "
+                 "Explorer's 85. "
+                 "The eight SYNC Gen1 partition images run were FAT with 2,048-byte sectors, "
+                 "which the reader does not read; they are not searched and gave no rows. An "
+                 "entry records that the module held this call list entry at some time. It "
+                 "does not establish who used the handset.",
+        "paths": ('*/DiskImages/partition*.img',),
+        "sample_data": {
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 0 rows, "
+                             "partition image is not exFAT, not searched",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2 | 0 rows, not exFAT, not searched",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 0 rows, not "
+                             "exFAT, not searched",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 0 rows, not "
+                             "exFAT, not searched",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 0 rows, not "
+                             "exFAT, not searched",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 0 rows, not "
+                             "exFAT, not searched",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 75 rows",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 85 rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 0 rows, not "
+                             "exFAT, not searched",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, acquisition folder | 0 rows, not "
+                             "exFAT, not searched",
+        },
+        "output_types": "standard",
+        "artifact_icon": "phone",
+    },
 }
 
 _EVENT = re.compile(
@@ -208,6 +302,96 @@ def _sources(context):
         finally:
             mapped.close()
             handle.close()
+
+
+# ---------------------------------------------------------------------------
+# Where a hit sits in a partition image
+# ---------------------------------------------------------------------------
+
+_EXTRACTED_FILE = 'extracted file'
+_IN_FILE = 'in a listed file'
+_UNLISTED = 'allocated cluster, in no listed file'
+_FREE = 'free cluster'
+_NOT_READ = 'file system not read'
+_PLACE_ORDER = (_EXTRACTED_FILE, _IN_FILE, _UNLISTED, _FREE, _NOT_READ)
+_READ_ERRORS = (OSError, ValueError, IndexError, KeyError, struct.error)
+_REGULAR_FILE = 0o100000
+_FILE_TYPE_MASK = 0o170000
+
+
+def _is_partition_image(path):
+    return os.path.basename(os.path.dirname(path)) == 'DiskImages' and \
+        os.path.basename(path).lower().endswith('.img')
+
+
+class _ExfatImage:
+    """The free space and the listed files of an exFAT partition image.
+
+    Read with the vendored reader. ``readable`` is False for any other file system, for
+    an image the reader cannot open, and for a volume whose allocation bitmap it does
+    not find, and then nothing is said about where a hit sits.
+    """
+
+    def __init__(self, path):
+        self.readable = False
+        self.unread_files = 0
+        self._walker = None
+        self._starts = []
+        self._ends = []
+        try:
+            self._handle = open(path, 'rb')  # pylint: disable=consider-using-with
+        except OSError:
+            self._handle = None
+            return
+        try:
+            kind = qnxprobe.identify_fat(self._handle, 0)
+            if kind is not None and kind[0] == 'exfat':
+                walker = qnxprobe.ExfatWalker(self._handle, 0)
+                free = sorted(walker.free_extents())
+                if free:
+                    self._walker = walker
+                    self._starts = [start for start, _length in free]
+                    self._ends = [start + length for start, length in free]
+                    self.readable = True
+        except _READ_ERRORS:
+            self.readable = False
+
+    def close(self):
+        if self._handle is not None:
+            self._handle.close()
+            self._handle = None
+
+    def is_free(self, offset):
+        """True when the byte at offset is in a cluster the allocation bitmap has clear."""
+        index = bisect.bisect_right(self._starts, offset) - 1
+        return index >= 0 and offset < self._ends[index]
+
+    def listed_files(self):
+        """The content of every file the directory tree lists, one file at a time."""
+        try:
+            for entry in qnxprobe.walk_all(self._walker):
+                node, mode, size = entry[1], entry[2], entry[3]
+                if mode & _FILE_TYPE_MASK != _REGULAR_FILE or not size:
+                    continue
+                try:
+                    yield b''.join(self._walker.read_file(node, size))
+                except _READ_ERRORS:
+                    self.unread_files += 1
+        except _READ_ERRORS:
+            self.unread_files += 1
+
+    def place(self, offset, text_is_listed):
+        """Where one occurrence sits. An occurrence in an allocated cluster is called
+        unlisted only when no listed file holds the same text."""
+        if not self.readable:
+            return _NOT_READ
+        if self.is_free(offset):
+            return _FREE
+        return _IN_FILE if text_is_listed else _UNLISTED
+
+
+def _places(found):
+    return '; '.join(place for place in _PLACE_ORDER if place in found)
 
 
 def _address(text):
@@ -325,7 +509,17 @@ def _events(data):
             if biases:
                 bias = _nearest(biases, tick)[1]
             yield ((derived,) + described + (tick, anchor_clock, kind, seconds, bias),
-                   match.start())
+                   match.start(), bytes(match.group(0)))
+
+
+def _listed_event_lines(image):
+    """The text of every event line in the files an exFAT image lists."""
+    lines = set()
+    for content in image.listed_files():
+        for match in _EVENT.finditer(content):
+            if _describe(match) is not None:
+                lines.add(bytes(match.group(0)))
+    return lines
 
 
 @artifact_processor
@@ -333,25 +527,34 @@ def ford_sync_wince_log_events(context):
     rows = {}
     source_paths = []
     for file_found, data in _sources(context):
-        found = 0
-        for row, offset in _events(data):
-            found += 1
+        hits = list(_events(data))
+        image = _ExfatImage(file_found) if _is_partition_image(file_found) else None
+        listed = _listed_event_lines(image) if image is not None and image.readable and hits \
+            else set()
+        for row, offset, line in hits:
+            place = _EXTRACTED_FILE if image is None else image.place(offset, line in listed)
             if row in rows:
                 rows[row][0] += 1
+                rows[row][3].add(place)
             else:
-                rows[row] = [1, offset, file_found]
+                rows[row] = [1, offset, file_found, {place}]
                 if file_found not in source_paths:
                     source_paths.append(file_found)
-        logfunc(f'Ford SYNC WinCE log events: {found} event lines in '
+        logfunc(f'Ford SYNC WinCE log events: {len(hits)} event lines in '
                 f'{os.path.basename(file_found)}')
-    data_list = [row + (found, offset, context.get_relative_path(path))
-                 for row, (found, offset, path) in rows.items()]
+        if image is not None:
+            if image.unread_files:
+                logfunc(f'Ford SYNC WinCE log events: {image.unread_files} listed files of '
+                        f'{os.path.basename(file_found)} could not be read')
+            image.close()
+    data_list = [row + (found, _places(places), offset, context.get_relative_path(path))
+                 for row, (found, offset, path, places) in rows.items()]
     data_list.sort(key=lambda row: (row[0] == '', row[0], row[5]))
 
     data_headers = (('Derived Clock', 'datetime'), 'Event', 'Detail', 'Value (as stored)',
                     'Second Value (as stored)', 'Tick', ('Nearest Clock Line', 'datetime'),
                     'Clock Line Kind', 'Seconds From Clock Line',
-                    'Clock Bias Minutes (as stored)', 'Times Found', 'Offset',
+                    'Clock Bias Minutes (as stored)', 'Times Found', 'Where Found', 'Offset',
                     'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
@@ -450,4 +653,71 @@ def ford_sync_wince_flash_call_history(context):
     data_headers = (('Call Time', 'datetime'), 'Call List', 'Call List Type (as stored)',
                     'Name', 'Phone Number', 'Handset Address', 'Documents Holding It',
                     'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+# ---------------------------------------------------------------------------
+# Call lists in an exFAT partition image
+# ---------------------------------------------------------------------------
+
+def _call_entries(document):
+    """(call time, list, list type, name, number, handset address) per entry of a document."""
+    digits = document.group(1).decode('ascii').lower()
+    address = ':'.join(digits[i:i + 2] for i in range(0, 12, 2))
+    for list_type, body in _CALL_HISTORY.findall(document.group(2)):
+        list_type = list_type.decode('latin-1')
+        for call in _CALL.findall(body):
+            attributes = dict(_ATTRIBUTE.findall(call))
+            yield (_compact_time(attributes.get(b'time', b'').decode('latin-1')),
+                   _CALL_LISTS.get(list_type, ''), list_type,
+                   _xml_text(attributes.get(b'name', b'')),
+                   _xml_text(attributes.get(b'num', b'')), address)
+
+
+@artifact_processor
+def ford_sync_wince_partition_call_history(context):
+    data_list = []
+    source_paths = []
+    for file_found, data in _sources(context):
+        base = os.path.basename(file_found)
+        image = _ExfatImage(file_found)
+        if not image.readable:
+            logfunc(f'Ford SYNC WinCE partition call history: {base} was not read as an '
+                    'exFAT volume with an allocation bitmap, not searched')
+            image.close()
+            continue
+        documents = {}
+        for match in _DEVICE_DOCUMENT.finditer(data):
+            documents.setdefault(bytes(match.group(0)), []).append(match.start())
+        listed = set()
+        if documents:
+            for content in image.listed_files():
+                listed.update(bytes(match.group(0))
+                              for match in _DEVICE_DOCUMENT.finditer(content))
+        rows = {}
+        for text, offsets in documents.items():
+            places = {image.place(offset, text in listed) for offset in offsets}
+            for key in set(_call_entries(_DEVICE_DOCUMENT.fullmatch(text))):
+                if key in rows:
+                    rows[key][0] += 1
+                    rows[key][1].update(places)
+                    rows[key][2] = min(rows[key][2], offsets[0])
+                else:
+                    rows[key] = [1, set(places), offsets[0]]
+        logfunc(f'Ford SYNC WinCE partition call history: {len(documents)} distinct call list '
+                f'documents, {len(rows)} distinct entries in {base}')
+        if image.unread_files:
+            logfunc(f'Ford SYNC WinCE partition call history: {image.unread_files} listed '
+                    f'files of {base} could not be read')
+        image.close()
+        if rows:
+            source_paths.append(file_found)
+        relative = context.get_relative_path(file_found)
+        for key, (found, places, offset) in rows.items():
+            data_list.append(key + (found, _places(places), offset, relative))
+    data_list.sort(key=lambda row: (row[0] == '', row[0], row[5], row[4]))
+
+    data_headers = (('Call Time', 'datetime'), 'Call List', 'Call List Type (as stored)',
+                    'Name', 'Phone Number', 'Handset Address', 'Documents Holding It',
+                    'Where Found', 'First Offset', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
