@@ -511,7 +511,7 @@ __artifacts_v2__ = {
         "description": "The address block of a downloaded route file: a position with the "
                        "house number and street name stored after it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -1282,15 +1282,19 @@ def _route_text(data, offset, minimum):
 
 
 def _route_destinations(data):
-    """Address blocks: 0x24, a position, 0x01, a house number and a street name."""
+    """Address blocks: a length byte, a position, 0x01, a house number and a street name.
+
+    The length byte counts everything after it in the block: the position, the 0x01, the
+    two strings and seven more bytes. A block is taken only when that count holds.
+    """
     rows = []
     for offset in range(len(data) - 12):
-        if data[offset] != 0x24 or data[offset + 9] != 1:
+        if data[offset + 9] != 1:
             continue
         position = _route_position(data, offset + 1)
         number = position and _route_text(data, offset + 10, 1)
         street = number and _route_text(data, number[1], 1)
-        if street:
+        if street and data[offset] == street[1] - (offset + 1) + 7:
             rows.append((position, number[0], street[0], offset))
     return rows
 
