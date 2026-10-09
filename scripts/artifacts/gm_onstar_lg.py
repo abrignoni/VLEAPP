@@ -511,7 +511,7 @@ __artifacts_v2__ = {
         "description": "The address block of a downloaded route file: a position with the "
                        "house number and street name stored after it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -530,21 +530,23 @@ __artifacts_v2__ = {
                  "module's own position records use, and a pair is accepted only when both "
                  "numbers are at least one degree from zero, so a route within a degree of the "
                  "equator or the prime meridian would not be read. The block is located by its "
-                 "shape: the byte 0x24, a position, the byte 0x01, then two strings each "
-                 "stored as a 16-bit length and that many characters. Seven of the ten route "
-                 "files held one such block and three held none; whether those three carry "
-                 "their destination in another form was not worked out. The seven rows are "
-                 "five distinct positions, and each of the five lies within 0.003 degree of a "
-                 "destination the Navigation Destinations artifact reads from the navigation "
-                 "text log of the same unit, which is the evidence that the block is the "
-                 "route's destination. The file holds no time; the navigation log is where a "
-                 "time for a destination can be found. A row records that the module stored a "
-                 "route to that address. It does not establish that the vehicle arrived there.",
+                 "shape: a length byte, a position, the byte 0x01, then two strings each "
+                 "stored as a 16-bit length and that many characters. The length byte counts "
+                 "what follows it in the block plus seven more bytes, and a block is taken "
+                 "only when that count holds. All ten route files held such a block and one "
+                 "held two, giving 11 rows. They are eight distinct positions, and each of the "
+                 "eight lies within 0.003 degree of a destination the Navigation Destinations "
+                 "artifact reads from the navigation text log of the same unit, which is the "
+                 "evidence that the block is the route's destination. Why one file holds two "
+                 "blocks was not worked out. The file holds no time; the navigation log is "
+                 "where a time for a destination can be found. A row records that the module "
+                 "stored a route to that address. It does not establish that the vehicle "
+                 "arrived there.",
         "paths": ('*/obn/storage/ViamotoRoute.mem*',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, no ViamotoRoute.mem in the extracted set",
-            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, extracted file set | 7 rows",
+            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, extracted file set | 11 rows",
             "xtrmp_item030": "2014 GMC Sierra 1500 SLE, OnStar Gen9, extracted file set | 0 "
                              "rows, no ViamotoRoute.mem in the extracted set",
             "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, no "
@@ -586,11 +588,11 @@ __artifacts_v2__ = {
                  "is reported as found. First Number and Second Number are the two values "
                  "between the position and the name, as stored; they ran from 0 to 55,675 and "
                  "from 0 to 2,541, and what they measure is not established. The name is the "
-                 "text stored with the point, a road name on the rows examined. Where a route "
-                 "file also has an address block, six of seven such addresses lie inside the "
-                 "area its points cover. The road name table and the instruction text at the "
-                 "end of the file are not read. A row records that the route the module stored "
-                 "passes that point. It does not establish that the vehicle drove it.",
+                 "text stored with the point, a road name on the rows examined. Nine of the "
+                 "eleven address blocks in the same files lie inside the area their file's "
+                 "points cover. The road name table and the instruction text at the end of the "
+                 "file are not read. A row records that the route the module stored passes "
+                 "that point. It does not establish that the vehicle drove it.",
         "paths": ('*/obn/storage/ViamotoRoute.mem*',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
@@ -1282,15 +1284,19 @@ def _route_text(data, offset, minimum):
 
 
 def _route_destinations(data):
-    """Address blocks: 0x24, a position, 0x01, a house number and a street name."""
+    """Address blocks: a length byte, a position, 0x01, a house number and a street name.
+
+    The length byte counts everything after it in the block: the position, the 0x01, the
+    two strings and seven more bytes. A block is taken only when that count holds.
+    """
     rows = []
     for offset in range(len(data) - 12):
-        if data[offset] != 0x24 or data[offset + 9] != 1:
+        if data[offset + 9] != 1:
             continue
         position = _route_position(data, offset + 1)
         number = position and _route_text(data, offset + 10, 1)
         street = number and _route_text(data, number[1], 1)
-        if street:
+        if street and data[offset] == street[1] - (offset + 1) + 7:
             rows.append((position, number[0], street[0], offset))
     return rows
 
