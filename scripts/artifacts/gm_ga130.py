@@ -185,13 +185,13 @@ __artifacts_v2__ = {
                  "UTC, the same reading the Media Stores artifact derives for its times; on "
                  "these rows it fell between 2014 and 2020. Every tested row carried a last "
                  "played time and a title, and 48 rows on the Malibu carried a play count. "
-                 "Full Play Count and Duration are shown as stored. File Name is empty for "
-                 "most rows that belong to a phone or player. The database names a text "
-                 "collation this tool does not have, so a plain one is registered on the "
-                 "temporary copy to let the title column be read; it does not change the "
-                 "stored values. The two database files hold different rows and both are read. "
-                 "A row records that the media engine stamped the track as played at that "
-                 "time. It does not establish who chose it.",
+                 "Full Play Count and Duration are shown as stored. File Name was empty on 70 "
+                 "of the 151 tested rows. The database names a text collation this tool does "
+                 "not have, so a plain one is registered on the temporary copy to let the "
+                 "title column be read; it does not change the stored values. The two database "
+                 "files hold different rows and both are read. A row records that the media "
+                 "engine stamped the track as played at that time. It does not establish who "
+                 "chose it.",
         "paths": ('*/storage/bk*/mme*',),
         "sample_data": {
             "xtrmp_item025": "2014 Chevy Equinox LT, GA-130, extracted file set | 31 rows",
