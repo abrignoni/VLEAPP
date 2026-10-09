@@ -8,6 +8,7 @@ name:
     TEL/CALLLOGS/f_incoming<address>.txt, f_outgoing..., f_miss...   call lists
     TEL/HF_MEMORY/f_hf_memory<address>.txt                           the handset phonebook
     TEL/INFO/f_info.txt or f_phonebookinfo.txt                       the device table
+    USER/DEBUG/LOC/LOC_DS<n>.log                                     compressed position logs
 
 The two generations use different record layouts for the same files. Each reader picks
 the layout from the file's own size and record markers and gives the file up, with a log
@@ -17,6 +18,7 @@ line, when neither fits.
 import os
 import re
 import struct
+import zlib
 from datetime import datetime
 
 from scripts.ilapfuncs import artifact_processor, logfunc
@@ -120,9 +122,9 @@ __artifacts_v2__ = {
                  "with a question mark in that position and without colons, and what the NUL "
                  "means is not established here. The rest of each slot is not decoded. A slot "
                  "records that the unit held an entry for the device. It does not establish "
-                 "who carried it. Not read from the same units: the compressed location debug "
-                 "logs under USER/DEBUG/LOC, whose 2,048-byte blocks have no layout "
-                 "established here, and the voice tag, learning and backup files.",
+                 "who carried it. Not read from the same units: the voice tag and learning "
+                 "files, and the navigation backup files under USER/BUP, which hold "
+                 "destination names whose record layout is not established here.",
         "paths": ('*/TEL/INFO/f_info.txt*', '*/TEL/INFO/f_phonebookinfo.txt*'),
         "sample_data": {
             "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 4 rows",
@@ -130,6 +132,91 @@ __artifacts_v2__ = {
         },
         "output_types": "standard",
         "artifact_icon": "bluetooth",
+    },
+    "nissan_08it_gps_track": {
+        "name": "Nissan 08IT - GPS Track",
+        "description": "Position records from the head unit's compressed location logs, one "
+                       "per second while a log was being written, with the time, latitude and "
+                       "longitude of each record.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Nissan 08IT",
+        "notes": "From USER/DEBUG/LOC/LOC_DS<n>.log. Each file is a run of blocks, a two-byte "
+                 "value followed by a zlib stream that inflates to 2,048 bytes, and the "
+                 "inflated content holds the unit's positioning records. Tested on one "
+                 "generation 8000 unit, which held 140 such files; the tested generation 3000 "
+                 "unit had no DEBUG folder in its extracted set. A position record is found by "
+                 "its marker (the byte 0xA0, one varying byte and three zero bytes) and holds "
+                 "latitude and longitude in 1/60,000 degree, two more values, and a two-digit "
+                 "year, month, day, hour, minute and second. The outer framing of the log's "
+                 "records is not known, so a candidate is kept only when its coordinates are "
+                 "in range and its date fields form a real date; on the tested unit 23 "
+                 "candidates failed that test and are counted in the run log. The unit gave "
+                 "159,085 records, one per second, dated from 9 to 28 November 2020. The "
+                 "decoding was checked by comparison: an independent parse of the same unit "
+                 "listed 159,144 track points, 159,084 of them share a timestamp with a record "
+                 "read here, and on every one of those the position agreed to within 0.000002 "
+                 "degree. Sixty of its points are not reached here and one record here is not "
+                 "in it. Reading stops at the first block that does not inflate, which left "
+                 "173,064 bytes unread across the 140 files. The record states no time zone. "
+                 "The independent parse labels these times UTC and that is not established "
+                 "here by other means, so the time is written out as stored with no offset "
+                 "applied. First Value and Second Value are the four-byte and two-byte values "
+                 "after the longitude, and Marker Byte is the varying byte of the marker; all "
+                 "three are shown as stored because nothing available here documents them. The "
+                 "rest of each record, and the log's other record types, are not decoded. Rows "
+                 "are sorted by time and Log File names the file each came from. A record "
+                 "states where the unit's positioning placed the vehicle at that time. It does "
+                 "not establish who was in it.",
+        "paths": ('*/DEBUG/LOC/LOC_DS*.log*',),
+        "sample_data": {
+            "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 0 rows, no "
+                             "DEBUG/LOC folder in the extracted set",
+            "xtrmp_item059": "Nissan 08IT generation 8000, extracted file set | 159085 rows",
+        },
+        "output_types": "all",
+        "artifact_icon": "navigation",
+    },
+    "nissan_08it_gps_logs": {
+        "name": "Nissan 08IT - GPS Log Summary",
+        "description": "One row per compressed location log, with the time and position of its "
+                       "first and last position record and the number of position records it "
+                       "holds.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Nissan 08IT",
+        "notes": "A summary of the GPS Track artifact, one row for each log file that held "
+                 "position records. From USER/DEBUG/LOC/LOC_DS<n>.log. Each file is a run of "
+                 "blocks, a two-byte value followed by a zlib stream that inflates to 2,048 "
+                 "bytes, and the inflated content holds the unit's positioning records. Tested "
+                 "on one generation 8000 unit, which held 140 such files; the tested "
+                 "generation 3000 unit had no DEBUG folder in its extracted set. A position "
+                 "record is found by its marker (the byte 0xA0, one varying byte and three "
+                 "zero bytes) and holds latitude and longitude in 1/60,000 degree, two more "
+                 "values, and a two-digit year, month, day, hour, minute and second. The outer "
+                 "framing of the log's records is not known, so a candidate is kept only when "
+                 "its coordinates are in range and its date fields form a real date; on the "
+                 "tested unit 23 candidates failed that test and are counted in the run log. "
+                 "139 of the 140 files held position records. The record states no time zone. "
+                 "The independent parse labels these times UTC and that is not established "
+                 "here by other means, so the time is written out as stored with no offset "
+                 "applied. The first and last record of a file bound one stretch of recording. "
+                 "That a file is one journey is the natural reading and is not established "
+                 "here.",
+        "paths": ('*/DEBUG/LOC/LOC_DS*.log*',),
+        "sample_data": {
+            "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 0 rows, no "
+                             "DEBUG/LOC folder in the extracted set",
+            "xtrmp_item059": "Nissan 08IT generation 8000, extracted file set | 139 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "list",
     },
 }
 
@@ -356,4 +443,117 @@ def nissan_08it_devices(context):
 
     data_headers = ('Slot', 'Handset Address (as stored)', 'Device Name', 'Record Layout',
                     'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+# ---------------------------------------------------------------------------
+# Location debug logs
+# ---------------------------------------------------------------------------
+
+_POSITION = struct.Struct('<iiiH6H')
+_MINUTE_UNITS = 60000.0
+
+
+def _inflate_blocks(data):
+    """The decompressed content of a LOC_DS log and the bytes left unread at its end.
+
+    The file is a run of blocks, each a two-byte value followed by a zlib stream. Reading
+    stops at the first position that does not hold a stream.
+    """
+    blocks = []
+    offset = 0
+    while offset + 4 <= len(data) and data[offset + 2:offset + 4] == b'\x78\x9c':
+        inflater = zlib.decompressobj()
+        try:
+            blocks.append(inflater.decompress(data[offset + 2:]))
+        except zlib.error:
+            break
+        offset = len(data) - len(inflater.unused_data)
+    return b''.join(blocks), len(data) - offset
+
+
+def _positions(content):
+    """Dated position records in decompressed log content, and how many candidates failed.
+
+    A record is the byte 0xA0, one varying byte and three zero bytes, followed by
+    latitude and longitude in 1/60,000 degree, two more values and a
+    two-digit year, month, day, hour, minute and second, all little-endian. The log's
+    outer record framing is not known, so a candidate is kept only when its coordinates
+    are in range and its six date fields form a real date.
+    """
+    rows = []
+    rejected = 0
+    index = content.find(b'\xa0')
+    while index != -1:
+        if content[index + 2:index + 5] == b'\x00\x00\x00' and \
+                index + 5 + _POSITION.size <= len(content):
+            (latitude, longitude, altitude, value, year, month, day, hour, minute,
+             second) = _POSITION.unpack_from(content, index + 5)
+            stamp = ''
+            if year < 100 and abs(latitude) <= 90 * 60000 and \
+                    abs(longitude) <= 180 * 60000 and (latitude or longitude):
+                stamp = _stamp(2000 + year, month, day, hour, minute, second)
+            if stamp:
+                rows.append((stamp, round(latitude / _MINUTE_UNITS, 6),
+                             round(longitude / _MINUTE_UNITS, 6), altitude, value,
+                             content[index + 1]))
+            else:
+                rejected += 1
+        index = content.find(b'\xa0', index + 1)
+    return rows, rejected
+
+
+def _location_logs(context):
+    """(file, rows) for each distinct LOC_DS log, with what was skipped written to the log."""
+    seen = set()
+    for file_found in _regular_files(context):
+        base = os.path.basename(file_found)
+        if not re.match(r'LOC_DS\d+\.log', base):
+            continue
+        data = _read(file_found)
+        if not data or data in seen:
+            continue
+        seen.add(data)
+        content, unread = _inflate_blocks(data)
+        rows, rejected = _positions(content)
+        if unread or rejected:
+            logfunc(f'Nissan 08IT location log {base}: {unread} bytes after the last '
+                    f'readable block, {rejected} candidate records failed validation')
+        if rows:
+            yield file_found, rows
+
+
+@artifact_processor
+def nissan_08it_gps_track(context):
+    data_list = []
+    source_paths = []
+    for file_found, rows in _location_logs(context):
+        source_paths.append(file_found)
+        relative = context.get_relative_path(file_found)
+        base = os.path.basename(file_found)
+        for row in rows:
+            data_list.append(row + (base, relative))
+    data_list.sort(key=lambda row: row[0])
+
+    data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude',
+                    'First Value (as stored)', 'Second Value (as stored)',
+                    'Marker Byte (as stored)', 'Log File', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+@artifact_processor
+def nissan_08it_gps_logs(context):
+    data_list = []
+    source_paths = []
+    for file_found, rows in _location_logs(context):
+        source_paths.append(file_found)
+        first, last = min(rows), max(rows)
+        data_list.append((first[0], last[0], len(rows), first[1], first[2], last[1], last[2],
+                          os.path.basename(file_found),
+                          context.get_relative_path(file_found)))
+    data_list.sort(key=lambda row: row[0])
+
+    data_headers = (('First Record Time', 'datetime'), ('Last Record Time', 'datetime'),
+                    'Position Records', 'First Latitude', 'First Longitude',
+                    'Last Latitude', 'Last Longitude', 'Log File', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
