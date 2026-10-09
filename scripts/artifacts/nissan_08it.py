@@ -10,6 +10,7 @@ name:
     TEL/INFO/f_info.txt or f_phonebookinfo.txt                       the device table
     USER/DEBUG/LOC/LOC_DS<n>.log                                     compressed position logs
     USER/USBA/file.lst (also USBV, DATACD)                           names of media files
+    USER/CLIB/cl.dtb.bak                                             the music library
 
 The two generations use different record layouts for the same files. Each reader picks
 the layout from the file's own size and record markers and gives the file up, with a log
@@ -252,6 +253,45 @@ __artifacts_v2__ = {
         },
         "output_types": "standard",
         "artifact_icon": "music",
+    },
+    "nissan_08it_music_library": {
+        "name": "Nissan 08IT - Music Library Tracks",
+        "description": "Track records of the unit's music library file: the title, the path of "
+                       "the audio file on the hard disk, a stored date and time and a second "
+                       "stored date with the number that follows it.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Nissan 08IT",
+        "notes": "From USER/CLIB/cl.dtb.bak. The layout was worked out from the file. A track "
+                 "record starts with the path of its audio file, /ALBUM/<fourteen "
+                 "digits>/<nn>.SCD, with the title 32 bytes after it and two date fields "
+                 "further on. Records are not contiguous, so each one is located by that path "
+                 "and the rest is read at fixed distances from it. Tested on one generation "
+                 "3000 unit read from its extracted file set: 136 records were found, the same "
+                 "number the file states at offset 12, and a difference is logged. A tested "
+                 "generation 8000 unit has no such file. Stored Date And Time is seven bytes, "
+                 "year first; on all 136 records its date equals the date in the fourteen "
+                 "digits of the folder name, which is consistent with the time the track was "
+                 "stored on the disk, and the tested values run from 2010 to 2016. Other "
+                 "Stored Date has no time of day. It was empty on 14 records and on the other "
+                 "122 it was on or after the first date, with values from 2010 to 2020; the "
+                 "number after it was 0 on exactly those 14 and from 1 to 179 on the rest. "
+                 "That pattern fits a last-played date and a play count, but nothing available "
+                 "here documents it, so both are left unlabelled. Dates are the unit's own "
+                 "clock with no zone and are shown as stored. The album name records in the "
+                 "same file are not read, so a track is tied to an album only through the "
+                 "folder in its path. The audio files themselves are not in the extracted set.",
+        "paths": ('*/USER/CLIB/cl.dtb*',),
+        "sample_data": {
+            "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 136 rows",
+            "xtrmp_item059": "Nissan 08IT generation 8000, extracted file set | 0 rows, no "
+                             "CLIB folder in the extracted set",
+        },
+        "output_types": "standard",
+        "artifact_icon": "disc",
     },
 }
 
@@ -644,4 +684,69 @@ def nissan_08it_media_file_list(context):
 
     data_headers = ('File Name', 'List Folder', 'Position In File',
                     'Trailing Number (as stored)', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+_TRACK_PATH = re.compile(rb'/ALBUM/(\d{14})/\d\d\.[A-Z0-9]{3}\x00')
+_TRACK_TITLE = 32
+_TRACK_DATE = 0x126
+_TRACK_NUMBER = 0x12e
+_TRACK_STAMP = 0x142
+
+
+def _calendar(year, month, day):
+    if year == month == day == 0:
+        return ''
+    if 1 <= month <= 12 and 1 <= day <= 31:
+        return f'{year:04d}-{month:02d}-{day:02d}'
+    return None
+
+
+def _library_tracks(data):
+    """(rows, count the header states) for a music library file.
+
+    A track record starts with the path of its audio file under /ALBUM/<fourteen
+    digits>/. Records are not contiguous, so each is located by that path and its other
+    fields are read at fixed distances from it. The 32-bit number at offset 12 of the
+    file, big-endian, is the count the result is checked against.
+    """
+    rows = []
+    for match in _TRACK_PATH.finditer(data):
+        start = match.start()
+        if start + _TRACK_STAMP + 7 > len(data):
+            continue
+        year, month, day, hour, minute, second = struct.unpack(
+            '>H5B', data[start + _TRACK_STAMP:start + _TRACK_STAMP + 7])
+        stamp = _calendar(year, month, day)
+        other = _calendar(*struct.unpack('>HBB', data[start + _TRACK_DATE:start + _TRACK_DATE + 4]))
+        if not stamp or other is None or hour > 23 or minute > 59 or second > 59:
+            continue
+        title = data[start + _TRACK_TITLE:start + _TRACK_DATE].split(b'\x00', 1)[0]
+        number = struct.unpack('>H', data[start + _TRACK_NUMBER:start + _TRACK_NUMBER + 2])[0]
+        rows.append((f'{stamp} {hour:02d}:{minute:02d}:{second:02d}', other, number,
+                     title.decode('utf-8', 'replace'),
+                     match.group(0)[:-1].decode('ascii'), start))
+    stated = struct.unpack('>I', data[12:16])[0] if len(data) >= 16 else None
+    return rows, stated
+
+
+@artifact_processor
+def nissan_08it_music_library(context):
+    data_list = []
+    source_paths = []
+    for file_found in _regular_files(context):
+        if not os.path.basename(file_found).startswith('cl.dtb'):
+            continue
+        rows, stated = _library_tracks(_read(file_found))
+        relative = context.get_relative_path(file_found)
+        if len(rows) != stated:
+            logfunc(f'Nissan 08IT music library: {relative} states {stated} tracks and '
+                    f'{len(rows)} records were found')
+        if rows:
+            source_paths.append(file_found)
+        for stamp, other, number, title, path, offset in rows:
+            data_list.append((stamp, other, number, title, path, offset, relative))
+
+    data_headers = ('Stored Date And Time (as stored)', 'Other Stored Date (as stored)',
+                    'Number After Other Date (as stored)', 'Title', 'Audio File Path',
+                    'Offset', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
