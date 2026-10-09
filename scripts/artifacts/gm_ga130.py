@@ -5,6 +5,7 @@ this file are a Chevrolet Equinox and a Chevrolet Malibu. Its user data partitio
 
     storage/NPS/BT_MID/phonebook           Bluetooth phonebooks and call lists, SQLite
     HMI_DB/pasa_addressbook_data<n>.db     one address book per number, SQLite
+    HMI_DB/pasa_media_data<n>.db           song, artist and album names per number, SQLite
     storage/bk<n>/mme                      the media engine database, SQLite
     logs/sys_error.log.<n>                 a timestamped system log
 
@@ -231,6 +232,39 @@ __artifacts_v2__ = {
         },
         "output_types": "standard",
         "artifact_icon": "power",
+    },
+    "gm_ga130_media_index": {
+        "name": "GM GA-130 - Media Name Index",
+        "description": "Song names with the artist, album and genre the index links them to, "
+                       "and playlist names, from the radio's numbered media name databases.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM GA-130",
+        "notes": "From HMI_DB/pasa_media_data<n>.db, stored as a zlib stream that inflates to "
+                 "a SQLite database; an already inflated copy with the same content is read "
+                 "once. Tested on two units read from their extracted file sets, a 2014 "
+                 "Chevrolet Equinox LT and a 2015 Chevrolet Malibu, which held two such "
+                 "databases each and gave 2,356 and 2,700 rows. A Song row is one distinct "
+                 "combination of song, artist, album and genre from the main table joined to "
+                 "the name tables; 2,302 of 2,302 and 2,679 of 2,679 song rows carried an "
+                 "artist. A Playlist row is a name from the playlist table, and which songs a "
+                 "playlist holds is not surfaced. The databases also hold phonetic "
+                 "transcription tables for the names, which are not listed. What the file "
+                 "number stands for is not established here; the radio keeps numbered address "
+                 "book files the same way. The index holds no time. A row records that the "
+                 "radio indexed the name from a media source. It does not establish that the "
+                 "item was played; the Played Media artifact reads the media engine's own "
+                 "record of that.",
+        "paths": ('*/HMI_DB/pasa_media_data*.db*',),
+        "sample_data": {
+            "xtrmp_item025": "2014 Chevy Equinox LT, GA-130, extracted file set | 2356 rows",
+            "xtrmp_item061": "2015 Chevrolet Malibu, GA-130, extracted file set | 2700 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "music",
     },
 }
 
@@ -555,4 +589,46 @@ def gm_ga130_system_events(context):
                 f'{os.path.basename(file_found)}')
 
     data_headers = (('Log Time', 'datetime'), 'Event', 'Line', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+@artifact_processor
+def gm_ga130_media_index(context):
+    data_list = []
+    source_paths = []
+
+    def wanted(name):
+        return re.match(r'pasa_media_data\d+\.db', name) is not None
+
+    for file_found, db in _databases(context, wanted):
+        if not {'main', 'song', 'artist', 'album'} <= set(_tables(db)):
+            continue
+        number = int(re.match(r'pasa_media_data(\d+)\.db',
+                              os.path.basename(file_found)).group(1))
+        relative = context.get_relative_path(file_found)
+        before = len(data_list)
+        try:
+            songs = db.execute('''
+                SELECT DISTINCT s.songname, a.artistname, b.albumname, g.genrename
+                FROM main m
+                JOIN song s ON s.songId = m.songId
+                LEFT JOIN artist a ON a.artistId = m.artistId
+                LEFT JOIN album b ON b.albumId = m.albumId
+                LEFT JOIN genre g ON g.genreId = m.genreId
+                ORDER BY s.rowid''').fetchall()
+            playlists = db.execute(
+                'SELECT playlistname FROM playlist ORDER BY rowid').fetchall() \
+                if 'playlist' in _tables(db) else []
+        except sqlite3.Error as ex:
+            logfunc(f'GM GA-130: could not read the media index tables: {ex}')
+            continue
+        for song, artist, album, genre in songs:
+            data_list.append(('Song', _text(song), _text(artist), _text(album),
+                              _text(genre), number, relative))
+        for (playlist,) in playlists:
+            data_list.append(('Playlist', _text(playlist), '', '', '', number, relative))
+        if len(data_list) > before:
+            source_paths.append(file_found)
+
+    data_headers = ('Entry Kind', 'Name', 'Artist', 'Album', 'Genre', 'File Number',
+                    'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
