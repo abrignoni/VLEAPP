@@ -9,6 +9,7 @@ name:
     TEL/HF_MEMORY/f_hf_memory<address>.txt                           the handset phonebook
     TEL/INFO/f_info.txt or f_phonebookinfo.txt                       the device table
     USER/DEBUG/LOC/LOC_DS<n>.log                                     compressed position logs
+    USER/USBA/file.lst (also USBV, DATACD)                           names of media files
 
 The two generations use different record layouts for the same files. Each reader picks
 the layout from the file's own size and record markers and gives the file up, with a log
@@ -217,6 +218,40 @@ __artifacts_v2__ = {
         },
         "output_types": "standard",
         "artifact_icon": "list",
+    },
+    "nissan_08it_media_file_list": {
+        "name": "Nissan 08IT - Media File List",
+        "description": "File names in the fixed-record media file lists the unit keeps under "
+                       "its USBA, USBV and DATACD folders, with each name's position and the "
+                       "number stored after it.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Nissan 08IT",
+        "notes": "From USER/USBA/file.lst, USER/USBV/file.lst and USER/DATACD/file.lst. The "
+                 "layout was worked out from the files: 5,000 records of 260 bytes, each a "
+                 "256-byte name field padded with NUL and four more bytes, with the used "
+                 "records first. A file that does not fit that is logged and not read. Tested "
+                 "on one generation 8000 unit read from its extracted file set: the USBA list "
+                 "held 869 names, 868 of them distinct, with audio file extensions, and the "
+                 "USBV and DATACD lists were all zeros. A tested generation 3000 unit has none "
+                 "of the three files. That USBA, USBV and DATACD stand for USB audio, USB "
+                 "video and data disc is a reading of the folder names and of the extensions "
+                 "seen, not something documented here. Names carry no folder path. Trailing "
+                 "Number is the four bytes after the name read as a little-endian number; it "
+                 "ran from 0 to 254 and was not zero on 652 rows, and what it stands for is "
+                 "not established. The list holds no time. A row records that the unit listed "
+                 "a file of that name. It does not establish that the file was played.",
+        "paths": ('*/USBA/file.lst*', '*/USBV/file.lst*', '*/DATACD/file.lst*'),
+        "sample_data": {
+            "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 0 rows, no "
+                             "file.lst in the extracted set",
+            "xtrmp_item059": "Nissan 08IT generation 8000, extracted file set | 869 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "music",
     },
 }
 
@@ -556,4 +591,57 @@ def nissan_08it_gps_logs(context):
     data_headers = (('First Record Time', 'datetime'), ('Last Record Time', 'datetime'),
                     'Position Records', 'First Latitude', 'First Longitude',
                     'Last Latitude', 'Last Longitude', 'Log File', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+_LIST_RECORD = 260
+_LIST_NAME = 256
+
+
+def _file_list(data):
+    """(position, name, trailing number) of each used record, or None when it does not fit.
+
+    A record is a 256-byte name field, NUL padded, and four more bytes. The file is a
+    whole number of records and the used ones come first.
+    """
+    if not data or len(data) % _LIST_RECORD:
+        return None
+    rows = []
+    ended = False
+    for position in range(len(data) // _LIST_RECORD):
+        record = data[position * _LIST_RECORD:(position + 1) * _LIST_RECORD]
+        name, _, rest = record[:_LIST_NAME].partition(b'\x00')
+        if not name:
+            ended = True
+            continue
+        if ended or rest.strip(b'\x00'):
+            return None
+        try:
+            text = name.decode('utf-8')
+        except UnicodeDecodeError:
+            return None
+        rows.append((position + 1, text, struct.unpack('<I', record[_LIST_NAME:])[0]))
+    return rows
+
+
+@artifact_processor
+def nissan_08it_media_file_list(context):
+    data_list = []
+    source_paths = []
+    for file_found in _regular_files(context):
+        if not os.path.basename(file_found).startswith('file.lst'):
+            continue
+        rows = _file_list(_read(file_found))
+        relative = context.get_relative_path(file_found)
+        if rows is None:
+            logfunc(f'Nissan 08IT media file list: {relative} does not have the record '
+                    'layout this reader knows, not read')
+            continue
+        if rows:
+            source_paths.append(file_found)
+        folder = os.path.basename(os.path.dirname(file_found))
+        for position, name, number in rows:
+            data_list.append((name, folder, position, number, relative))
+
+    data_headers = ('File Name', 'List Folder', 'Position In File',
+                    'Trailing Number (as stored)', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
