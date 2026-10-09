@@ -12,6 +12,8 @@ Bluetooth address:
     TextMsgApp/TextMessages_<address>      fixed-size UTF-16 message records (Gen1)
     MediaCache/Source_<n>.dat              one media source per slot (Gen1)
     Windows/LogFiles/MsgLog<n>.txt         the unit's rolling debug log (Gen1 and Gen2)
+    Windows/DumpFiles/<dump>/<dump>.RTL    the log text saved beside a crash dump
+    Windows/phonebook/persistentPhonebook_<address>.txt   one contact name a line
 
 Every binary reader here checks the file's own framing (declared lengths, record
 counts, record size) and gives the file up, with a log line, when it does not hold.
@@ -117,6 +119,50 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "book-open",
     },
+    "ford_sync_wince_persistent_phonebook": {
+        "name": "Ford SYNC WinCE - Persistent Phonebook Names",
+        "description": "Contact names in the plain-text name list the module keeps for a "
+                       "handset, one name a line, with the handset address from the file name.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From Windows/phonebook/persistentPhonebook_<address>.txt, a text file with "
+                 "one name a line and no numbers. Tested on ten Ford SYNC units read from "
+                 "their extracted file sets; four SYNC Gen1 units (Ford Escape 2011 to 2014) "
+                 "held eight such files and gave 1,689 rows, and the other six had none. What "
+                 "the module uses the list for is not established here. Each of the eight "
+                 "handsets also has a binary phonebook file, read by the Phonebook artifact, "
+                 "and 1,496 of the 1,689 names are in it for the same handset; the other 193 "
+                 "are only here. Handset Address is the twelve hex digits in the file name, "
+                 "shown with colons. Six files read as UTF-8 and two did not and were read as "
+                 "Windows-1252, which is an assumption about those two; Text Read As says "
+                 "which was used. A row records that the module listed the name for that "
+                 "handset. It does not establish that the contact was called.",
+        "paths": ('*/Windows/phonebook/persistentPhonebook_*',),
+        "output_types": "standard",
+        "artifact_icon": "book-open",
+        "sample_data": {
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, extracted file set | 0 rows, no "
+                             "persistentPhonebook file in the extracted set",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2 | 158 rows",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, extracted file set | 0 rows, no "
+                             "persistentPhonebook file in the extracted set",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, extracted file set | 0 rows, no "
+                             "persistentPhonebook file in the extracted set",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, extracted file set | 924 rows",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, extracted file set | 0 rows, no "
+                             "persistentPhonebook file in the extracted set",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, extracted file set | 0 rows, no "
+                             "persistentPhonebook file in the extracted set",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, extracted file set | 0 rows, "
+                             "no persistentPhonebook file in the extracted set",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, extracted file set | 432 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, extracted file set | 175 rows",
+        },
+    },
     "ford_sync_wince_text_messages": {
         "name": "Ford SYNC WinCE - Text Messages",
         "description": "Text message records the module stored for each handset, with the "
@@ -220,7 +266,7 @@ __artifacts_v2__ = {
                        "device number, primary value, pair order and how many lines repeated "
                        "it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -238,13 +284,18 @@ __artifacts_v2__ = {
                  "first and last line numbers; a device whose primary value or pair order "
                  "changed within a file has one row per combination. Primary is the line's "
                  "primary value as stored. The line's active value and its role tags are not "
-                 "surfaced: the tags read [Phone Device] [Media Device] on all 811 tested "
-                 "lines. The log is a rolling window, so a handset with a phonebook or call "
-                 "list file can be absent here, and the reverse.",
-        "paths": ('*/Windows/LogFiles/MsgLog*.txt*',),
+                 "surfaced: the tags read [Phone Device] [Media Device] on all 811 lines "
+                 "checked in the MsgLog files. The log is a rolling window, so a handset with "
+                 "a phonebook or call list file can be absent here, and the reverse. The same "
+                 "lines are also read from the log text saved beside a crash dump, "
+                 "Windows/DumpFiles/<dump>/<dump>.RTL, which seven of the tested units "
+                 "carried; of 830 lines sampled from it, one was also in the MsgLog files, and "
+                 "Source File tells the two apart. It gave 20 of the 56 rows on the tested "
+                 "units.",
+        "paths": ('*/Windows/LogFiles/MsgLog*.txt*', '*/Windows/DumpFiles/*.RTL'),
         "sample_data": {
             "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, extracted file set | 1 row",
-            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2 | 1 row",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2 | 5 rows",
             "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, extracted file set | 2 rows",
             "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, extracted file set | 4 rows",
             "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, extracted file set | 8 rows",
@@ -253,8 +304,8 @@ __artifacts_v2__ = {
                              "such lines in the log",
             "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, extracted file set | 0 rows, "
                              "no MsgLog file in the extracted set",
-            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, extracted file set | 6 rows",
-            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, extracted file set | 10 rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, extracted file set | 12 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, extracted file set | 20 rows",
         },
         "output_types": "standard",
         "artifact_icon": "bluetooth",
@@ -265,7 +316,7 @@ __artifacts_v2__ = {
                        "the device name and handset address in each line, its tick and line "
                        "number, and the last log save clock reading above it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -282,8 +333,10 @@ __artifacts_v2__ = {
                  "event in the same file. It is context for ordering, not the time of the "
                  "event, and it is empty when no save line precedes the event. The address is "
                  "the hexadecimal value in the line, shown with colons. The log is a rolling "
-                 "window and does not hold every connection.",
-        "paths": ('*/Windows/LogFiles/MsgLog*.txt*',),
+                 "window and does not hold every connection. The log text saved beside a crash "
+                 "dump, Windows/DumpFiles/<dump>/<dump>.RTL, is read as well; on the seven "
+                 "tested units that carried it, it held no such line.",
+        "paths": ('*/Windows/LogFiles/MsgLog*.txt*', '*/Windows/DumpFiles/*.RTL'),
         "sample_data": {
             "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, extracted file set | 0 rows, no "
                              "such lines in the log",
@@ -313,7 +366,7 @@ __artifacts_v2__ = {
                        "value per log file, with both numbers the line carries and how many "
                        "lines repeated them.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -334,23 +387,28 @@ __artifacts_v2__ = {
                  "second with miles; that is a reading of the data, not a documented unit. The "
                  "log repeats the value many times, so identical lines are folded into one row "
                  "with a Line Count. Last Log Save Clock Above is the nearest log save reading "
-                 "above the first such line and is empty when none precedes it.",
-        "paths": ('*/Windows/LogFiles/MsgLog*.txt*',),
+                 "above the first such line and is empty when none precedes it. The same lines "
+                 "are also read from the log text saved beside a crash dump, "
+                 "Windows/DumpFiles/<dump>/<dump>.RTL, which seven of the tested units "
+                 "carried; of 830 lines sampled from it, one was also in the MsgLog files, and "
+                 "Source File tells the two apart. It gave 41 of the 95 rows on the tested "
+                 "units, and the ratio held on those too.",
+        "paths": ('*/Windows/LogFiles/MsgLog*.txt*', '*/Windows/DumpFiles/*.RTL'),
         "sample_data": {
             "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, extracted file set | 0 rows, no "
                              "such lines in the log",
             "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2 | 2 rows",
             "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, extracted file set | 1 row",
             "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, extracted file set | 1 row",
-            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, extracted file set | 2 rows",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, extracted file set | 17 rows",
             "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, extracted file set | 0 rows, no "
                              "such lines in the log",
             "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, extracted file set | 0 rows, no "
                              "such lines in the log",
             "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, extracted file set | 0 rows, "
                              "no MsgLog file in the extracted set",
-            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, extracted file set | 24 rows",
-            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, extracted file set | 24 rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, extracted file set | 47 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, extracted file set | 27 rows",
         },
         "output_types": "standard",
         "artifact_icon": "activity",
@@ -361,7 +419,7 @@ __artifacts_v2__ = {
                        "saving retailmsg' line, with the clock value the line states, its tick "
                        "and its line number.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -380,8 +438,10 @@ __artifacts_v2__ = {
                  "first. The reading is written out as if it were UTC with no offset applied. "
                  "These rows let an examiner place other log lines relative to the unit's own "
                  "clock. They do not give a calendar date. A SYNC Gen2 unit (2014 Ford Edge "
-                 "SEL) wrote the same line six times, with readings from 2010 to 2019.",
-        "paths": ('*/Windows/LogFiles/MsgLog*.txt*',),
+                 "SEL) wrote the same line six times, with readings from 2010 to 2019. The log "
+                 "text saved beside a crash dump, Windows/DumpFiles/<dump>/<dump>.RTL, is read "
+                 "as well; on the seven tested units that carried it, it held no such line.",
+        "paths": ('*/Windows/LogFiles/MsgLog*.txt*', '*/Windows/DumpFiles/*.RTL'),
         "sample_data": {
             "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, extracted file set | 10 rows",
             "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2 | 7 rows",
@@ -404,7 +464,7 @@ __artifacts_v2__ = {
                        "VinService lines and the software build string in Build Information "
                        "lines, one row per distinct value per log file.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -420,14 +480,18 @@ __artifacts_v2__ = {
                  "in its 'start saving retailmsg' lines, and on all eight tested Gen1 units "
                  "every such reading fell in 2003, so it is the unit's own clock and not a "
                  "calendar date to rely on. Values are reported as the log states them. The "
-                 "module's registry hives (Documents and Settings/system.hv and user.hv) are "
-                 "not read by this module, so identity values held only there are not "
-                 "reported.",
-        "paths": ('*/Windows/LogFiles/MsgLog*.txt*',),
+                 "same lines are also read from the log text saved beside a crash dump, "
+                 "Windows/DumpFiles/<dump>/<dump>.RTL, which seven of the tested units "
+                 "carried; of 830 lines sampled from it, one was also in the MsgLog files, and "
+                 "Source File tells the two apart. It gave 8 of the 16 rows on the tested "
+                 "units. The module's registry hives (Documents and Settings/system.hv and "
+                 "user.hv) are not read by this module, so identity values held only there are "
+                 "not reported.",
+        "paths": ('*/Windows/LogFiles/MsgLog*.txt*', '*/Windows/DumpFiles/*.RTL'),
         "sample_data": {
-            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, extracted file set | 1 row",
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, extracted file set | 6 rows",
             "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2 | 0 rows, no such lines in the log",
-            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, extracted file set | 2 rows",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, extracted file set | 3 rows",
             "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, extracted file set | 1 row",
             "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, extracted file set | 0 rows, no "
                              "such lines in the log",
@@ -438,7 +502,7 @@ __artifacts_v2__ = {
                              "no MsgLog file in the extracted set",
             "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, extracted file set | 0 rows, "
                              "no such lines in the log",
-            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, extracted file set | 2 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, extracted file set | 4 rows",
         },
         "output_types": "standard",
         "artifact_icon": "info",
@@ -626,6 +690,35 @@ def ford_sync_wince_phonebook(context):
     return data_headers, data_list, '\n'.join(source_paths)
 
 
+@artifact_processor
+def ford_sync_wince_persistent_phonebook(context):
+    data_list = []
+    source_paths = []
+    for file_found in _regular_files(context):
+        base = os.path.basename(file_found)
+        named = re.match(r'persistentPhonebook_([0-9A-Fa-f]{12})', base)
+        if not named:
+            continue
+        raw = _read(file_found)
+        try:
+            text = raw.decode('utf-8')
+            read_as = 'UTF-8'
+        except UnicodeDecodeError:
+            text = raw.decode('cp1252', 'replace')
+            read_as = 'Windows-1252'
+        names = [line for line in text.replace('\r\n', '\n').split('\n') if line]
+        if names:
+            source_paths.append(file_found)
+        address = ':'.join(named.group(1)[i:i + 2] for i in range(0, 12, 2)).lower()
+        for position, name in enumerate(names, start=1):
+            data_list.append((address, name, position, read_as,
+                              context.get_relative_path(file_found)))
+
+    data_headers = ('Handset Address', 'Name', 'Position In File', 'Text Read As',
+                    'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
 # ---------------------------------------------------------------------------
 # Text messages
 # ---------------------------------------------------------------------------
@@ -770,7 +863,8 @@ def ford_sync_wince_media_sources(context):
 
 def _log_files(context):
     for file_found in _regular_files(context):
-        if os.path.basename(file_found).startswith('MsgLog'):
+        base = os.path.basename(file_found)
+        if base.startswith('MsgLog') or base.upper().endswith('.RTL'):
             yield file_found
 
 

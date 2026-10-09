@@ -10,6 +10,7 @@ The same lines survive in the raw partition image an acquisition carries, in blo
 file system has released, so this module reads both:
 
     Windows/LogFiles/MsgLog<n>.txt      the live log files
+    Windows/DumpFiles/<dump>/<dump>.RTL the log text saved beside a crash dump
     DiskImages/partition<n>.img         the raw partition, read as bytes
     LargeOutputFiles/image.nbo          the raw NAND image, read for call list documents
 
@@ -34,7 +35,7 @@ __artifacts_v2__ = {
                        "tick count and a clock derived from the nearest line that states a "
                        "date and time.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -47,12 +48,16 @@ __artifacts_v2__ = {
                  "in all, 2,230 of them on the two Gen2 units; one Gen2 unit had no log file "
                  "in its extracted set and gave 886 rows from its partition image alone. The "
                  "image holds log blocks the file system has released, so it gives more than "
-                 "the files. A line found in more than one place is reported once, with Times "
-                 "Found. Which lines exist depends on the generation: door, gear, park lamp, "
-                 "ignition, reboot and USB lines came only from Gen2, phone lines only from "
-                 "the Gen1 version 5 unit, and odometer lines from both. No event line carries "
-                 "a date. Two other lines do: the log save line ('start saving retailmsg at', "
-                 "written month first) and, on Gen2, the clock service line "
+                 "the files. The log text saved beside a crash dump, "
+                 "Windows/DumpFiles/<dump>/<dump>.RTL, is read too; on the tested acquisition "
+                 "folders every event line in it was also found in the partition image, so it "
+                 "added no row there, and from the extracted file set alone it added 41 rows "
+                 "on three units. A line found in more than one place is reported once, with "
+                 "Times Found. Which lines exist depends on the generation: door, gear, park "
+                 "lamp, ignition, reboot and USB lines came only from Gen2, phone lines only "
+                 "from the Gen1 version 5 unit, and odometer lines from both. No event line "
+                 "carries a date. Two other lines do: the log save line ('start saving "
+                 "retailmsg at', written month first) and, on Gen2, the clock service line "
                  "('SyncClockSvc!MFDMessageThreadProc: (YMDhms)', written year first, about "
                  "once a minute). Derived Clock is the clock of the nearest such line plus the "
                  "difference in ticks read as milliseconds, and it is filled only when that "
@@ -86,7 +91,11 @@ __artifacts_v2__ = {
                  "For phone lines Detail is the device name and Value is the address on the "
                  "line. A row records that the module logged that line. It does not establish "
                  "who opened a door or drove the vehicle.",
-        "paths": ('*/Windows/LogFiles/MsgLog*.txt*', '*/DiskImages/partition*.img'),
+        "paths": (
+            '*/Windows/LogFiles/MsgLog*.txt*',
+            '*/Windows/DumpFiles/*.RTL',
+            '*/DiskImages/partition*.img',
+        ),
         "sample_data": {
             "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 0 rows, no "
                              "event line in the log files or the partition image",
