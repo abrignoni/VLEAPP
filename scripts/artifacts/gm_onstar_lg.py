@@ -123,34 +123,37 @@ __artifacts_v2__ = {
         "last_update_date": "2026-10-09",
         "requirements": "none",
         "category": "GM OnStar LG",
-        "notes": "From the GPSRegularReport sections of the state files under var/sysinfo. "
-                 "Tested on two generation 10 units: a 2016 Chevrolet Cruze and a 2017 Buick "
-                 "Encore. A state file is text of [section] and key=value lines that opens "
-                 "with a [*] section and ends at an end-of-file byte. The extraction also "
-                 "holds 65,535-byte copies of these files in which several such documents, of "
-                 "that file or of another, follow one another; every document in every .dat "
-                 "file is read, each from its [*] line to its end byte. A row found in more "
-                 "than one document is reported once, with Times Found, and Source File and "
-                 "Document Offset say where it was first read. The current gps.dat holds ten "
-                 "reports; reading the embedded documents as well gave 111 distinct reports on "
-                 "the Cruze and 64 on the Encore. Timestamp is built from the report's "
-                 "utc_year to utc_sec keys, with the fraction of a second dropped, and is UTC: "
-                 "on all 175 tested reports the report's own GPS week and time of week, "
-                 "converted to a date, was between 18 and 19 seconds ahead of that reading, "
-                 "and 18 seconds is the GPS to UTC offset in force since 2017. Latitude and "
-                 "Longitude are the stored eight-byte values divided by 10,000,000. That scale "
-                 "is derived by comparison: on the Encore an independent parse of the same "
-                 "unit gave a position for each of the 64 timestamps, and all 64 agreed to "
-                 "within 0.000001 degree. That parse held 541 points in all; the rest are not "
-                 "in these files. Elevation, Speed Over Ground and Course Over Ground are "
-                 "shown as stored because their units are not established here. Reports whose "
-                 "latitude and longitude are both zero are left out. The other keys of each "
-                 "report (variances, velocity vectors, fix flags) are not surfaced. Rows are "
-                 "sorted newest first. A report records where the module's receiver placed "
+        "notes": "From the GPSRegularReport sections of the state files under var/sysinfo and "
+                 "of the module's raw flash image, DiskImages/NORimage.bin, when the "
+                 "extraction carries it. Tested on two generation 10 units: a 2016 Chevrolet "
+                 "Cruze and a 2017 Buick Encore. A state file is text of [section] and "
+                 "key=value lines that opens with a [*] section and ends at an end-of-file "
+                 "byte. The extraction also holds 65,535-byte copies of these files in which "
+                 "several such documents, of that file or of another, follow one another; "
+                 "every document in every .dat file is read, each from its [*] line to its end "
+                 "byte. A row found in more than one document is reported once, with Times "
+                 "Found, and Source File and Document Offset say where it was first read. The "
+                 "current gps.dat holds ten reports. Reading the embedded documents in the "
+                 "files gave 111 distinct reports on the Cruze and 64 on the Encore, and "
+                 "reading the flash image as well gave 1,139 and 541. The image holds the same "
+                 "documents with no file system around them, including ones the file system "
+                 "has released. Timestamp is built from the report's utc_year to utc_sec keys, "
+                 "with the fraction of a second dropped, and is UTC: on 1,679 of the 1,680 "
+                 "tested reports the report's own GPS week and time of week, converted to a "
+                 "date, was between 18 and 19 seconds ahead of that reading, and 18 seconds is "
+                 "the GPS to UTC offset in force since 2017. Latitude and Longitude are the "
+                 "stored eight-byte values divided by 10,000,000. That scale is derived by "
+                 "comparison: on the Encore an independent parse of the same unit listed 541 "
+                 "points, the same 541 timestamps read here, and every position agreed to "
+                 "within 0.000001 degree. Elevation, Speed Over Ground and Course Over Ground "
+                 "are shown as stored because their units are not established here. Reports "
+                 "whose latitude and longitude are both zero are left out. The other keys of "
+                 "each report (variances, velocity vectors, fix flags) are not surfaced. Rows "
+                 "are sorted newest first. A report records where the module's receiver placed "
                  "itself at that time. It does not establish who was in the vehicle. "
                  "Generation 9 units have no gps.dat; their positions are in the GPS Track "
                  "artifact.",
-        "paths": ('*/var/sysinfo/*.dat*',),
+        "paths": ('*/var/sysinfo/*.dat*', '*/DiskImages/NORimage.bin'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, no gps.dat on generation 9",
@@ -160,9 +163,9 @@ __artifacts_v2__ = {
                              "rows, no gps.dat on generation 9",
             "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, no "
                              "gps.dat on generation 9",
-            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 111 "
-                             "rows",
-            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 64 rows",
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, acquisition folder with "
+                             "flash image | 1139 rows",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 541 rows",
         },
         "output_types": "all",
         "artifact_icon": "map-pin",
@@ -224,29 +227,31 @@ __artifacts_v2__ = {
         "last_update_date": "2026-10-09",
         "requirements": "none",
         "category": "GM OnStar LG",
-        "notes": "From the state files under var/sysinfo. Tested on two generation 10 units: a "
-                 "2016 Chevrolet Cruze and a 2017 Buick Encore. A state file is text of "
-                 "[section] and key=value lines that opens with a [*] section and ends at an "
-                 "end-of-file byte. The extraction also holds 65,535-byte copies of these "
-                 "files in which several such documents, of that file or of another, follow "
-                 "one another; every document in every .dat file is read, each from its [*] "
-                 "line to its end byte. A row found in more than one document is reported "
-                 "once, with Times Found, and Source File and Document Offset say where it was "
-                 "first read. A row is reported only when the key holds a value other than "
-                 "empty, 0 or -1, so most keys give no row. The Cruze gave six rows (the "
-                 "OTUBMgmnt expiry year, month and day, and a redial number in three documents "
-                 "with different save times) and the Encore seven (the same expiry keys and a "
-                 "lock-out counter in four documents). Section and Key are the file's own "
-                 "names and no meaning beyond the name is established here. Values stored as "
-                 "hexadecimal bytes are shown as text when they are printable ASCII. The "
-                 "destination, name tag and recent destination lists were empty on both units; "
-                 "their numbered sections are reported whole when present, and that path has "
-                 "not been exercised on real data. Document Save Time is the TimeStamp in the "
-                 "document's first section; several documents carried 1970 readings. Not "
-                 "surfaced: the diagnostic trouble codes, the data identifier tables, the "
-                 "display device and customisation tables, the authentication key in "
-                 "tcuid.dat, and the empty alerts.db.",
-        "paths": ('*/var/sysinfo/*.dat*',),
+        "notes": "From the state files under var/sysinfo and the module's raw flash image, "
+                 "DiskImages/NORimage.bin, when the extraction carries it. Tested on two "
+                 "generation 10 units: a 2016 Chevrolet Cruze and a 2017 Buick Encore. A state "
+                 "file is text of [section] and key=value lines that opens with a [*] section "
+                 "and ends at an end-of-file byte. The extraction also holds 65,535-byte "
+                 "copies of these files in which several such documents, of that file or of "
+                 "another, follow one another; every document in every .dat file is read, each "
+                 "from its [*] line to its end byte. A row found in more than one document is "
+                 "reported once, with Times Found, and Source File and Document Offset say "
+                 "where it was first read. A row is reported only when the key holds a value "
+                 "other than empty, 0 or -1, so most keys give no row. With the flash image "
+                 "read as well, the Cruze gave 15 rows (the OTUBMgmnt expiry year, month and "
+                 "day, and one redial number in twelve documents with different save times) "
+                 "and the Encore 35 (the same expiry keys and a lock-out counter in 32 "
+                 "documents). Section and Key are the file's own names and no meaning beyond "
+                 "the name is established here. Values stored as hexadecimal bytes are shown "
+                 "as text when they are printable ASCII. The destination, name tag and recent "
+                 "destination lists were empty on both units; their numbered sections are "
+                 "reported whole when present, and that path has not been exercised on real "
+                 "data. Document Save Time is the TimeStamp in the document's first section; "
+                 "several documents carried 1970 readings. Not surfaced: the diagnostic "
+                 "trouble codes, the data identifier tables, the display device and "
+                 "customisation tables, the authentication key in tcuid.dat, and the empty "
+                 "alerts.db.",
+        "paths": ('*/var/sysinfo/*.dat*', '*/DiskImages/NORimage.bin'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, generation 9 files are not in the text format",
@@ -256,8 +261,9 @@ __artifacts_v2__ = {
                              "rows, generation 9 files are not in the text format",
             "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, "
                              "generation 9 files are not in the text format",
-            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, extracted file set | 6 rows",
-            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 7 rows",
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, acquisition folder with "
+                             "flash image | 15 rows",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 35 rows",
         },
         "output_types": "standard",
         "artifact_icon": "list",
@@ -651,6 +657,8 @@ def _documents(data):
     copies in which several such documents, of this file or another, follow one another
     after unrelated bytes. Each document is found by its [*] opening line and read up to
     its end byte or the next opening line; text with no TimeStamp is not a document.
+    The module's raw flash image holds the same documents with no file system around
+    them, including ones the file system has released, and is read the same way.
     """
     starts = [match.start() for match in re.finditer(rb'\[\*\]\r\n', data)]
     documents = []
@@ -707,7 +715,8 @@ def _number(text, fmt):
 
 def _sectioned_documents(context):
     """(file, offset, sections) for every document in every distinct .dat file."""
-    files = [f for f in _regular_files(context) if _base_name(f).endswith('.dat')]
+    files = [f for f in _regular_files(context)
+             if _base_name(f).endswith('.dat') or _base_name(f) == 'NORimage.bin']
     for file_found, data, _copies in _distinct(files):
         for offset, sections in _documents(data):
             yield file_found, offset, sections
