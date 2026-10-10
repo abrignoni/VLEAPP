@@ -18,6 +18,7 @@ the layout from the file's own size and record markers and gives the file up, wi
 line, when neither fits.
 """
 
+import hashlib
 import os
 import re
 import struct
@@ -126,8 +127,8 @@ __artifacts_v2__ = {
                  "means is not established here. The rest of each slot is not decoded. A slot "
                  "records that the unit held an entry for the device. It does not establish "
                  "who carried it. Not read from the same units: the voice tag and learning "
-                 "files, and the navigation backup files under USER/BUP, which hold "
-                 "destination names whose record layout is not established here.",
+                 "files. The navigation backup files under BUP are read by the Navigation "
+                 "Backup Records artifact.",
         "paths": ('*/TEL/INFO/f_info.txt*', '*/TEL/INFO/f_phonebookinfo.txt*'),
         "sample_data": {
             "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 4 rows",
@@ -366,6 +367,67 @@ __artifacts_v2__ = {
         },
         "output_types": "standard",
         "artifact_icon": "disc",
+    },
+    "nissan_08it_navigation_backup_records": {
+        "name": "Nissan 08IT - Navigation Backup Records",
+        "description": "Named records of the unit's navigation backup files: the text stored "
+                       "in each record, which on the tested unit read as place names and "
+                       "street addresses, the date the record carries, and three numeric "
+                       "fields of the record, shown as stored, whose meaning is not "
+                       "established.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-10",
+        "last_update_date": "2026-10-10",
+        "requirements": "none",
+        "category": "Nissan 08IT",
+        "notes": "From BUP/BACKUP.CUR and BACKUP.PRE. On the tested units the files read are "
+                 "1,048,576 bytes and start with the text NEPO. The layout was worked out from "
+                 "the files. Records are 268 bytes: a text field of up to 32 UTF-16 characters "
+                 "at the start, a second text field at offset 64, a date at offset 0x70 stored "
+                 "as a 16-bit year, a month and a day, sixteen marker bytes at offset 0x8c, "
+                 "and at offset 0x9c a 32-bit value and two 16-bit values, read little-endian "
+                 "and shown in the three Value At columns, the first as eight hexadecimal "
+                 "digits; nothing available here documents them. A record is taken where the "
+                 "marker bytes stand at their place and the first text field holds printable "
+                 "text and the date field holds a calendar date or zeros; the run log counts "
+                 "the marked records with no text. Tested on one generation 8000 unit read "
+                 "from its extracted file set: each of the two files held 353 marked records, "
+                 "16 with text and 337 without, and the 16 were the same in both files, so the "
+                 "artifact gave 32 rows, 16 a file. On the tested generation 3000 unit the two "
+                 "files start with OPEN, the same four letters in the opposite order, and hold "
+                 "36 bytes that are not zero. A file with the same content also sits in one "
+                 "acquisition folder of the generation 8000 unit. OPEN files are logged and "
+                 "not read, so the generation 3000 unit gave no rows and the layout is "
+                 "untested on that generation. On the tested rows Text read as a place name or "
+                 "a street address with a town, and Second Text, filled on 9 of the 16, as a "
+                 "short region code or a second name. Date In Record is the stored year, month "
+                 "and day, written out as stored; 14 of the 16 records carried one, from 2017 "
+                 "to 2019, and 2 held zeros and show none. What the date marks, such as when "
+                 "the place was stored or last used, is not established here, and neither is "
+                 "which list each record belongs to: 14 sat in one run of records and the "
+                 "other 2 each in a separate shorter run earlier in the file. The three values "
+                 "look like a position on a map grid and are not decoded into latitude and "
+                 "longitude. Three records held all ones in the first with the other two at "
+                 "the largest positive signed 16-bit value. An independent parse of the same "
+                 "unit listed 16 locations with coordinates, and the part of Text before its "
+                 "first comma appears in it for 11 of the 16 records here; no way to turn the "
+                 "stored fields into those coordinates was found here, so no position is "
+                 "derived. Two copies of each file under a ~ENTR~01 folder, and a third "
+                 "acquisition folder's pair, one starting with OPEN and one all zeros, do not "
+                 "start with NEPO and are logged and not read. Files with identical content "
+                 "are read once and Identical Files gives how many there were; it held one "
+                 "value, 2, on all 32 rows: two of the unit's three acquisition folders hold "
+                 "the same pair of files. A row records that the unit's navigation backup held "
+                 "that entry. It does not establish that the vehicle went there.",
+        "paths": ('*/BUP/*BACKUP.CUR*', '*/BUP/*BACKUP.PRE*'),
+        "sample_data": {
+            "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 0 rows, "
+                             "the backup files start with OPEN and are not read",
+            "xtrmp_item059": "Nissan 08IT generation 8000, extracted file set | 32 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "map-pin",
     },
 }
 
@@ -953,4 +1015,83 @@ def nissan_08it_disc_titles(context):
 
     data_headers = ('Album', 'Album Artist', 'Year', 'Track Number', 'Track Title',
                     'Track Artist', 'Tracks In Record', 'Record Offset', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+# ---------------------------------------------------------------------------
+# Navigation backup records
+# ---------------------------------------------------------------------------
+
+_BACKUP_MAGIC = b'NEPO'
+_BACKUP_RECORD = 268
+_BACKUP_MARK = bytes.fromhex('09000000000000000300000000000000')
+_BACKUP_MARK_AT = 0x8c
+_BACKUP_TEXT = 64
+_BACKUP_DATE = 0x70
+_BACKUP_GRID = 0x9c
+
+
+def _backup_records(data):
+    """(offset, date, text, second text, grid code, grid x, grid y) for each named record.
+
+    A record is taken where the sixteen marker bytes stand at their place, the first text
+    field holds text and the date field holds a calendar date or zeros. Returns the rows
+    and how many marked records were left out.
+    """
+    rows = []
+    skipped = 0
+    position = data.find(_BACKUP_MARK)
+    while position != -1:
+        start = position - _BACKUP_MARK_AT
+        if start >= 0 and start + _BACKUP_RECORD <= len(data):
+            year, month, day = struct.unpack_from('<HBB', data, start + _BACKUP_DATE)
+            date = _calendar(year, month, day) if 1990 <= year <= 2100 or year == 0 else None
+            text = _wide_be(data[start:start + _BACKUP_TEXT])
+            if date is not None and text.strip() and text.isprintable():
+                second = _wide_be(data[start + _BACKUP_TEXT:start + _BACKUP_DATE - 16])
+                code, grid_x, grid_y = struct.unpack_from('<IHH', data, start + _BACKUP_GRID)
+                rows.append((start, date, text, second if second.isprintable() else '',
+                             f'{code:08x}', grid_x, grid_y))
+            else:
+                skipped += 1
+        position = data.find(_BACKUP_MARK, position + 1)
+    return rows, skipped
+
+
+@artifact_processor
+def nissan_08it_navigation_backup_records(context):
+    data_list = []
+    source_paths = []
+    copies = {}
+    order = []
+    for file_found in _regular_files(context):
+        data = _read(file_found)
+        if not data.startswith(_BACKUP_MAGIC):
+            if data:
+                logfunc(f'Nissan 08IT navigation backup: {os.path.basename(file_found)} '
+                        f'does not start with NEPO, not read')
+            continue
+        digest = hashlib.sha256(data).digest()
+        if digest in copies:
+            copies[digest][1] += 1
+            continue
+        copies[digest] = [file_found, 1, data]
+        order.append(digest)
+    for digest in order:
+        file_found, count, data = copies[digest]
+        rows, skipped = _backup_records(data)
+        logfunc(f'Nissan 08IT navigation backup: {len(rows)} named records in '
+                f'{os.path.basename(file_found)}, {skipped} marked records with no text '
+                f'left out')
+        if rows:
+            source_paths.append(file_found)
+        relative = context.get_relative_path(file_found)
+        for start, date, text, second, code, grid_x, grid_y in rows:
+            data_list.append((date, text, second, code, grid_x, grid_y, start, count,
+                              relative))
+
+    data_headers = (('Date In Record', 'date'), 'Text', 'Second Text',
+                    'Value At 0x9C (as stored)', 'Value At 0xA0 (as stored)',
+                    'Value At 0xA2 (as stored)',
+                    'Record Offset', 'Identical Files', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
