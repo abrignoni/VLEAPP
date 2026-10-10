@@ -7,12 +7,12 @@ component logs:
     rwdata/logs/pre_fdplog.<zone>.txt[.<n>]    the files kept from before
 
 A line is '<priority>1 <time>Z <host> <process> <pid> <component> [meta sequenceId="n"]
-[...] <text>'. The time carries a Z. Almost all of the log is developer tracing, so this
-module reports only the lines of a few components whose text states something about use:
+[...] <text>'. The time carries a Z. The log holds lines from several hundred components.
+This module reports only the lines of a few whose text states something about use:
 charge locations, navigation searches, positions, Wi-Fi scan results and vehicle signals.
 
-A rolled-out log file's blocks are released, not erased, so most of the log text on a
-unit is in free space. The same lines are therefore read from two more inputs:
+The log files roll. On the tested unit most of the log text was in the volume's free
+space, not in the files. The same lines are therefore read from two more inputs:
 
     <image>.<volume>.unallocated.bin    a volume's free space, as qnxprobe --unallocated
                                         writes it, with the .tsv run map beside it
@@ -48,39 +48,42 @@ __artifacts_v2__ = {
                  "copies), a file of the storage volume's free space "
                  "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
                  "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
-                 "input is the acquisition folder. The log files roll, and a rolled-out file's "
-                 "blocks are released, not erased, so the free space and the image hold log "
-                 "text the files no longer do. Nothing is carved by file type and no file "
-                 "system is followed: a line is found by its own shape, a date and time ending "
-                 "in Z, a host, a process, a component and a sequence id. Almost all of the "
-                 "log is developer tracing, so only one component's lines are read here. "
-                 "Tested on one Ford SYNC 4 unit. Its logical zip holds three days of log, "
-                 "2024-03-27 to 2024-03-29; its raw image holds 718,195 log lines against "
-                 "about 107,000 in the files, and 85 percent of them sit in blocks the volume "
-                 "marks free. Each line's time carries a Z and is reported as the line states "
-                 "it; a 1970 time, written before the clock was set, is left empty. A line "
-                 "found in more than one input is reported once. Rows come from the "
-                 "evChargeSettings lines 'handleSavedChargeLocationMsg' and "
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from the evChargeSettings lines 'handleSavedChargeLocationMsg' and "
                  "'handleUnsavedChargeLocationMsg', which carry a location id and two whole "
                  "numbers. Identical values are folded into one row with the number of lines "
                  "and the first and last log time. The logical zip gave 21 rows from 259 "
                  "lines; the raw image gave 27 rows from 1,899 lines, from 2023-05-22 to "
                  "2024-03-28, 12 from the saved list and 15 from the unsaved list. The numbers "
-                 "are degrees times 1,000,000: three decimal coordinate pairs the same "
-                 "component logged elsewhere equal three of these pairs divided by that. Four "
-                 "rows, all from the unsaved list, held a position; the others held 128048575 "
-                 "and 256048575 or zeros, which are outside the range of a coordinate and read "
-                 "as an empty slot, so their Latitude and Longitude are left empty and the "
-                 "stored numbers are still shown. What the module means by saved and unsaved "
-                 "is not documented here; the names are the log's own. A block can end in the "
-                 "middle of a line. In a free space file the run map is used so that a line is "
-                 "never read across two runs that were not neighbours on the disk, and in an "
-                 "image an unfinished line is cut where the next one starts. A line cut that "
-                 "way is reported as far as it reads, so a handful of rows can differ between "
-                 "inputs: on the tested unit the image held one to two rows per artifact that "
-                 "the files and the free space file together did not. A row records that the "
-                 "module logged that location for the vehicle's charge settings. It does not "
-                 "establish when the vehicle was there.",
+                 "are degrees times 1,000,000: in the tested log files, four decimal "
+                 "coordinate pairs the same component logged on other lines equal four of "
+                 "these pairs divided by that. Four rows, all from the unsaved list, held a "
+                 "position; all but one of the others held 128048575 and 256048575 or zeros, "
+                 "and one held the first number with a different second number. Those are not "
+                 "read as a position (the large numbers are outside the range of a coordinate) "
+                 "and what they stand for is not established here, so their Latitude and "
+                 "Longitude are left empty and the stored numbers are still shown. What the "
+                 "module means by saved and unsaved is not documented here; the names are the "
+                 "log's own. A block can end in the middle of a line. In a free space file "
+                 "with its run map present, a line is not read across two runs that were not "
+                 "neighbours on the disk (without the map the file is read as one stretch and "
+                 "the run log says so), and in an image an unfinished line is cut where the "
+                 "next one starts. A line cut that way is reported as far as it reads, so a "
+                 "handful of rows can differ between inputs: on the tested unit the image and "
+                 "the other two inputs together differed by zero to two rows per artifact. A "
+                 "row records that the module logged that location for the vehicle's charge "
+                 "settings. It does not establish that the vehicle was there, or when.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -111,36 +114,39 @@ __artifacts_v2__ = {
                  "copies), a file of the storage volume's free space "
                  "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
                  "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
-                 "input is the acquisition folder. The log files roll, and a rolled-out file's "
-                 "blocks are released, not erased, so the free space and the image hold log "
-                 "text the files no longer do. Nothing is carved by file type and no file "
-                 "system is followed: a line is found by its own shape, a date and time ending "
-                 "in Z, a host, a process, a component and a sequence id. Almost all of the "
-                 "log is developer tracing, so only one component's lines are read here. "
-                 "Tested on one Ford SYNC 4 unit. Its logical zip holds three days of log, "
-                 "2024-03-27 to 2024-03-29; its raw image holds 718,195 log lines against "
-                 "about 107,000 in the files, and 85 percent of them sit in blocks the volume "
-                 "marks free. Each line's time carries a Z and is reported as the line states "
-                 "it; a 1970 time, written before the clock was set, is left empty. A line "
-                 "found in more than one input is reported once. Rows come from the navigation "
-                 "application's analytics lines: a header naming the event (search started, "
-                 "resultFound or complete) followed by a line of attributes, paired in time "
-                 "order and grouped on the search id. The logical zip gave 30 rows; the raw "
-                 "image gave 98, from 2023-06-12 to 2024-03-29, 78 with a start line and 20 "
-                 "without. The log states that the position and text attributes are redacted, "
-                 "and they are: no search text, result name or coordinate is in the log, so "
-                 "none is reported. What remains is the search type (Coordinate 32, POI 21, "
-                 "Category 16, SavedPlace 9 on the image), the options, a POI category, the "
-                 "voice search flag, the provider and the duration in milliseconds, all as "
-                 "stored. Result Lines counts the resultFound lines for that search id, up to "
-                 "167. A block can end in the middle of a line. In a free space file the run "
-                 "map is used so that a line is never read across two runs that were not "
-                 "neighbours on the disk, and in an image an unfinished line is cut where the "
-                 "next one starts. A line cut that way is reported as far as it reads, so a "
-                 "handful of rows can differ between inputs: on the tested unit the image held "
-                 "one to two rows per artifact that the files and the free space file together "
-                 "did not. A row records that the navigation application logged a search. It "
-                 "does not establish what was searched for or who searched.",
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from the navigation application's analytics lines: a header naming "
+                 "the event (search started, resultFound or complete) followed by a line of "
+                 "attributes, paired in time order and grouped on the search id. The logical "
+                 "zip gave 30 rows; the raw image gave 98, from 2023-06-12 to 2024-03-29, 78 "
+                 "with a start line and 20 without. The log states that the position and text "
+                 "attributes are redacted, and in the analytics lines read here they are: "
+                 "those lines name the attributes and carry no values, so none is reported. "
+                 "What remains is the search type (Coordinate 32, POI 21, Category 16, "
+                 "SavedPlace 9 on the image), the options, a POI category, the isASRSearch "
+                 "value (the same on every row of the tested unit), the provider and the "
+                 "duration in milliseconds, all as stored. Result Lines counts the resultFound "
+                 "lines for that search id, up to 167. A block can end in the middle of a "
+                 "line. In a free space file with its run map present, a line is not read "
+                 "across two runs that were not neighbours on the disk (without the map the "
+                 "file is read as one stretch and the run log says so), and in an image an "
+                 "unfinished line is cut where the next one starts. A line cut that way is "
+                 "reported as far as it reads, so a handful of rows can differ between inputs: "
+                 "on the tested unit the image and the other two inputs together differed by "
+                 "zero to two rows per artifact. A row records that the navigation application "
+                 "logged a search. It does not establish what was searched for or who "
+                 "searched.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -154,10 +160,10 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "search",
     },
-    "ford_sync4_gps_positions": {
-        "name": "Ford SYNC 4 - GPS Positions In Log",
-        "description": "Positions in the platform log's location service lines, each with its "
-                       "log time, the kind of line it came from and the result, altitude or "
+    "ford_sync4_positions": {
+        "name": "Ford SYNC 4 - Positions In Log",
+        "description": "Positions in the platform log's lbs component lines, each with its log "
+                       "time, the kind of line it came from and the result, altitude or "
                        "heading the line states.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
@@ -171,38 +177,41 @@ __artifacts_v2__ = {
                  "copies), a file of the storage volume's free space "
                  "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
                  "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
-                 "input is the acquisition folder. The log files roll, and a rolled-out file's "
-                 "blocks are released, not erased, so the free space and the image hold log "
-                 "text the files no longer do. Nothing is carved by file type and no file "
-                 "system is followed: a line is found by its own shape, a date and time ending "
-                 "in Z, a host, a process, a component and a sequence id. Almost all of the "
-                 "log is developer tracing, so only one component's lines are read here. "
-                 "Tested on one Ford SYNC 4 unit. Its logical zip holds three days of log, "
-                 "2024-03-27 to 2024-03-29; its raw image holds 718,195 log lines against "
-                 "about 107,000 in the files, and 85 percent of them sit in blocks the volume "
-                 "marks free. Each line's time carries a Z and is reported as the line states "
-                 "it; a 1970 time, written before the clock was set, is left empty. A line "
-                 "found in more than one input is reported once. Rows come from two lines of "
-                 "the lbs component: 'Trimble Output res=<result> lat=, lon=, alt=' and "
-                 "'UbloxReader: lat = , lon = , heading = '. Latitude and longitude are the "
-                 "decimal degrees the line prints. The logical zip gave 120 rows; the raw "
-                 "image gave 2,381, 1,716 from the first line and 665 from the second, from "
-                 "2023-07 to 2024-03 with 2,284 of them in 2024-03. Result is the first line's "
-                 "own word, Success on 1,632 rows and Failure on 84; a Failure row and the "
-                 "three rows with a latitude of zero are reported as the log states them and "
-                 "should not be read as fixes. The raw-image rows were compared with an "
-                 "independent selection of log lines from the same image: 2,377 of its 2,378 "
-                 "distinct positions are among them with the same time and coordinates. Which "
-                 "receiver or computation each line reports, and how the two relate, is not "
-                 "established here; the labels are the log's own words. Times Found counts how "
-                 "often the same line was found. A block can end in the middle of a line. In a "
-                 "free space file the run map is used so that a line is never read across two "
-                 "runs that were not neighbours on the disk, and in an image an unfinished "
-                 "line is cut where the next one starts. A line cut that way is reported as "
-                 "far as it reads, so a handful of rows can differ between inputs: on the "
-                 "tested unit the image held one to two rows per artifact that the files and "
-                 "the free space file together did not. A row records that the module logged "
-                 "that position at that time. It does not establish who was driving.",
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from two lines of the lbs component: 'Trimble Output res=<result> "
+                 "lat=, lon=, alt=' and 'UbloxReader: lat = , lon = , heading = '. Latitude "
+                 "and longitude are the decimal numbers the line prints as lat and lon, with "
+                 "no unit stated; all were within the range of degrees on the tested unit. The "
+                 "logical zip gave 120 rows; the raw image gave 2,381, 1,716 from the first "
+                 "line and 665 from the second, from 2023-07 to 2024-03 with 2,284 of them in "
+                 "2024-03. Result is the first line's own word, Success on 1,632 rows and "
+                 "Failure on 84; a Failure row, three of which have a latitude of zero, is "
+                 "reported as the log states it and should not be read as a fix. The raw-image "
+                 "rows were compared with a list of log lines from the same image made by "
+                 "another tool (a file kept beside the image, its maker not recorded): 2,377 "
+                 "of its 2,378 distinct positions are among them with the same time and "
+                 "coordinates. Which receiver or computation each line reports, and how the "
+                 "two relate, is not established here; the labels are the log's own words. "
+                 "Times Found counts how often the same line was found. A block can end in the "
+                 "middle of a line. In a free space file with its run map present, a line is "
+                 "not read across two runs that were not neighbours on the disk (without the "
+                 "map the file is read as one stretch and the run log says so), and in an "
+                 "image an unfinished line is cut where the next one starts. A line cut that "
+                 "way is reported as far as it reads, so a handful of rows can differ between "
+                 "inputs: on the tested unit the image and the other two inputs together "
+                 "differed by zero to two rows per artifact. A row records that the module "
+                 "logged that position at that time. It does not establish who was driving.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -218,10 +227,10 @@ __artifacts_v2__ = {
     },
     "ford_sync4_wifi_access_points": {
         "name": "Ford SYNC 4 - Wi-Fi Access Points In Log",
-        "description": "Wi-Fi access points named in the platform log's connectivity manager "
-                       "scan lines, one row for each network name and address, with the first "
-                       "and last time it was logged, the number of lines, the strongest signal "
-                       "and the channels.",
+        "description": "Wi-Fi access points named in the platform log's CM component scan "
+                       "result lines, one row for each network name and address, with the "
+                       "first and last time it was logged, the number of lines, the strongest "
+                       "signal and the channels.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-10-09",
@@ -234,36 +243,37 @@ __artifacts_v2__ = {
                  "copies), a file of the storage volume's free space "
                  "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
                  "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
-                 "input is the acquisition folder. The log files roll, and a rolled-out file's "
-                 "blocks are released, not erased, so the free space and the image hold log "
-                 "text the files no longer do. Nothing is carved by file type and no file "
-                 "system is followed: a line is found by its own shape, a date and time ending "
-                 "in Z, a host, a process, a component and a sequence id. Almost all of the "
-                 "log is developer tracing, so only one component's lines are read here. "
-                 "Tested on one Ford SYNC 4 unit. Its logical zip holds three days of log, "
-                 "2024-03-27 to 2024-03-29; its raw image holds 718,195 log lines against "
-                 "about 107,000 in the files, and 85 percent of them sit in blocks the volume "
-                 "marks free. Each line's time carries a Z and is reported as the line states "
-                 "it; a 1970 time, written before the clock was set, is left empty. A line "
-                 "found in more than one input is reported once. Rows come from the "
-                 "connectivity manager's scan result lines, 'ap[n] ssid = , bssid = , sec = , "
-                 "rssi = , chan = '. The log wraps the name and the address in <SD2> markers, "
-                 "which are removed. Lines are folded on the name and address. The logical zip "
-                 "gave 2 rows; the raw image gave 164 rows from 759 lines, from 2023-05-22 to "
-                 "2024-03-29, every one with a name and a six-byte address. The raw-image rows "
-                 "were compared with an independent selection of log lines from the same "
-                 "image: all 164 of its distinct name and address pairs are among them. "
-                 "Strongest Signal is the highest rssi among the lines, and Security Values "
-                 "are the sec numbers seen, as stored; nothing available here documents the "
-                 "sec numbers. A scan line shows that the access point was in range of the "
-                 "vehicle when the module scanned. It does not establish that the module "
-                 "connected to it. A block can end in the middle of a line. In a free space "
-                 "file the run map is used so that a line is never read across two runs that "
-                 "were not neighbours on the disk, and in an image an unfinished line is cut "
-                 "where the next one starts. A line cut that way is reported as far as it "
-                 "reads, so a handful of rows can differ between inputs: on the tested unit "
-                 "the image held one to two rows per artifact that the files and the free "
-                 "space file together did not.",
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from the CM component's scan result lines, 'ap[n] ssid = , bssid = "
+                 ", sec = , rssi = , chan = '. The log wraps the name and the address in <SD2> "
+                 "markers, which are removed. Lines are folded on the name and address. The "
+                 "logical zip gave 2 rows; the raw image gave 164 rows from 759 lines, from "
+                 "2023-05-22 to 2024-03-29, every one with a name and a six-byte address. The "
+                 "raw-image rows were compared with a list of log lines from the same image "
+                 "made by another tool (a file kept beside the image, its maker not recorded): "
+                 "all 164 of its distinct name and address pairs are among them. Strongest "
+                 "Signal is the highest rssi among the lines, and Security Values are the sec "
+                 "numbers seen, as stored; nothing available here documents the sec numbers. A "
+                 "row records that the module logged that access point in a scan result with a "
+                 "signal value. It does not establish that the module connected to it. A block "
+                 "can end in the middle of a line. In a free space file with its run map "
+                 "present, a line is not read across two runs that were not neighbours on the "
+                 "disk (without the map the file is read as one stretch and the run log says "
+                 "so), and in an image an unfinished line is cut where the next one starts. A "
+                 "line cut that way is reported as far as it reads, so a handful of rows can "
+                 "differ between inputs: on the tested unit the image and the other two inputs "
+                 "together differed by zero to two rows per artifact.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -294,38 +304,42 @@ __artifacts_v2__ = {
                  "copies), a file of the storage volume's free space "
                  "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
                  "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
-                 "input is the acquisition folder. The log files roll, and a rolled-out file's "
-                 "blocks are released, not erased, so the free space and the image hold log "
-                 "text the files no longer do. Nothing is carved by file type and no file "
-                 "system is followed: a line is found by its own shape, a date and time ending "
-                 "in Z, a host, a process, a component and a sequence id. Almost all of the "
-                 "log is developer tracing, so only one component's lines are read here. "
-                 "Tested on one Ford SYNC 4 unit. Its logical zip holds three days of log, "
-                 "2024-03-27 to 2024-03-29; its raw image holds 718,195 log lines against "
-                 "about 107,000 in the files, and 85 percent of them sit in blocks the volume "
-                 "marks free. Each line's time carries a Z and is reported as the line states "
-                 "it; a 1970 time, written before the clock was set, is left empty. A line "
-                 "found in more than one input is reported once. Rows come from five lines: "
-                 "the navigation engine's sigDoorStatus, sigGearPosition and "
-                 "sigSetOdometerValue lines, the navigation service's current street line, and "
-                 "a line that states the driver door and ignition status together. Values is "
-                 "the text of the line after its label, as stored: door lines give a number "
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from five lines: the navigation engine's sigDoorStatus, "
+                 "sigGearPosition and sigSetOdometerValue lines, the navigation service's "
+                 "current street line, and a line that states the driver door and ignition "
+                 "status together. Values is the text of the line after its label, with a "
+                 "trailing 'successful' removed from street lines: door lines give a number "
                  "for each door and the tailgate, gear and ignition lines a number, odometer "
-                 "lines a number with no unit stated, and street lines a name and a speed "
-                 "limit. Nothing available here documents the numbers, so none is relabelled. "
-                 "The logical zip gave 18 rows; the raw image gave 370 from 2023-07-18 to "
-                 "2024-03-29: gear 193, door 108, odometer 31, current street 19, ignition "
-                 "with driver door 19. The door, gear and odometer rows were compared with an "
-                 "independent selection of log lines from the same image: 318 of its 319 "
-                 "distinct lines are among them. Times Found counts how often the same line "
-                 "was found. A block can end in the middle of a line. In a free space file the "
-                 "run map is used so that a line is never read across two runs that were not "
-                 "neighbours on the disk, and in an image an unfinished line is cut where the "
-                 "next one starts. A line cut that way is reported as far as it reads, so a "
-                 "handful of rows can differ between inputs: on the tested unit the image held "
-                 "one to two rows per artifact that the files and the free space file together "
-                 "did not. A row records that the module logged that line. It does not "
-                 "establish who opened a door or drove the vehicle.",
+                 "lines a number with no unit stated, and street lines three labelled fields, "
+                 "the first a name that can be empty. Nothing available here documents the "
+                 "numbers, so none is relabelled. The logical zip gave 18 rows; the raw image "
+                 "gave 370 from 2023-07-18 to 2024-03-29: gear 193, door 108, odometer 31, "
+                 "current street 19, ignition with driver door 19. Three of the 108 door rows "
+                 "on the image were cut lines and carry unrelated text after the first value. "
+                 "The door, gear and odometer rows were compared with a list of log lines from "
+                 "the same image made by another tool (a file kept beside the image, its maker "
+                 "not recorded): 318 of its 319 distinct lines are among them. Times Found "
+                 "counts how often the same line was found. A block can end in the middle of a "
+                 "line. In a free space file with its run map present, a line is not read "
+                 "across two runs that were not neighbours on the disk (without the map the "
+                 "file is read as one stretch and the run log says so), and in an image an "
+                 "unfinished line is cut where the next one starts. A line cut that way is "
+                 "reported as far as it reads, so a handful of rows can differ between inputs: "
+                 "on the tested unit the image and the other two inputs together differed by "
+                 "zero to two rows per artifact. A row records that the module logged that "
+                 "line. It does not establish who opened a door or drove the vehicle.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -622,7 +636,7 @@ def ford_sync4_nav_searches(context):
                           _found_in(entry['where'])))
 
     data_headers = (('First Log Time', 'datetime'), ('Complete Log Time', 'datetime'),
-                    'Search Type', 'Search Options', 'POI Category', 'Voice Search (as stored)',
+                    'Search Type', 'Search Options', 'POI Category', 'isASRSearch (as stored)',
                     'Result Lines', 'Search Provider', 'Duration Milliseconds (as stored)',
                     'Start Line Found', 'Search ID', 'Found In')
     return data_headers, data_list, '\n'.join(sources)
@@ -636,7 +650,7 @@ def _number(text):
 
 
 @artifact_processor
-def ford_sync4_gps_positions(context):
+def ford_sync4_positions(context):
     lines, sources = _log_lines(context)
     data_list = []
     for stamp, component, text, where, times, _sequence in lines:
