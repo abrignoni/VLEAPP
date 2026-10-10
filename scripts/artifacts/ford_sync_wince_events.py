@@ -43,25 +43,38 @@ __artifacts_v2__ = {
                        "tick count, a clock derived from the nearest line that states a "
                        "date and time, and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.4",
+        "version": "0.5",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "Ford SYNC WinCE",
         "notes": "From Windows/LogFiles/MsgLog<n>.txt and from DiskImages/partition<n>.img, "
                  "the raw partition an acquisition carries, which is read as bytes with no "
                  "file system followed. Tested on ten units from their acquisition folders: "
                  "eight SYNC Gen1 (Ford Escape 2010 to 2014, Edge 2013, Fusion 2019) and two "
-                 "SYNC Gen2 (2014 Ford Edge SEL, 2011 Ford Explorer XLT). They gave 2,439 rows "
-                 "in all, 2,230 of them on the two Gen2 units; one Gen2 unit had no log file "
+                 "SYNC Gen2 (2014 Ford Edge SEL, 2011 Ford Explorer XLT). They gave 2,401 rows "
+                 "in all, 2,226 of them on the two Gen2 units; one Gen2 unit had no log file "
                  "in its extracted set and gave 886 rows from its partition image alone. The "
                  "image holds log blocks the file system has released, so it gives more than "
                  "the files. The log text saved beside a crash dump, "
-                 "Windows/DumpFiles/<dump>/<dump>.RTL, is read too; on the tested acquisition "
-                 "folders every event line in it was also found in the partition image, so it "
-                 "added no row there, and from the extracted file set alone it added 41 rows "
-                 "on three units. A line found in more than one place is reported once, with "
-                 "Times Found. Which lines exist depends on the generation: door, gear, park "
+                 "Windows/DumpFiles/<dump>/<dump>.RTL, is read too; on three tested units it "
+                 "held 40 distinct event lines, none of them in a log file and all of them "
+                 "also in the partition image, so it added no row to those runs and is the "
+                 "Source File of "
+                 "those 40 rows. A line found in more than one place is reported once, with "
+                 "Times Found; lines are the same line when the event, detail, values and "
+                 "tick are the same. When an extracted file and the partition image both hold "
+                 "the line, the row keeps the extracted file's reading (the clock columns, "
+                 "Offset and Source File) and the image is added to Times Found and Where "
+                 "Found; the image's reading is kept only when the file's has no derived "
+                 "clock and the image's has one, which did not occur on the tested units. 40 "
+                 "lines, on five Gen1 units and the 2014 Edge, had two readings that "
+                 "differed: on 37 one reading had a derived clock and the other none; on one "
+                 "both gave the same derived clock and one reading lacked the clock bias and "
+                 "the before clock; on two both gave the same derived clock and only the "
+                 "extracted file's reading lacked the before clock. None had two readings "
+                 "with different derived clocks. "
+                 "Which lines exist depends on the generation: door, gear, park "
                  "lamp, ignition, reboot and USB lines came only from Gen2, phone lines only "
                  "from the Gen1 version 5 unit, and odometer lines from both. No event line "
                  "carries a date. Two other lines do: the log save line ('start saving "
@@ -72,8 +85,17 @@ __artifacts_v2__ = {
                  "line and the event stand in one unbroken stretch of log text with ticks that "
                  "never go down. Nearest Clock Line, Clock Line Kind and Seconds From Clock "
                  "Line show what it was derived from; the further apart, the more a clock "
-                 "change in between can put it off. 1,520 of the 2,439 rows have a derived "
-                 "clock. The reading of ticks as milliseconds was checked: on the 2014 Edge "
+                 "change in between can put it off. 1,519 of the 2,401 rows have a derived "
+                 "clock. Derived Clock From Clock Line Before and Derived Clock From Clock "
+                 "Line After are worked out the same way from the last clock line written "
+                 "before the event and the first written after it in that stretch, and each "
+                 "is empty when the stretch has no clock line on that side. Derived Clock "
+                 "equalled one of the two on every tested row. 719 rows have the first, 1,209 "
+                 "the second and 409 both. On 123 of the 409 the two differ, and on 44, all "
+                 "on the two Gen2 units, by more than two seconds, from 8 seconds to "
+                 "95,048,841 seconds. Why the two clock lines disagree there is not "
+                 "established, and nothing here says which is right. "
+                 "The reading of ticks as milliseconds was checked: on the 2014 Edge "
                  "all 76 pairs of consecutive clock service lines in one stretch agreed with "
                  "it to within two seconds, and in the four places where a save line and a "
                  "clock service line stood together they gave the same clock to within five "
@@ -105,7 +127,7 @@ __artifacts_v2__ = {
                  "cluster whose line text a listed file also holds, and 'allocated cluster, in "
                  "no listed file' an allocated cluster whose line text no listed file holds. "
                  "The last two are decided by comparing text, not by following each file's "
-                 "clusters. On the 2014 Edge 935 rows sat only in free clusters, 356 only in "
+                 "clusters. On the 2014 Edge 933 rows sat only in free clusters, 355 only in "
                  "allocated clusters in no listed file and 52 in a listed file; on the 2011 "
                  "Explorer 513 and 373, with no listed file holding any. Why those clusters "
                  "are allocated is not established. The eight Gen1 partition images are FAT "
@@ -121,14 +143,14 @@ __artifacts_v2__ = {
         "sample_data": {
             "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 0 rows, no "
                              "event line in the log files or the partition image",
-            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2 | 7 rows",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, acquisition folder | 6 rows",
             "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 8 rows",
-            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 12 rows",
-            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 22 rows",
-            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 50 rows",
-            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 1344 rows",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 11 rows",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 21 rows",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 40 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 1340 rows",
             "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 886 rows",
-            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 74 rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 53 rows",
             "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, acquisition folder | 36 rows",
         },
         "output_types": "standard",
@@ -142,7 +164,7 @@ __artifacts_v2__ = {
                        "count, a clock derived from the nearest line that states a date and "
                        "time, and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -174,10 +196,16 @@ __artifacts_v2__ = {
                  "Clock Line, Clock Line Kind, Seconds From Clock Line and Clock Bias are "
                  "worked out as in the Log Events artifact, whose notes give the checks behind "
                  "them; 345 of the 425 rows have a derived clock, and on the Gen1 units that "
-                 "clock is in 2003, the unit's own clock and not a calendar date to rely on. A "
+                 "clock is in 2003, the unit's own clock and not a calendar date to rely on. "
+                 "Derived Clock From Clock Line Before and Derived Clock From Clock Line After "
+                 "are as in that artifact too: 127 rows have both, and on 50 the two differ by "
+                 "more than two seconds, which of them is right not being established. A "
                  "line found in a log file and again in the partition image is one row, with "
-                 "Times Found, and the row keeps the reading that has a clock when only one "
-                 "does. Where Found is as in the Log Events artifact: on the two Gen2 units "
+                 "Times Found. The row keeps the extracted file's reading (the clock columns, "
+                 "Offset and Source File) and the image is added to Times Found and Where "
+                 "Found; the image's reading is kept only when the file's has no derived "
+                 "clock and the image's has one, which did not occur on the tested units. "
+                 "Where Found is as in the Log Events artifact: on the two Gen2 units "
                  "184 rows sat only in free clusters, 56 only in allocated clusters in no "
                  "listed file and 18 in a listed file. The image holds blocks of the log the "
                  "file system has released, so the rows are what survived, not a full history. "
@@ -214,7 +242,7 @@ __artifacts_v2__ = {
                        "and primary values and pair order on the line, how many times its line "
                        "was found across the sources and where in the image.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -249,8 +277,10 @@ __artifacts_v2__ = {
                  "which is the unit's own clock and not a calendar date to rely on, and in "
                  "2020 on 2 rows of the Explorer. Where Found is as in the Log Events artifact "
                  "and lists every place the row's lines sat. Source File is the first matched "
-                 "file, in path order, that held the row; on the tested units that is the "
-                 "partition image for every row, and Where Found says where else the line sat. "
+                 "file that held the row, extracted files before the partition image and "
+                 "each in path order; on the tested units that is an extracted file for the "
+                 "30 rows of the Gen1 units and the partition image for the 9 rows of the "
+                 "Gen2 units, and Where Found says where else the line sat. "
                  "The text after pairorder on the line is not surfaced. A row records that the "
                  "module listed the device as paired in its log. It does not establish when "
                  "the device was paired or who carried it.",
@@ -283,7 +313,7 @@ __artifacts_v2__ = {
                        "each with its tick count, a derived clock and where in the image it "
                        "was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -315,9 +345,16 @@ __artifacts_v2__ = {
                  "worked out as in the Log Events artifact, whose notes give the checks "
                  "behind them; 629 of the 837 rows have a derived clock, in 2003 on the Gen1"
                  " units, which is the unit's own clock and not a calendar date to rely on. "
+                 "Derived Clock From Clock Line Before and Derived Clock From Clock Line "
+                 "After are as in that artifact too: 183 rows have both, and on 17 the two "
+                 "differ by more than two seconds, which of them is right not being "
+                 "established. "
                  "A line found in a log file and again in the partition image is one row, "
-                 "with Times Found, and the row keeps the reading that has a clock when only"
-                 " one does. Where Found is as in the Log Events artifact: on the two Gen2 "
+                 "with Times Found. The row keeps the extracted file's reading (the clock "
+                 "columns, Offset and Source File) and the image is added to Times Found and "
+                 "Where Found; the image's reading is kept only when the file's has no "
+                 "derived clock and the image's has one, which did not occur on the tested "
+                 "units. Where Found is as in the Log Events artifact: on the two Gen2 "
                  "units 385 rows sat only in free clusters, 121 only in allocated clusters "
                  "in no listed file and 35 in a listed file. The image holds blocks of the "
                  "log the file system has released, so the rows are what survived, not a "
@@ -355,7 +392,7 @@ __artifacts_v2__ = {
                        "files and the raw partition image, each with its tick count, a derived "
                        "clock and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -384,9 +421,21 @@ __artifacts_v2__ = {
                  "are worked out as in the Log Events artifact, whose notes give the checks "
                  "behind them; 1,424 of the 2,282 rows have a derived clock, in 2003 on the "
                  "Gen1 units, which is the unit's own clock and not a calendar date to rely "
-                 "on. A line found in a log file and again in the partition image is one row, "
-                 "with Times Found, and the row keeps the reading that has a clock when only "
-                 "one does. Where Found is as in the Log Events artifact. The image holds "
+                 "on. Derived Clock From Clock Line Before and Derived Clock From Clock Line "
+                 "After are as in that artifact too: 207 rows have both, and on 158 the two "
+                 "differ by more than two seconds, which of them is right not being "
+                 "established. A line found in a log file and again in the partition image is "
+                 "one row, "
+                 "with Times Found. The row keeps the extracted file's reading (the clock "
+                 "columns, Offset and Source File) and the image is added to Times Found and "
+                 "Where Found; the image's reading is kept only when the file's has no "
+                 "derived clock and the image's has one, which did not occur on the tested "
+                 "units. On the 2019 Fusion 16 lines got a derived clock from the image that "
+                 "differed from the one the log file gives, by 148 to 5,364,340 seconds: each "
+                 "stands between two log save lines of the log file whose clocks disagree, "
+                 "and the image's stretch held only the earlier one. The row shows the log "
+                 "file's reading, with both clocks in the before and after columns. Where "
+                 "Found is as in the Log Events artifact. The image holds "
                  "blocks of the log the file system has released, so the rows are what "
                  "survived, not a full history. A row records that the module logged the line. "
                  "It does not establish who was in the vehicle.",
@@ -418,7 +467,7 @@ __artifacts_v2__ = {
                        "the log files and the raw partition image, with the tick count and where"
                        " in the image the line was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -453,7 +502,8 @@ __artifacts_v2__ = {
                  "and the tick count, where Clock On Line shows what the save line states, and "
                  "the two clocks did not always agree. The remaining 58 and 47 were not "
                  "reproduced either way. A line found in more than one place is one row, with "
-                 "Times Found. Where Found is as in the Log Events artifact; the Gen1 "
+                 "Times Found, and Offset and Source File are the extracted file's when one "
+                 "holds the line. Where Found is as in the Log Events artifact; the Gen1 "
                  "partition images are FAT with 2,048-byte sectors, whose file system this "
                  "artifact does not follow, so their rows read 'file system not read' beside "
                  "'extracted file' when "
@@ -670,8 +720,13 @@ _NOT_LOG_TEXT = re.compile(rb'[^\t\r\n\x20-\x7e]')
 
 
 def _sources(context):
-    """Matched files as (path, bytes-like, close), mapping images instead of reading them."""
-    for file_found in sorted({str(f) for f in context.get_files_found()}):
+    """Matched files as (path, bytes-like), mapping images instead of reading them.
+
+    Extracted files come before partition images, each in path order, so the first
+    reading of a line found in both is the extracted file's.
+    """
+    for file_found in sorted({str(f) for f in context.get_files_found()},
+                             key=lambda path: (_is_partition_image(path), path)):
         if os.path.isdir(file_found):
             continue
         try:
@@ -919,19 +974,27 @@ def _nearest(anchors, tick):
     return best
 
 
+def _clock_from(anchor, tick):
+    """The clock a clock line gives a tick: its clock plus the ticks between, as milliseconds."""
+    return (anchor[1] + timedelta(milliseconds=tick - anchor[0])).strftime('%Y-%m-%d %H:%M:%S')
+
+
 def _events(data, pattern=_EVENT, describe=_describe):
-    """Event rows of one source, each with the clock derived from the nearest clock line."""
+    """Event rows of one source, each with the clock derived from the nearest clock line,
+    from the clock line before it and from the clock line after it in the same stretch."""
     for run in _sessions(data, pattern):
         anchors = []
+        positions = []
         biases = []
-        for match in run:
+        for position, match in enumerate(run):
             stated = _clock_line(match)
             if stated is not None:
                 anchors.append((int(match.group('tick')),) + stated)
+                positions.append(position)
             elif match.group('bias'):
                 biases.append((int(match.group('tick')), int(match.group('bias'))))
         last_odometer = None
-        for match in run:
+        for position, match in enumerate(run):
             described = describe(match)
             if described is None:
                 continue
@@ -941,17 +1004,22 @@ def _events(data, pattern=_EVENT, describe=_describe):
                 if described[2:] == last_odometer:
                     continue
                 last_odometer = described[2:]
-            derived = anchor_clock = kind = ''
+            derived = before = after = anchor_clock = kind = ''
             seconds = bias = ''
             if anchors:
                 anchor_tick, clock, kind = _nearest(anchors, tick)
                 seconds = round((tick - anchor_tick) / 1000.0, 1)
-                derived = (clock + timedelta(milliseconds=tick - anchor_tick)).strftime(
-                    '%Y-%m-%d %H:%M:%S')
+                derived = _clock_from((anchor_tick, clock), tick)
                 anchor_clock = clock.strftime('%Y-%m-%d %H:%M:%S')
+                following = bisect.bisect_left(positions, position)
+                if following:
+                    before = _clock_from(anchors[following - 1], tick)
+                if following < len(anchors):
+                    after = _clock_from(anchors[following], tick)
             if biases:
                 bias = _nearest(biases, tick)[1]
-            yield ((derived,) + described + (tick, anchor_clock, kind, seconds, bias),
+            yield ((derived, before, after) + described
+                   + (tick, anchor_clock, kind, seconds, bias),
                    match.start(), bytes(match.group(0)))
 
 
@@ -996,6 +1064,9 @@ def _collect(context, label, find, listed_lines):
         logfunc(f'Ford SYNC WinCE {label}: {len(hits)} lines in '
                 f'{os.path.basename(file_found)}')
         if image is not None:
+            if image.unread_files:
+                logfunc(f'Ford SYNC WinCE {label}: {image.unread_files} listed files of '
+                        f'{os.path.basename(file_found)} could not be read')
             image.close()
     return rows, source_paths
 
@@ -1004,11 +1075,13 @@ def _one_row_a_line(context, rows):
     """Report rows, one a log line, from what _collect gathered.
 
     One line can be found in a log file and again in the partition image, where the
-    stretch around it can lack a clock line. Keep one row a line, the one with a clock.
+    stretch around it can lack a clock line or give another clock. Keep one row a line:
+    the first reading, which is the extracted file's when it holds the line (_sources
+    puts those first), unless that reading has no clock and a later one has.
     """
     lines = {}
     for row, (found, offset, path, places) in rows.items():
-        key = row[1:6]
+        key = row[3:8]
         if key not in lines:
             lines[key] = [row, found, offset, path, set(places)]
             continue
@@ -1019,7 +1092,7 @@ def _one_row_a_line(context, rows):
             kept[0], kept[2], kept[3] = row, offset, path
     data_list = [row + (found, _places(places), offset, context.get_relative_path(path))
                  for row, found, offset, path, places in lines.values()]
-    data_list.sort(key=lambda row: (row[0] == '', row[0], row[5]))
+    data_list.sort(key=lambda row: (row[0] == '', row[0], row[7]))
     return data_list
 
 
@@ -1029,10 +1102,12 @@ def ford_sync_wince_log_device_activity_lines(context):
         context, 'log device activity lines',
         lambda data: _events(data, _ACTIVITY, _describe_activity),
         lambda image: _listed_event_lines(image, _ACTIVITY, _describe_activity))
-    data_list = [(row[0], row[1]) + row[3:] for row in _one_row_a_line(context, rows)]
+    data_list = [row[:4] + row[5:] for row in _one_row_a_line(context, rows)]
 
-    data_headers = (('Derived Clock', 'datetime'), 'Event', 'Device Address',
-                    'Values After Address (as stored)', 'Tick',
+    data_headers = (('Derived Clock', 'datetime'),
+                    ('Derived Clock From Clock Line Before', 'datetime'),
+                    ('Derived Clock From Clock Line After', 'datetime'), 'Event',
+                    'Device Address', 'Values After Address (as stored)', 'Tick',
                     ('Nearest Clock Line', 'datetime'), 'Clock Line Kind',
                     'Seconds From Clock Line', 'Clock Bias (as stored)', 'Times Found',
                     'Where Found', 'Offset', 'Source File')
@@ -1045,9 +1120,12 @@ def ford_sync_wince_log_power_lines(context):
         context, 'log power lines',
         lambda data: _events(data, _POWER, _describe_power),
         lambda image: _listed_event_lines(image, _POWER, _describe_power))
-    data_list = [row[:3] + row[5:] for row in _one_row_a_line(context, rows)]
+    data_list = [row[:5] + row[7:] for row in _one_row_a_line(context, rows)]
 
-    data_headers = (('Derived Clock', 'datetime'), 'Event', 'State Or Change', 'Tick',
+    data_headers = (('Derived Clock', 'datetime'),
+                    ('Derived Clock From Clock Line Before', 'datetime'),
+                    ('Derived Clock From Clock Line After', 'datetime'), 'Event',
+                    'State Or Change', 'Tick',
                     ('Nearest Clock Line', 'datetime'), 'Clock Line Kind',
                     'Seconds From Clock Line', 'Clock Bias (as stored)', 'Times Found',
                     'Where Found', 'Offset', 'Source File')
@@ -1061,8 +1139,10 @@ def ford_sync_wince_log_phone_lines(context):
         lambda image: _listed_event_lines(image, _PHONE, _describe_phone))
     data_list = _one_row_a_line(context, rows)
 
-    data_headers = (('Derived Clock', 'datetime'), 'Event', 'Device Name',
-                    'Value', 'Attempt', 'Tick',
+    data_headers = (('Derived Clock', 'datetime'),
+                    ('Derived Clock From Clock Line Before', 'datetime'),
+                    ('Derived Clock From Clock Line After', 'datetime'), 'Event',
+                    'Device Name', 'Value', 'Attempt', 'Tick',
                     ('Nearest Clock Line', 'datetime'), 'Clock Line Kind',
                     'Seconds From Clock Line', 'Clock Bias (as stored)',
                     'Times Found', 'Where Found', 'Offset', 'Source File')
@@ -1079,7 +1159,7 @@ def ford_sync_wince_log_paired_device_lines(context):
     # many lines held it and the earliest and latest clock derived for them.
     devices = {}
     for row, (found, _offset, path, places) in rows.items():
-        derived, _event, name, address, numbers = row[:5]
+        derived, name, address, numbers = row[0], row[4], row[5], row[6]
         key = (name, address) + numbers
         if key not in devices:
             devices[key] = [found, derived, derived, path, set(places)]
@@ -1121,35 +1201,14 @@ def ford_sync_wince_log_clock_lines(context):
 
 @artifact_processor
 def ford_sync_wince_log_events(context):
-    rows = {}
-    source_paths = []
-    for file_found, data in _sources(context):
-        hits = list(_events(data))
-        image = _ExfatImage(file_found) if _is_partition_image(file_found) else None
-        listed = _listed_event_lines(image) if image is not None and image.readable and hits \
-            else set()
-        for row, offset, line in hits:
-            place = _EXTRACTED_FILE if image is None else image.place(offset, line in listed)
-            if row in rows:
-                rows[row][0] += 1
-                rows[row][3].add(place)
-            else:
-                rows[row] = [1, offset, file_found, {place}]
-                if file_found not in source_paths:
-                    source_paths.append(file_found)
-        logfunc(f'Ford SYNC WinCE log events: {len(hits)} event lines in '
-                f'{os.path.basename(file_found)}')
-        if image is not None:
-            if image.unread_files:
-                logfunc(f'Ford SYNC WinCE log events: {image.unread_files} listed files of '
-                        f'{os.path.basename(file_found)} could not be read')
-            image.close()
-    data_list = [row + (found, _places(places), offset, context.get_relative_path(path))
-                 for row, (found, offset, path, places) in rows.items()]
-    data_list.sort(key=lambda row: (row[0] == '', row[0], row[5]))
+    rows, source_paths = _collect(context, 'log events', _events, _listed_event_lines)
+    data_list = _one_row_a_line(context, rows)
 
-    data_headers = (('Derived Clock', 'datetime'), 'Event', 'Detail', 'Value (as stored)',
-                    'Second Value (as stored)', 'Tick', ('Nearest Clock Line', 'datetime'),
+    data_headers = (('Derived Clock', 'datetime'),
+                    ('Derived Clock From Clock Line Before', 'datetime'),
+                    ('Derived Clock From Clock Line After', 'datetime'), 'Event', 'Detail',
+                    'Value (as stored)', 'Second Value (as stored)', 'Tick',
+                    ('Nearest Clock Line', 'datetime'),
                     'Clock Line Kind', 'Seconds From Clock Line',
                     'Clock Bias Minutes (as stored)', 'Times Found', 'Where Found', 'Offset',
                     'Source File')
