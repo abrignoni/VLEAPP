@@ -581,18 +581,16 @@ __artifacts_v2__ = {
                  "image itself can be the input, as a raw image: the files are then read from "
                  "the image's EFS partitions, where a partition can sit without the var folder "
                  "in front of its paths. Source File then starts with the volume. Deleted "
-                 "files are not read for this artifact. The image gives the same rows or "
-                 "fewer. On the four generation 9 images the reader lists no ver.txt, so the "
-                 "version file it would name is not reported, although var/fac holds it. On "
-                 "xtrmp_item115 rr_db.dat is listed under var/staging, which the paths do not "
-                 "match. Rows from the flash image against rows from the extracted file set: "
+                 "files are not read for this artifact. The image gives the same number of "
+                 "rows or fewer. On the four generation 9 images the reader lists no ver.txt, "
+                 "so the version file it would name is not reported, although var/fac holds "
+                 "it. Rows from the flash image against rows from the extracted file set: "
                  "xtrmp_item020 0 rows against 6, 0 not in the file set and 6 of the file set "
                  "not among them; xtrmp_item027 0 rows against 6, 0 not in the file set and 6 "
                  "of the file set not among them; xtrmp_item030 2 rows against 6, 2 not in the "
                  "file set and 6 of the file set not among them; xtrmp_item031 0 rows against "
                  "6, 0 not in the file set and 6 of the file set not among them; xtrmp_item081 "
-                 "7 rows against 7; xtrmp_item115 7 rows against 9, 0 not in the file set and "
-                 "2 of the file set not among them.",
+                 "7 rows against 7; xtrmp_item115 9 rows against 9.",
         "paths": (
             '*/var/ver.txt*',
             '*/var/fac/ver_*.txt*',
@@ -600,7 +598,7 @@ __artifacts_v2__ = {
             '*/DevInfo/Ext/VIN*',
             '*/sysinfo/vifdata.dat*',
             '*/sysinfo/tcuid.dat*',
-            '*/sysinfo/rr_db.dat*',
+            '*/rr_db.dat*',
         ),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 6 "
