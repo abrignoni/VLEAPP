@@ -212,7 +212,7 @@ __artifacts_v2__ = {
                        "the log files and the raw partition image, with the tick count and where"
                        " in the image the line was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -237,16 +237,24 @@ __artifacts_v2__ = {
                  "a Bias line beside it, which the Log Events artifact shows and which is not "
                  "applied here. An independent parse of the two Gen2 units listed 414 and 239 "
                  "distinct time update times; all 407 and 229 clock service readings here are "
-                 "among them. Its log saving times matched 23 of 182 and 17 of 136 log save "
-                 "readings here, and why the rest differ was not resolved. A line found in "
-                 "more than one place is one row, with Times Found. Where Found is as in the "
-                 "Log Events artifact; the Gen1 partition images are FAT with 2,048-byte "
-                 "sectors, which the reader does not read, so their rows read 'file system not "
-                 "read' beside 'extracted file' when a log file held the line too. On the Gen1 "
-                 "units 14 of the 123 rows came from the partition image alone. The Log Save "
-                 "Clock Readings artifact lists the save lines of the log files with their "
-                 "line numbers; this one adds the partition image and the clock service line. "
-                 "A row records what the module's clock read when it wrote the line.",
+                 "among them. Its log save start times equal the reading a save line states on "
+                 "22 of 182 and 15 of 136 distinct save readings here. For a further 102 and "
+                 "74, a clock service reading among the 50 clock service lines either side in "
+                 "the image, plus the difference in ticks read as milliseconds, gives that "
+                 "parse's time to within a second. A control that shifted that parse's times "
+                 "by 37 seconds matched 9 and 13 the same way, so a few of these may be "
+                 "chance. That fits that parse working its time out from a clock service line "
+                 "and the tick count, where Clock On Line shows what the save line states, and "
+                 "the two clocks did not always agree. The remaining 58 and 47 were not "
+                 "reproduced either way. A line found in more than one place is one row, with "
+                 "Times Found. Where Found is as in the Log Events artifact; the Gen1 "
+                 "partition images are FAT with 2,048-byte sectors, which the reader does not "
+                 "read, so their rows read 'file system not read' beside 'extracted file' when "
+                 "a log file held the line too. On the Gen1 units 14 of the 123 rows came from "
+                 "the partition image alone. The Log Save Clock Readings artifact lists the "
+                 "save lines of the log files with their line numbers; this one adds the "
+                 "partition image and the clock service line. A row records what the module's "
+                 "clock read when it wrote the line.",
         "paths": (
             '*/Windows/LogFiles/MsgLog*.txt*',
             '*/Windows/DumpFiles/*.RTL',
