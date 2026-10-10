@@ -6,8 +6,10 @@ Each line starts with a tick count and none carries a date. Two other lines stat
 date and time: the 'start saving retailmsg' line and, on generation 2, the clock service
 line.
 
-The same lines survive in the raw partition image an acquisition carries, in blocks the
-file system has released, so this module reads both:
+The same lines survive in the raw partition image an acquisition carries, outside the log
+files: on the generation 2 units tested in free clusters and in allocated clusters whose
+text no listed file holds, and on the generation 1 units in the slack of listed files. So
+this module reads both:
 
     Windows/LogFiles/MsgLog<n>.txt      the live log files
     Windows/DumpFiles/<dump>/<dump>.RTL the log text saved beside a crash dump
@@ -21,7 +23,9 @@ same way in an exFAT partition image.
 
 For an exFAT partition image the vendored reader is then asked two things, to say where
 each hit sits: which clusters the allocation bitmap has clear, and what the files the
-directory tree lists contain.
+directory tree lists contain. For a FAT partition image it is asked which clusters the
+allocation table has free and where the cluster chain of each listed file lies, and a hit
+is placed by its offset.
 """
 
 import bisect
@@ -43,7 +47,7 @@ __artifacts_v2__ = {
                        "tick count, a clock derived from the nearest line that states a "
                        "date and time, and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.5",
+        "version": "0.6",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -55,8 +59,10 @@ __artifacts_v2__ = {
                  "SYNC Gen2 (2014 Ford Edge SEL, 2011 Ford Explorer XLT). They gave 2,401 rows "
                  "in all, 2,226 of them on the two Gen2 units; one Gen2 unit had no log file "
                  "in its extracted set and gave 886 rows from its partition image alone. The "
-                 "image holds log blocks the file system has released, so it gives more than "
-                 "the files. The log text saved beside a crash dump, "
+                 "image holds log text that is in no log file, so it gives more than the "
+                 "files: on the two Gen2 units in free clusters and in allocated clusters whose "
+                 "text no listed file holds, and on the Gen1 units in the slack of listed files. "
+                 "The log text saved beside a crash dump, "
                  "Windows/DumpFiles/<dump>/<dump>.RTL, is read too; on three tested units it "
                  "held 40 distinct event lines, none of them in a log file and all of them "
                  "also in the partition image, so it added no row to those runs and is the "
@@ -131,9 +137,17 @@ __artifacts_v2__ = {
                  "allocated clusters in no listed file and 52 in a listed file; on the 2011 "
                  "Explorer 513 and 373, with no listed file holding any. Why those clusters "
                  "are allocated is not established. The eight Gen1 partition images are FAT "
-                 "with 2,048-byte sectors, whose file system this artifact does not follow, and "
-                 "their rows read "
-                 "'file system not read'. A row records that the module logged that line. It "
+                 "with 2,048-byte sectors. For a FAT image the reader gives the clusters the "
+                 "allocation table has free and the cluster chain of every listed file, so a "
+                 "line is placed by its offset and no text is compared: 'in a listed file' is "
+                 "inside a file's bytes, 'slack of a listed file' is in a cluster of a listed "
+                 "file's chain past the file's recorded size, and 'allocated cluster, in no "
+                 "listed file' is any other byte the table does not have free. On the Gen1 "
+                 "units 16 of the 175 rows sat only in the slack of a listed file and 11 only "
+                 "in a listed file of the image; none sat in a free cluster or outside every "
+                 "listed file's chain. An image the reader does not read as exFAT or FAT, or "
+                 "cannot read, reads 'file system not read'; no tested image did. A row "
+                 "records that the module logged that line. It "
                  "does not establish who opened a door or drove the vehicle.",
         "paths": (
             '*/Windows/LogFiles/MsgLog*.txt*',
@@ -164,7 +178,7 @@ __artifacts_v2__ = {
                        "count, a clock derived from the nearest line that states a date and "
                        "time, and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -207,8 +221,9 @@ __artifacts_v2__ = {
                  "clock and the image's has one, which did not occur on the tested units. "
                  "Where Found is as in the Log Events artifact: on the two Gen2 units "
                  "184 rows sat only in free clusters, 56 only in allocated clusters in no "
-                 "listed file and 18 in a listed file. The image holds blocks of the log the "
-                 "file system has released, so the rows are what survived, not a full history. "
+                 "listed file and 18 in a listed file, and on the Gen1 units 2 of the 167 rows "
+                 "sat only in the slack of a listed file. The image holds log text that no "
+                 "log file holds now, so the rows are what survived, not a full history. "
                  "Other lines of the same connection code, such as the timeout line, are not "
                  "reported. A row records that the module logged the line. It does not "
                  "establish who carried the phone.",
@@ -242,7 +257,7 @@ __artifacts_v2__ = {
                        "and primary values and pair order on the line, how many times its line "
                        "was found across the sources and where in the image.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -313,7 +328,7 @@ __artifacts_v2__ = {
                        "each with its tick count, a derived clock and where in the image it "
                        "was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -356,8 +371,9 @@ __artifacts_v2__ = {
                  "derived clock and the image's has one, which did not occur on the tested "
                  "units. Where Found is as in the Log Events artifact: on the two Gen2 "
                  "units 385 rows sat only in free clusters, 121 only in allocated clusters "
-                 "in no listed file and 35 in a listed file. The image holds blocks of the "
-                 "log the file system has released, so the rows are what survived, not a "
+                 "in no listed file and 35 in a listed file, and on the Gen1 units 4 of the "
+                 "296 rows sat only in the slack of a listed file. The image holds log text "
+                 "that no log file holds now, so the rows are what survived, not a "
                  "full history. A row records that the module logged the line. It does not "
                  "establish who carried the device.",
         "paths": (
@@ -392,7 +408,7 @@ __artifacts_v2__ = {
                        "files and the raw partition image, each with its tick count, a derived "
                        "clock and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -435,8 +451,9 @@ __artifacts_v2__ = {
                  "stands between two log save lines of the log file whose clocks disagree, "
                  "and the image's stretch held only the earlier one. The row shows the log "
                  "file's reading, with both clocks in the before and after columns. Where "
-                 "Found is as in the Log Events artifact. The image holds "
-                 "blocks of the log the file system has released, so the rows are what "
+                 "Found is as in the Log Events artifact; on the Gen1 units 7 of the 1,558 "
+                 "rows sat only in the slack of a listed file. The image holds "
+                 "log text that no log file holds now, so the rows are what "
                  "survived, not a full history. A row records that the module logged the line. "
                  "It does not establish who was in the vehicle.",
         "paths": (
@@ -467,7 +484,7 @@ __artifacts_v2__ = {
                        "the log files and the raw partition image, with the tick count and where"
                        " in the image the line was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.3",
+        "version": "0.4",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -503,12 +520,10 @@ __artifacts_v2__ = {
                  "the two clocks did not always agree. The remaining 58 and 47 were not "
                  "reproduced either way. A line found in more than one place is one row, with "
                  "Times Found, and Offset and Source File are the extracted file's when one "
-                 "holds the line. Where Found is as in the Log Events artifact; the Gen1 "
-                 "partition images are FAT with 2,048-byte sectors, whose file system this "
-                 "artifact does not follow, so their rows read 'file system not read' beside "
-                 "'extracted file' when "
-                 "a log file held the line too. On the Gen1 units 14 of the 123 rows came from "
-                 "the partition image alone. The Log Save Clock Readings artifact lists the "
+                 "holds the line. Where Found is as in the Log Events artifact. On the Gen1 "
+                 "units 14 of the 123 rows came from the partition image alone, and all 14 "
+                 "sat in the slack of a listed file. The Log Save Clock Readings artifact "
+                 "lists the "
                  "save lines of the log files with their line numbers; this one adds the "
                  "partition image and the clock service line. A row records what the module's "
                  "clock read when it wrote the line.",
@@ -594,9 +609,9 @@ __artifacts_v2__ = {
                        "documents sit in a listed file, in an allocated cluster no listed file "
                        "holds, or in a free cluster.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "Ford SYNC WinCE",
         "notes": "From DiskImages/partition<n>.img, the raw partition an acquisition carries. "
@@ -604,9 +619,7 @@ __artifacts_v2__ = {
                  "<Device> XML the module keeps as Windows/phonebook/CH<address>.xml. Only a "
                  "document complete from its opening to its closing tag, in one unbroken "
                  "stretch of the image, is read. Only an exFAT image is searched. Where Found "
-                 "is derived from the allocation bitmap and the files the directory tree lists, "
-                 "and this artifact reads those only for exFAT. Where Found says where the "
-                 "documents holding "
+                 "says where the documents holding "
                  "an entry sit, and lists every place when several documents hold it: 'free "
                  "cluster' is a cluster the bitmap has clear, 'in a listed file' an allocated "
                  "cluster whose document text a listed file also holds, and 'allocated "
@@ -633,9 +646,9 @@ __artifacts_v2__ = {
                  "Documents Holding It held 1 on all 85 Explorer rows and 1 to 3 on the Edge. "
                  "Handset Address held one value on all 75 Edge rows and two across the "
                  "Explorer's 85. "
-                 "The eight SYNC Gen1 partition images run were FAT with 2,048-byte sectors, "
-                 "whose file system this artifact does not follow; they are not searched and "
-                 "gave no rows. An "
+                 "The eight SYNC Gen1 partition images are FAT, are not searched here and gave "
+                 "no rows. Counted apart from this artifact, they hold 1 to 5 call list "
+                 "documents each, 22 in all, and every one sits inside a listed file. An "
                  "entry records that the module held this call list entry at some time. It "
                  "does not establish who used the handset.",
         "paths": ('*/DiskImages/partition*.img',),
@@ -753,10 +766,12 @@ def _sources(context):
 
 _EXTRACTED_FILE = 'extracted file'
 _IN_FILE = 'in a listed file'
+_SLACK = 'slack of a listed file'
 _UNLISTED = 'allocated cluster, in no listed file'
 _FREE = 'free cluster'
 _NOT_READ = 'file system not read'
-_PLACE_ORDER = (_EXTRACTED_FILE, _IN_FILE, _UNLISTED, _FREE, _NOT_READ)
+_PLACE_ORDER = (_EXTRACTED_FILE, _IN_FILE, _SLACK, _UNLISTED, _FREE, _NOT_READ)
+_FAT_KINDS = ('fat32', 'fat16', 'fat12')
 _READ_ERRORS = (OSError, ValueError, IndexError, KeyError, struct.error)
 _REGULAR_FILE = 0o100000
 _FILE_TYPE_MASK = 0o170000
@@ -767,20 +782,29 @@ def _is_partition_image(path):
         os.path.basename(path).lower().endswith('.img')
 
 
-class _ExfatImage:
-    """The free space and the listed files of an exFAT partition image.
+class _VolumeImage:
+    """Where a byte of an exFAT or FAT partition image sits.
 
     Read with the vendored reader. ``readable`` is False for any other file system, for
-    an image the reader cannot open, and for a volume whose allocation bitmap it does
-    not find, and then nothing is said about where a hit sits.
+    an image the reader cannot open, and for an exFAT volume whose free runs it does not
+    get, and then nothing is said about where a hit sits.
+
+    On exFAT the reader gives the clusters the bitmap has clear and the content of the
+    listed files, and a hit in an allocated cluster is called listed when a listed file
+    holds the same text. On FAT the cluster chain of every listed file is followed
+    instead, so a hit is placed by its offset: inside a file's bytes, in a cluster of
+    its chain past the file's recorded size, or in neither.
     """
 
     def __init__(self, path):
         self.readable = False
+        self.exfat = False
         self.unread_files = 0
         self._walker = None
         self._starts = []
         self._ends = []
+        self._runs = None
+        self._run_starts = []
         try:
             self._handle = open(path, 'rb')  # pylint: disable=consider-using-with
         except OSError:
@@ -796,8 +820,52 @@ class _ExfatImage:
                     self._starts = [start for start, _length in free]
                     self._ends = [start + length for start, length in free]
                     self.readable = True
+                    self.exfat = True
+            elif kind is not None and kind[0] in _FAT_KINDS:
+                walker = qnxprobe.walker_for(kind[0], self._handle, 0)
+                free = sorted(walker.free_extents())
+                runs = self._file_runs(walker)
+                self._walker = walker
+                self._starts = [start for start, _length in free]
+                self._ends = [start + length for start, length in free]
+                self._runs = runs
+                self._run_starts = [start for start, _end, _place in runs]
+                self.readable = True
         except _READ_ERRORS:
             self.readable = False
+
+    def _file_runs(self, walker):
+        """(start, end, place) for the clusters of every listed file of a FAT volume.
+
+        A file's bytes are 'in a listed file'. What its chain holds past its recorded
+        size, the rest of its last cluster and any cluster after it, is slack. A file of
+        size zero is left out: the reader gives it no cluster of its own.
+        """
+        unit = walker.cluster_bytes
+        runs = []
+        for entry in qnxprobe.walk_all(walker):
+            node, mode, size = entry[1], entry[2], entry[3]
+            if mode & _FILE_TYPE_MASK != _REGULAR_FILE or not size:
+                continue
+            left = size
+            try:
+                # The reader has no public call for where a file's clusters lie.
+                for cluster in walker._chain(node[0]):  # pylint: disable=protected-access
+                    start = walker._cluster_off(cluster)  # pylint: disable=protected-access
+                    held = min(left, unit)
+                    for first, last, place in ((start, start + held, _IN_FILE),
+                                               (start + held, start + unit, _SLACK)):
+                        if first == last:
+                            continue
+                        if runs and runs[-1][1] == first and runs[-1][2] == place:
+                            runs[-1] = (runs[-1][0], last, place)
+                        else:
+                            runs.append((first, last, place))
+                    left -= held
+            except _READ_ERRORS:
+                self.unread_files += 1
+        runs.sort()
+        return runs
 
     def close(self):
         if self._handle is not None:
@@ -810,7 +878,13 @@ class _ExfatImage:
         return index >= 0 and offset < self._ends[index]
 
     def listed_files(self):
-        """The content of every file the directory tree lists, one file at a time."""
+        """The content of every file the directory tree lists, one file at a time.
+
+        Nothing for a FAT volume, where a hit is placed by its offset and no text is
+        compared.
+        """
+        if self._runs is not None:
+            return
         try:
             for entry in qnxprobe.walk_all(self._walker):
                 node, mode, size = entry[1], entry[2], entry[3]
@@ -830,6 +904,11 @@ class _ExfatImage:
             return _NOT_READ
         if self.is_free(offset):
             return _FREE
+        if self._runs is not None:
+            index = bisect.bisect_right(self._run_starts, offset) - 1
+            if index >= 0 and offset < self._runs[index][1]:
+                return self._runs[index][2]
+            return _UNLISTED
         return _IN_FILE if text_is_listed else _UNLISTED
 
 
@@ -1049,7 +1128,7 @@ def _collect(context, label, find, listed_lines):
     source_paths = []
     for file_found, data in _sources(context):
         hits = list(find(data))
-        image = _ExfatImage(file_found) if _is_partition_image(file_found) else None
+        image = _VolumeImage(file_found) if _is_partition_image(file_found) else None
         listed = listed_lines(image) if image is not None and image.readable and hits \
             else set()
         for row, offset, line in hits:
@@ -1336,8 +1415,8 @@ def ford_sync_wince_partition_call_history(context):
     source_paths = []
     for file_found, data in _sources(context):
         base = os.path.basename(file_found)
-        image = _ExfatImage(file_found)
-        if not image.readable:
+        image = _VolumeImage(file_found)
+        if not image.exfat:
             logfunc(f'Ford SYNC WinCE partition call history: {base} was not read as an '
                     'exFAT volume with an allocation bitmap, not searched')
             image.close()
@@ -1371,7 +1450,8 @@ def ford_sync_wince_partition_call_history(context):
         relative = context.get_relative_path(file_found)
         for key, (found, places, offset) in rows.items():
             data_list.append(key + (found, _places(places), offset, relative))
-    data_list.sort(key=lambda row: (row[0] == '', row[0], row[5], row[4]))
+    data_list.sort(key=lambda row: (row[0] == '', row[0], row[5], row[4])
+                   + tuple(str(cell) for cell in row))
 
     data_headers = (('Call Time', 'datetime'), 'Call List', 'Call List Type (as stored)',
                     'Name', 'Phone Number', 'Handset Address', 'Documents Holding It',
