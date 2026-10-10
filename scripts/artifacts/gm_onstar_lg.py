@@ -555,13 +555,64 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "phone",
     },
+    "gm_onstar_lg_trouble_codes": {
+        "name": "GM OnStar LG Gen10 - Trouble Code Entries",
+        "description": "Entries of the trouble code table in a generation 10 module's dtc.dat "
+                       "state file, one row for each index, code, symptom and state stored "
+                       "together, with the earliest and latest TimeStamp of the documents that "
+                       "held it.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From the generation 10 module's state file dtc.dat, CRLF text that opens "
+                 "with a [*] section holding a TimeStamp. Every complete document held 28 "
+                 "sections named DTCData<n>, each with an index, a code, a symptom and a "
+                 "state. The module rewrites the file, and earlier versions stay in the flash: "
+                 "they are read from the raw flash image in the extracted file set "
+                 "(DiskImages/NORimage.bin, where every document is found by its opening "
+                 "line), or from the live file and the deleted files the reader recovers when "
+                 "the flash image itself is the raw input. Rows are folded: one row for each "
+                 "index, code, symptom and state stored together. A section that does not hold "
+                 "all four as whole numbers, because it was cut short or has other bytes in "
+                 "it, is not reported; one such section was found in each tested unit's "
+                 "extracted file set. Documents is the number of distinct documents that held "
+                 "the entry: a document found more than once is counted once, and the figure "
+                 "can differ between the two inputs. The two times are the earliest and latest "
+                 "TimeStamp in the first section of those documents. The file states no time "
+                 "zone. A document stamped 1970 gives no usable date; it is counted in "
+                 "Documents and left out of the two times, so a row seen only in such "
+                 "documents has no times. The four values are as stored, and Code In "
+                 "Hexadecimal is the stored code written in base 16, nothing more. Nothing "
+                 "available here documents how the module encodes a code, a symptom or a "
+                 "state, so none is translated. Tested on two units, each from its extracted "
+                 "file set and from its flash image as raw input, which gave the same rows and "
+                 "times. xtrmp_item081 gave 41 rows, 36 with times, first seen from 2018-11-22 "
+                 "to 2018-12-09 and last seen up to 2020-01-15, with states 1 (25 rows), 5 "
+                 "(11), 0 (3) and 17 (2). xtrmp_item115 gave 42 rows, 40 with times, first "
+                 "seen from 2023-01-03 to 2023-02-28 and last seen up to 2023-03-13, with "
+                 "states 1 (27), 5 (14) and 0 (1). Both units held 15 distinct codes over 28 "
+                 "indexes. A row records that the module stored that entry. It does not "
+                 "establish when a fault occurred.",
+        "paths": ('*/dtc.dat*', '*/DiskImages/NORimage.bin',
+                  '*/$Deleted/*/dtc.dat.deleted-*'),
+        "sample_data": {
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, acquisition folder with "
+                             "flash image | 41 rows",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 42 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "alert-triangle",
+    },
     "gm_onstar_lg_unit_info": {
         "name": "GM OnStar LG - Unit Information",
         "description": "Identifiers and versions the telematics module stores: the VIN, the "
                        "device id, the assembly label code, the software version lines and the "
                        "network interface address.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -581,16 +632,21 @@ __artifacts_v2__ = {
                  "image itself can be the input, as a raw image: the files are then read from "
                  "the image's EFS partitions, where a partition can sit without the var folder "
                  "in front of its paths. Source File then starts with the volume. Deleted "
-                 "files are not read for this artifact. The image gives the same number of "
-                 "rows or fewer. On the four generation 9 images the reader lists no ver.txt, "
-                 "so the version file it would name is not reported, although var/fac holds "
-                 "it. Rows from the flash image against rows from the extracted file set: "
-                 "xtrmp_item020 0 rows against 6, 0 not in the file set and 6 of the file set "
-                 "not among them; xtrmp_item027 0 rows against 6, 0 not in the file set and 6 "
-                 "of the file set not among them; xtrmp_item030 2 rows against 6, 2 not in the "
-                 "file set and 6 of the file set not among them; xtrmp_item031 0 rows against "
-                 "6, 0 not in the file set and 6 of the file set not among them; xtrmp_item081 "
-                 "7 rows against 7; xtrmp_item115 9 rows against 9.",
+                 "files are not read for this artifact. On the four generation 9 images no "
+                 "ver.txt is matched, which in the extracted file set names one of the version "
+                 "files. The five version files under var/fac are then each reported, with a "
+                 "label saying no ver.txt names them, so the one a ver.txt would name is not "
+                 "identified. The difference from the file set below is mostly that label: by "
+                 "value alone 4 of the 25 version lines are absent from the file set (14 of 27 "
+                 "rows on xtrmp_item030, where a Device ID and a VIN (DevInfo) row also come "
+                 "from the image), and the file set's ver.txt line is absent from the image. "
+                 "Rows from the flash image against rows from the extracted file set: "
+                 "xtrmp_item020 25 rows against 6, 25 not in the file set and 6 of the file "
+                 "set not among them; xtrmp_item027 25 rows against 6, 25 not in the file set "
+                 "and 6 of the file set not among them; xtrmp_item030 27 rows against 6, 27 "
+                 "not in the file set and 6 of the file set not among them; xtrmp_item031 25 "
+                 "rows against 6, 25 not in the file set and 6 of the file set not among them; "
+                 "xtrmp_item081 7 rows against 7; xtrmp_item115 9 rows against 9.",
         "paths": (
             '*/var/ver.txt*',
             '*/var/fac/ver_*.txt*',
@@ -1058,6 +1114,58 @@ def _display(value):
     return text if text.isprintable() else value
 
 
+_DTC_SECTION = re.compile(r'DTCData\d+')
+_DTC_FIELDS = ('index', 'code', 'symptom', 'state')
+
+
+@artifact_processor
+def gm_onstar_lg_trouble_codes(context):
+    found = {}
+    source_paths = []
+    seen = set()
+    for file_found, offset, sections in _sectioned_documents(context):
+        # the same document can be found more than once: in a file and in the image
+        # that holds the file, or in several deleted copies
+        identity = repr(sorted((name, sorted(values.items()))
+                               for name, values in sections.items()))
+        if identity in seen:
+            continue
+        seen.add(identity)
+        saved = _save_time(sections)
+        for name, values in sections.items():
+            if not _DTC_SECTION.fullmatch(name):
+                continue
+            key = tuple(values.get(field, '') for field in _DTC_FIELDS)
+            # a section cut short, or with other bytes in it, is not an entry
+            if not all(value.isascii() and value.isdigit() for value in key):
+                continue
+            entry = found.get(key)
+            if entry is None:
+                entry = found[key] = ['', '', 0, offset, file_found]
+                if file_found not in source_paths:
+                    source_paths.append(file_found)
+            # a document stamped 1970 was saved with no clock set: it is counted, and
+            # left out of the first and last times
+            if saved and not saved.startswith('1970'):
+                entry[0] = min(entry[0], saved) if entry[0] else saved
+                entry[1] = max(entry[1], saved)
+            entry[2] += 1
+
+    def as_hex(text):
+        return f'{int(text):04X}'
+
+    data_list = [(first, last, index, code, as_hex(code), symptom, state, count, offset,
+                  context.get_relative_path(path))
+                 for (index, code, symptom, state), (first, last, count, offset, path)
+                 in sorted(found.items(), key=lambda item: (item[1][0], item[0]))]
+
+    data_headers = (('First Document TimeStamp', 'datetime'),
+                    ('Last Document TimeStamp', 'datetime'), 'index (as stored)',
+                    'code (as stored)', 'Code In Hexadecimal', 'symptom (as stored)',
+                    'state (as stored)', 'Documents', 'Document Offset', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
 @artifact_processor
 def gm_onstar_lg_stored_values(context):
     rows = {}
@@ -1353,6 +1461,11 @@ def gm_onstar_lg_unit_info(context):
             if base == 'ver.txt' or base in named:
                 for line in data.decode('latin-1').splitlines():
                     add(f'Version File Line ({base})', line, file_found)
+            elif 'ver.txt' not in groups and re.fullmatch(r'ver_\w+\.txt', base):
+                # No ver.txt says which version file is in effect, so each is reported
+                # and labelled as not named.
+                for line in data.decode('latin-1').splitlines():
+                    add(f'Version File Line ({base}, no ver.txt names it)', line, file_found)
             elif base == 'DevId':
                 add('Device ID', data.decode('latin-1'), file_found)
             elif base == 'VIN':
