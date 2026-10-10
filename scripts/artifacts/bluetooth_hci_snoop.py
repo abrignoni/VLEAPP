@@ -22,7 +22,7 @@ __artifacts_v2__ = {
         "description": "Bluetooth HCI snoop captures (btsnoop files), one row per capture, "
                        "with the first and last record time, the number of commands, events "
                        "and other packets, and the addresses, name and version numbers the "
-                       "capture's Command Complete answers state.",
+                       "controller's answers in the capture state.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-10-10",
