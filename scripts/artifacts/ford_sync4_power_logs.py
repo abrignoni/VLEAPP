@@ -24,9 +24,9 @@ __artifacts_v2__ = {
                        "the reset ended, when the previous shutdown was logged, the wake "
                        "source text, and the reset type, initiator and reason the file states.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "Ford SYNC 4",
         "notes": "From fordlogs/sm/reset-history.txt, which holds a summary line and a detail "
@@ -43,7 +43,12 @@ __artifacts_v2__ = {
                  "WakeupSource_27, which nothing available here maps to a name. Reset type was "
                  "VMCU-normal on 99 rows and unknown on one, which also carries the summary "
                  "flag BootFailed; the reset reason was 'PwrMgr shutdown' on all 100. The "
-                 "up-time columns are the seconds the lines state. The file is a window of "
+                 "up-time and total up-time columns are the numbers the two time lines state "
+                 "after 'up-time' and 'total-up-time', as stored; all 100 rows carried both. "
+                 "The file's own notes give them in seconds. In 2 of the 100 rows (boot counts "
+                 "763 and 771) the reset end time reads about four hours earlier than the "
+                 "previous shutdown time of the same row, so the readings are not one "
+                 "continuous clock. Times are reported to the second. The file is a window of "
                  "recent boots, not the unit's whole history. A row records what the module "
                  "logged about that boot. A wake source names the signal the module recorded, "
                  "not who caused it.",
@@ -93,7 +98,8 @@ __artifacts_v2__ = {
 
 _SUMMARY = re.compile(r'^(\d+) (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)\.\d+ (\S+)\s*\t([^\t]*)\t?(.*)$')
 _DETAIL = re.compile(r'^([A-Za-z][A-Za-z ]*?):\s+(.*)$')
-_DETAIL_TIME = re.compile(r'^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)\.\d+ boot (\d+) up-time ([\d.]+)')
+_DETAIL_TIME = re.compile(r'^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)\.\d+ boot (\d+) up-time ([\d.]+)'
+                          r'(?: total-up-time (\d+))?')
 _WAKE = re.compile(r'WakeSource\(\s*([^)]*?)\s*\)')
 _LOG = re.compile(r'^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)\.\d+\[(\d+\.\d+)\] ([A-Z]) (.*)$')
 _EVENT = re.compile(r'^([a-z][a-z0-9-]*) \(([^,()]*)(?:,(-?\d+))?\)')
@@ -171,7 +177,9 @@ def ford_sync4_reset_history(context):
                 boot.get('reboot source', ''),
                 boot.get('PwrMgrPowerLevel', ''),
                 ended.group(3) if ended else '',
+                (ended.group(4) or '') if ended else '',
                 shutdown.group(3) if shutdown else '',
+                (shutdown.group(4) or '') if shutdown else '',
                 boot.get('summary flag', ''),
                 relative))
 
@@ -179,7 +187,8 @@ def ford_sync4_reset_history(context):
                     'Boot Count', 'Wake Source (as stored)', 'Reset Type', 'Reset Initiator',
                     'Reset Reason', 'Reboot Source (as stored)',
                     'Power Level Text (as stored)', 'Up-Time At Reset End',
-                    'Up-Time At Previous Shutdown', 'Summary Flag', 'Source File')
+                    'Total Up-Time At Reset End', 'Up-Time At Previous Shutdown',
+                    'Total Up-Time At Previous Shutdown', 'Summary Flag', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
