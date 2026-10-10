@@ -360,6 +360,84 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "link",
     },
+    "ford_sync_wince_log_gps_positions": {
+        "name": "Ford SYNC WinCE - GPS Positions In Log",
+        "description": "GPS readings written into the module's message log (MsgLog), one row "
+                       "per line: the latitude and longitude fields as the line states them, a "
+                       "decimal value derived from each, and the altitude, heading, speed and "
+                       "satellite fields as stored.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-10",
+        "last_update_date": "2026-10-10",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From lines of Windows/LogFiles/MsgLog<n>.txt that carry "
+                 "'VehicleDataGPSChanged: CanSignal State: <state>/ GPS: LNG:<a>.<b>.<c> "
+                 "LAT:<a>.<b>.<c> Alt: COMP: HEAD: SPD: SAT: FAULTY: HLAT: HLONG:'. Tested on "
+                 "the log files of nine units read from their extracted file sets (eight SYNC "
+                 "Gen1, one SYNC Gen2); a second Gen2 set held no log file. Only the version 5 "
+                 "unit (Ford Fusion 2019) wrote such lines, 338 of them in two log files. 337 "
+                 "of the 338 are warnings that a message sink needed some milliseconds to "
+                 "process the reading, so the log holds the readings that were slow to process "
+                 "and not a continuous track; Processing Milliseconds is that number. It is "
+                 "empty on the other line, which is a fragment: it begins mid-word, follows a "
+                 "save line, and has no Tick. The position fields are three numbers each. On "
+                 "the tested unit the third number never started with a zero: of its 676 "
+                 "values none started with a zero, 64 ended with one, and 45 had fewer than "
+                 "four digits. The derived columns read it as ten-thousandths of the second "
+                 "number and not as digits after a decimal point. That reading rests on this "
+                 "pattern alone and is not taken from the unit's code. The derived columns "
+                 "read the second and third numbers as minutes and the first as degrees with "
+                 "89 subtracted for latitude and 179 for longitude, the minutes moving the "
+                 "value away from zero. Those two offsets are not taken from the unit's own "
+                 "code. They are the ones that reproduce an independent parse of the same "
+                 "unit, which gave the same latitude on 320 and the same longitude on 311 of "
+                 "the 338 lines to four decimals; the remaining 18 and 27 lines all have a "
+                 "third number shorter than four digits, which that parse reads as decimal "
+                 "digits and this one as ten-thousandths. The lines where the two agree cannot "
+                 "decide between the readings, because a four-digit value reads the same both "
+                 "ways. Treat the derived columns as a reading to confirm, and the as stored "
+                 "columns as what the line holds. The units of Alt, HEAD and SPD are not "
+                 "established here and they are shown as stored: on the tested unit HEAD ran "
+                 "from 4 to 35994 and SPD from 0 to 56. FAULTY (as stored) held one value, 0, "
+                 "on all 338 rows, HLAT (as stored) and HLONG (as stored) each held one value, "
+                 "2, on all 338 rows, and Signal State held one value, Valid, on all 338 rows; "
+                 "what FAULTY, HLAT and HLONG stand for is not established here. Log lines "
+                 "start with a number, shown as Tick, whose unit is not established here; the "
+                 "fragment line has none. The log's only dated clock reading is in its 'start "
+                 "saving retailmsg' lines, and on the tested unit every such reading fell in "
+                 "2003, so it is the unit's own clock and not a calendar date to rely on. Last "
+                 "Log Save Clock Above is the nearest such reading above the line in the same "
+                 "file. It is context for ordering, not the time of the reading, and it is "
+                 "empty when no save line precedes the line. The log text saved beside a crash "
+                 "dump, Windows/DumpFiles/<dump>/<dump>.RTL, is read as well. Seven of the "
+                 "tested units had one or more, 13 files in all, and none held such a line.",
+        "paths": ('*/Windows/LogFiles/MsgLog*.txt*', '*/Windows/DumpFiles/*.RTL'),
+        "sample_data": {
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, extracted file set | 0 rows, no "
+                             "such lines in the log",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, extracted file set | 0 rows, no"
+                             " such lines in the log",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, extracted file set | 0 rows, no"
+                             " such lines in the log",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, extracted file set | 0 rows, no"
+                             " such lines in the log",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, extracted file set | 0 rows, no"
+                             " such lines in the log",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, extracted file set | 338 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, extracted file set | 0 rows, no"
+                             " such lines in the log",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, extracted file set | 0 "
+                             "rows, no MsgLog file in the extracted set",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, extracted file set | 0 rows,"
+                             " no such lines in the log",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, extracted file set | 0 rows, no"
+                             " such lines in the log",
+        },
+        "output_types": "standard",
+        "artifact_icon": "map-pin",
+    },
     "ford_sync_wince_log_odometer": {
         "name": "Ford SYNC WinCE - Odometer Readings In Log",
         "description": "Odometer values the module's debug log recorded, one row per distinct "
@@ -533,6 +611,10 @@ _LOG_SAVE = re.compile(r'SYSHEALTH: start saving retailmsg at '
                        r'(\d\d)/(\d\d)/(\d{4}) (\d\d):(\d\d):(\d\d)')
 _LOG_CONNECT = re.compile(r"APP-PHONE-(CONNECT: Current|DISCONNECT: Last) device: "
                           r"'(.*)' \(0x([0-9A-Fa-f]+)\)")
+_LOG_GPS = re.compile(
+    r'(?:needed (\d+) ms to process )?VehicleDataGPSChanged: CanSignal State: (\S+?)/ GPS: '
+    r'LNG:(\d+)\.(\d+)\.(\d+) LAT:(\d+)\.(\d+)\.(\d+) Alt:(-?\d+) COMP:(\d+/\d+) '
+    r'HEAD:(\d+) SPD:(\d+) SAT:(\d+) FAULTY:(\d+) HLAT:(\d+) HLONG:(\d+)')
 _LOG_VIN = re.compile(r'VinService: VIN \[([^\]]*)\]')
 _LOG_BUILD = re.compile(r'\* Build Information: (\S+)')
 
@@ -945,6 +1027,51 @@ def ford_sync_wince_log_phone_connections(context):
 
     data_headers = (('Last Log Save Clock Above', 'datetime'), 'Event', 'Device Name',
                     'Handset Address', 'Tick', 'Line', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+def _gps_decimal(degrees, minutes, fraction, offset):
+    """Decimal degrees from one position field, or '' when the minutes do not fit.
+
+    The third number is ten-thousandths of a minute. The offset is the value taken from
+    the first number; see the artifact notes for what supports it.
+    """
+    if len(fraction) > 4 or int(minutes) > 59:
+        return ''
+    whole = int(degrees) - offset
+    part = (int(minutes) + int(fraction) / 10000) / 60
+    return round(whole - part if whole < 0 else whole + part, 6)
+
+
+@artifact_processor
+def ford_sync_wince_log_gps_positions(context):
+    data_list = []
+    source_paths = []
+    for file_found in _log_files(context):
+        found = False
+        for number, tick, line, clock in _log_lines(file_found):
+            match = _LOG_GPS.search(line)
+            if not match:
+                continue
+            found = True
+            (needed, state, lng_d, lng_m, lng_f, lat_d, lat_m, lat_f, alt, comp, head, speed,
+             sats, faulty, hlat, hlong) = match.groups()
+            data_list.append((
+                _valid_clock(clock), _gps_decimal(lat_d, lat_m, lat_f, 89),
+                _gps_decimal(lng_d, lng_m, lng_f, 179), f'{lat_d}.{lat_m}.{lat_f}',
+                f'{lng_d}.{lng_m}.{lng_f}', int(alt), comp, int(head), int(speed), int(sats),
+                int(faulty), int(hlat), int(hlong), state,
+                int(needed) if needed else '', tick, number,
+                context.get_relative_path(file_found)))
+        if found:
+            source_paths.append(file_found)
+
+    data_headers = (('Last Log Save Clock Above', 'datetime'), 'Latitude (derived)',
+                    'Longitude (derived)', 'LAT (as stored)', 'LNG (as stored)',
+                    'Alt (as stored)', 'COMP (as stored)', 'HEAD (as stored)',
+                    'SPD (as stored)', 'SAT (as stored)', 'FAULTY (as stored)',
+                    'HLAT (as stored)', 'HLONG (as stored)', 'Signal State',
+                    'Processing Milliseconds', 'Tick', 'Line', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
