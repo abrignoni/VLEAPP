@@ -30,9 +30,9 @@ __artifacts_v2__ = {
                        "per second, with the time, latitude, longitude, speed and heading of "
                        "each record.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "GM OnStar Flash Image",
         "notes": "Read from the module's raw flash image, matched as "
@@ -66,7 +66,17 @@ __artifacts_v2__ = {
                  "same item more than once; it is reported once, with Times Found, and Image "
                  "Offset is where it was first read. Run Length is the number of records in "
                  "the run the row belongs to. A record states where the module's receiver "
-                 "placed itself at that time. It does not establish who was in the vehicle.",
+                 "placed itself at that time. It does not establish who was in the vehicle. "
+                 "The three tested generation 8 images (xtrmp_item033, "
+                 "xtrmp_item034 and xtrmp_item035) each hold about 2,400 stretches of 40 to 52 "
+                 "bytes in which one two-byte value repeats, about 0.7 percent of the image, "
+                 "spaced roughly 4,100 to 4,400 bytes apart at positions that differ per "
+                 "image. In the part of the image the three units otherwise share, where one "
+                 "image has such a stretch another holds ordinary bytes (596 of 596 compared "
+                 "between two units), and 98 percent of the bytes that differ between two "
+                 "images lie in those stretches. They read as damage from the acquisition's "
+                 "read of the flash and not as stored content; what caused them is not "
+                 "established. A record such a stretch crosses is cut or lost.",
         "paths": ('*/LargeOutputFiles/image.bin',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9 (LG), flash image | 0 rows, "
@@ -92,9 +102,9 @@ __artifacts_v2__ = {
                        "image, with the log time and the latitude and longitude each line "
                        "states.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "GM OnStar Flash Image",
         "notes": "Read from the module's raw flash image, matched as "
@@ -117,7 +127,16 @@ __artifacts_v2__ = {
                  "same item more than once; it is reported once, with Times Found, and Image "
                  "Offset is where it was first read. A row records that the module logged a "
                  "route to that destination at that time. It does not establish that the "
-                 "vehicle arrived there.",
+                 "vehicle arrived there. The three tested generation 8 images "
+                 "(xtrmp_item033, xtrmp_item034 and xtrmp_item035) each hold about 2,400 "
+                 "stretches of 40 to 52 bytes in which one two-byte value repeats, about 0.7 "
+                 "percent of the image, spaced roughly 4,100 to 4,400 bytes apart at positions "
+                 "that differ per image. In the part of the image the three units otherwise "
+                 "share, where one image has such a stretch another holds ordinary bytes (596 "
+                 "of 596 compared between two units), and 98 percent of the bytes that differ "
+                 "between two images lie in those stretches. They read as damage from the "
+                 "acquisition's read of the flash and not as stored content; what caused them "
+                 "is not established. A record such a stretch crosses is cut or lost.",
         "paths": ('*/LargeOutputFiles/image.bin',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9 (LG), flash image | 0 rows, "
@@ -143,9 +162,9 @@ __artifacts_v2__ = {
                        "flash image, with the log time, the maneuver, the street named and the "
                        "distance text of each prompt.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "GM OnStar Flash Image",
         "notes": "Read from the module's raw flash image, matched as "
@@ -169,7 +188,17 @@ __artifacts_v2__ = {
                  "same item more than once; it is reported once, with Times Found, and Image "
                  "Offset is where it was first read. A row records that the module issued that "
                  "prompt. It names a street on the planned route and does not by itself place "
-                 "the vehicle on it; the GPS Track artifact holds the positions.",
+                 "the vehicle on it; the GPS Track artifact holds the positions. The three "
+                 "tested Continental generation 8 images (xtrmp_item033, xtrmp_item034 and "
+                 "xtrmp_item035) each hold about 2,400 stretches of 40 to 52 bytes in which "
+                 "one two-byte value repeats, about 0.7 percent of the image, spaced roughly "
+                 "4,100 to 4,400 bytes apart at positions that differ per image. In the part "
+                 "of the image the three units otherwise share, where one image has such a "
+                 "stretch another holds ordinary bytes (596 of 596 compared between two "
+                 "units), and 98 percent of the bytes that differ between two images lie in "
+                 "those stretches. They read as damage from the acquisition's read of the "
+                 "flash and not as stored content; what caused them is not established. A "
+                 "record such a stretch crosses is cut or lost.",
         "paths": ('*/LargeOutputFiles/image.bin',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9 (LG), flash image | 0 rows, "
