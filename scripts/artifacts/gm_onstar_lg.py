@@ -33,7 +33,7 @@ __artifacts_v2__ = {
         "description": "The Bluetooth device slots the telematics module stores, with the "
                        "device number, name and Bluetooth address held in each occupied slot.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -53,8 +53,17 @@ __artifacts_v2__ = {
                  "file, marked (Deleted) or (CopyN) in the name. Files with identical content "
                  "are read once and Identical Files gives how many there were. A slot records "
                  "that the module held a pairing entry for the device. It does not establish "
-                 "who carried it. Generation 10 units have no BT.dat.",
-        "paths": ('*/var/sysinfo/BT.dat*',),
+                 "who carried it. Generation 10 units have no BT.dat. The flash image itself "
+                 "can be the input, as a raw image: the files are then read from the image's "
+                 "EFS partitions, where a partition can sit without the var or obn folder in "
+                 "front of its paths, and from the deleted files the reader recovers, matched "
+                 "under $Deleted. Source File then starts with the volume and names the "
+                 "$Deleted folder for a deleted file. A row found in both a live and a deleted "
+                 "file is listed once, under the file read first, which can be the deleted "
+                 "one. Rows from the flash image against rows from the extracted file set: "
+                 "xtrmp_item020 4 rows against 4; xtrmp_item027 4 rows against 4; "
+                 "xtrmp_item031 4 rows against 4.",
+        "paths": ('*/sysinfo/BT.dat*', '*/$Deleted/*/BT.dat.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 4 "
                              "rows",
@@ -76,7 +85,7 @@ __artifacts_v2__ = {
                        "Bluetooth device number, with the last name, first name and the home, "
                        "work, mobile and other numbers stored for each contact.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -96,8 +105,17 @@ __artifacts_v2__ = {
                  "extraction can hold several copies of one file, marked (Deleted) or (CopyN) "
                  "in the name. Files with identical content are read once and Identical Files "
                  "gives how many there were. A record establishes that the module held the "
-                 "contact for that device. It does not establish that any number was dialled.",
-        "paths": ('*/var/BTfeature/phone*.pb*',),
+                 "contact for that device. It does not establish that any number was dialled. "
+                 "The flash image itself can be the input, as a raw image: the files are then "
+                 "read from the image's EFS partitions, where the phonebooks are under BTpb, "
+                 "and from the deleted files the reader recovers, matched under $Deleted. "
+                 "Source File then starts with the volume and names the $Deleted folder for a "
+                 "deleted file. A row found in both a live and a deleted file is listed once, "
+                 "under the file read first, which can be the deleted one. Rows from the flash "
+                 "image against rows from the extracted file set: xtrmp_item020 244 rows "
+                 "against 244; xtrmp_item027 1,119 rows against 1,119.",
+        "paths": ('*/var/BTfeature/phone*.pb*', '*/BTpb/phone*.pb*',
+                  '*/$Deleted/*/phone*.pb.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 244 "
                              "rows",
@@ -120,7 +138,7 @@ __artifacts_v2__ = {
                        "and longitude of each report and the elevation, speed, course, "
                        "dilution of precision and satellite count stored with it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -154,8 +172,20 @@ __artifacts_v2__ = {
                  "are sorted newest first. A report records where the module's receiver placed "
                  "itself at that time. It does not establish who was in the vehicle. "
                  "Generation 9 units have no gps.dat; their positions are in the GPS Track "
-                 "artifact.",
-        "paths": ('*/var/sysinfo/*.dat*', '*/DiskImages/NORimage.bin'),
+                 "artifact. The flash image itself can be the input, as a raw image: the files "
+                 "are then read from the image's EFS partitions, where a partition can sit "
+                 "without the var or obn folder in front of its paths, and from the deleted "
+                 "files the reader recovers, matched under $Deleted. Source File then starts "
+                 "with the volume and names the $Deleted folder for a deleted file. A row "
+                 "found in both a live and a deleted file is listed once, under the file read "
+                 "first, which can be the deleted one. The image is then not scanned as a "
+                 "whole, only its live and deleted files are read. Rows from the flash image "
+                 "against rows from the extracted file set: xtrmp_item081 1,126 rows (1,120 "
+                 "with a deleted file as Source File) against 1,139, 1 not in the file set and "
+                 "14 of the file set not among them; xtrmp_item115 541 rows (538 with a "
+                 "deleted file as Source File) against 541.",
+        "paths": ('*/sysinfo/*.dat*', '*/DiskImages/NORimage.bin',
+                  '*/$Deleted/*/*.dat.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, no gps.dat on generation 9",
@@ -178,7 +208,7 @@ __artifacts_v2__ = {
                        "file, with the clock reading in the record and the two numbers that "
                        "follow it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -200,8 +230,24 @@ __artifacts_v2__ = {
                  "in the name. Files with identical content are read once and Identical Files "
                  "gives how many there were. On one unit an independent parse reported the "
                  "same 185 times. A row records that the module wrote a power-off record with "
-                 "that reading. What triggered it is not established.",
-        "paths": ('*/var/log/poweroff.log*',),
+                 "that reading. What triggered it is not established. The flash image itself "
+                 "can be the input, as a raw image: the files are then read from the image's "
+                 "EFS partitions, where a partition can sit without the var or obn folder in "
+                 "front of its paths, and from the deleted files the reader recovers, matched "
+                 "under $Deleted. Source File then starts with the volume and names the "
+                 "$Deleted folder for a deleted file. A row found in both a live and a deleted "
+                 "file is listed once, under the file read first, which can be the deleted "
+                 "one. Rows from the flash image against rows from the extracted file set: "
+                 "xtrmp_item020 6 rows (6 with a deleted file as Source File) against 6; "
+                 "xtrmp_item027 8 rows (8 with a deleted file as Source File) against 5, 3 not "
+                 "in the file set and 0 of the file set not among them; xtrmp_item030 6 rows "
+                 "(6 with a deleted file as Source File) against 6; xtrmp_item031 13 rows (13 "
+                 "with a deleted file as Source File) against 13; xtrmp_item081 119 rows (119 "
+                 "with a deleted file as Source File) against 113, 6 not in the file set and 0 "
+                 "of the file set not among them; xtrmp_item115 184 rows (184 with a deleted "
+                 "file as Source File) against 185, 0 not in the file set and 1 of the file "
+                 "set not among them.",
+        "paths": ('*/log/poweroff.log*', '*/$Deleted/*/poweroff.log.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 6 "
                              "rows",
@@ -224,7 +270,7 @@ __artifacts_v2__ = {
                        "and the unit expiry date, each with the save time of the document it "
                        "came from.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -252,8 +298,20 @@ __artifacts_v2__ = {
                  "several documents carried 1970 readings. Not surfaced: the diagnostic "
                  "trouble codes, the data identifier tables, the display device and "
                  "customisation tables, the authentication key in tcuid.dat, and the empty "
-                 "alerts.db.",
-        "paths": ('*/var/sysinfo/*.dat*', '*/DiskImages/NORimage.bin'),
+                 "alerts.db. The flash image itself can be the input, as a raw image: the "
+                 "files are then read from the image's EFS partitions, where a partition can "
+                 "sit without the var or obn folder in front of its paths, and from the "
+                 "deleted files the reader recovers, matched under $Deleted. Source File then "
+                 "starts with the volume and names the $Deleted folder for a deleted file. A "
+                 "row found in both a live and a deleted file is listed once, under the file "
+                 "read first, which can be the deleted one. The image is then not scanned as a "
+                 "whole, only its live and deleted files are read. Rows from the flash image "
+                 "against rows from the extracted file set: xtrmp_item081 15 rows (12 with a "
+                 "deleted file as Source File) against 15; xtrmp_item115 31 rows (27 with a "
+                 "deleted file as Source File) against 35, 0 not in the file set and 4 of the "
+                 "file set not among them.",
+        "paths": ('*/sysinfo/*.dat*', '*/DiskImages/NORimage.bin',
+                  '*/$Deleted/*/*.dat.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, generation 9 files are not in the text format",
@@ -276,7 +334,7 @@ __artifacts_v2__ = {
                        "per second, with the time, latitude, longitude, speed and heading of "
                        "each record.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -304,8 +362,18 @@ __artifacts_v2__ = {
                  "means, so the time is written out as stored with no offset applied. Files "
                  "with identical content are read once and Identical Files gives how many "
                  "there were. A record states where the module's receiver placed itself at "
-                 "that time. It does not establish who was in the vehicle.",
-        "paths": ('*/obn/storage/gps*',),
+                 "that time. It does not establish who was in the vehicle. The flash image "
+                 "itself can be the input, as a raw image: the files are then read from the "
+                 "image's EFS partitions, where a partition can sit without the var or obn "
+                 "folder in front of its paths, and from the deleted files the reader "
+                 "recovers, matched under $Deleted. Source File then starts with the volume "
+                 "and names the $Deleted folder for a deleted file. A row found in both a live "
+                 "and a deleted file is listed once, under the file read first, which can be "
+                 "the deleted one. Rows from the flash image against rows from the extracted "
+                 "file set: xtrmp_item027 16,126 rows (3,326 with a deleted file as Source "
+                 "File) against 12,800, 3,326 not in the file set and 0 of the file set not "
+                 "among them.",
+        "paths": ('*/storage/gps*', '*/$Deleted/*/gps.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, obn/storage/gps was zero bytes",
@@ -327,7 +395,7 @@ __artifacts_v2__ = {
         "description": "Destination lines from the telematics module's turn-by-turn navigation "
                        "log, with the log time and the latitude and longitude the line states.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -348,8 +416,17 @@ __artifacts_v2__ = {
                  "with no offset applied. Files with identical content are read once and "
                  "Identical Files gives how many there were. A row records that the module "
                  "logged a route to that destination at that time. It does not establish that "
-                 "the vehicle arrived there.",
-        "paths": ('*/obn/storage/flight*',),
+                 "the vehicle arrived there. The flash image itself can be the input, as a raw "
+                 "image: the files are then read from the image's EFS partitions, where a "
+                 "partition can sit without the var or obn folder in front of its paths, and "
+                 "from the deleted files the reader recovers, matched under $Deleted. Source "
+                 "File then starts with the volume and names the $Deleted folder for a deleted "
+                 "file. A row found in both a live and a deleted file is listed once, under "
+                 "the file read first, which can be the deleted one. Rows from the flash image "
+                 "against rows from the extracted file set: xtrmp_item027 29 rows (3 with a "
+                 "deleted file as Source File) against 26, 3 not in the file set and 0 of the "
+                 "file set not among them.",
+        "paths": ('*/storage/flight*', '*/$Deleted/*/flight.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, obn/storage/flight was zero bytes",
@@ -372,7 +449,7 @@ __artifacts_v2__ = {
                        "navigation log, with the log time, the maneuver, the street named and "
                        "the distance text of each prompt.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -395,8 +472,17 @@ __artifacts_v2__ = {
                  "were. A row records that the module issued that prompt. It names a street on "
                  "the planned route and does not by itself place the vehicle on it; the GPS "
                  "Track artifact holds the positions. The log's other lines (events, settings, "
-                 "network status) are not surfaced.",
-        "paths": ('*/obn/storage/flight*',),
+                 "network status) are not surfaced. The flash image itself can be the input, "
+                 "as a raw image: the files are then read from the image's EFS partitions, "
+                 "where a partition can sit without the var or obn folder in front of its "
+                 "paths, and from the deleted files the reader recovers, matched under "
+                 "$Deleted. Source File then starts with the volume and names the $Deleted "
+                 "folder for a deleted file. A row found in both a live and a deleted file is "
+                 "listed once, under the file read first, which can be the deleted one. Rows "
+                 "from the flash image against rows from the extracted file set: xtrmp_item027 "
+                 "235 rows (9 with a deleted file as Source File) against 226, 9 not in the "
+                 "file set and 0 of the file set not among them.",
+        "paths": ('*/storage/flight*', '*/$Deleted/*/flight.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, obn/storage/flight was zero bytes",
@@ -419,7 +505,7 @@ __artifacts_v2__ = {
                        "phone state file: one single-number field and one list of up to twenty "
                        "numbers.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -443,8 +529,16 @@ __artifacts_v2__ = {
                  "text phone.dat that the Stored Values artifact reads. Files with identical "
                  "content are read once and Identical Files gives how many there were. A row "
                  "records that the module's phone file held the number. It does not establish "
-                 "that it was dialled.",
-        "paths": ('*/var/sysinfo/phone.dat*',),
+                 "that it was dialled. The flash image itself can be the input, as a raw "
+                 "image: the files are then read from the image's EFS partitions, where a "
+                 "partition can sit without the var or obn folder in front of its paths, and "
+                 "from the deleted files the reader recovers, matched under $Deleted. Source "
+                 "File then starts with the volume and names the $Deleted folder for a deleted "
+                 "file. A row found in both a live and a deleted file is listed once, under "
+                 "the file read first, which can be the deleted one. Rows from the flash image "
+                 "against rows from the extracted file set: xtrmp_item020 2 rows against 2; "
+                 "xtrmp_item027 10 rows against 10.",
+        "paths": ('*/sysinfo/phone.dat*', '*/$Deleted/*/phone.dat.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 2 "
                              "rows",
@@ -467,7 +561,7 @@ __artifacts_v2__ = {
                        "device id, the assembly label code, the software version lines and the "
                        "network interface address.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -483,15 +577,30 @@ __artifacts_v2__ = {
                  "interface name and IP addresses in the keyval table of rr_db.dat (one unit). "
                  "The VIN is what the module stored, and a module moved between vehicles could "
                  "carry an earlier one. Generation 9 keeps its VIN in a binary vifdata.dat "
-                 "that this module does not read. Values are reported as stored.",
+                 "that this module does not read. Values are reported as stored. The flash "
+                 "image itself can be the input, as a raw image: the files are then read from "
+                 "the image's EFS partitions, where a partition can sit without the var folder "
+                 "in front of its paths. Source File then starts with the volume. Deleted "
+                 "files are not read for this artifact. The image gives the same rows or "
+                 "fewer. On the four generation 9 images the reader lists no ver.txt, so the "
+                 "version file it would name is not reported, although var/fac holds it. On "
+                 "xtrmp_item115 rr_db.dat is listed under var/staging, which the paths do not "
+                 "match. Rows from the flash image against rows from the extracted file set: "
+                 "xtrmp_item020 0 rows against 6, 0 not in the file set and 6 of the file set "
+                 "not among them; xtrmp_item027 0 rows against 6, 0 not in the file set and 6 "
+                 "of the file set not among them; xtrmp_item030 2 rows against 6, 2 not in the "
+                 "file set and 6 of the file set not among them; xtrmp_item031 0 rows against "
+                 "6, 0 not in the file set and 6 of the file set not among them; xtrmp_item081 "
+                 "7 rows against 7; xtrmp_item115 7 rows against 9, 0 not in the file set and "
+                 "2 of the file set not among them.",
         "paths": (
             '*/var/ver.txt*',
             '*/var/fac/ver_*.txt*',
             '*/DevInfo/DevId*',
             '*/DevInfo/Ext/VIN*',
-            '*/var/sysinfo/vifdata.dat*',
-            '*/var/sysinfo/tcuid.dat*',
-            '*/var/sysinfo/rr_db.dat*',
+            '*/sysinfo/vifdata.dat*',
+            '*/sysinfo/tcuid.dat*',
+            '*/sysinfo/rr_db.dat*',
         ),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 6 "
@@ -511,7 +620,7 @@ __artifacts_v2__ = {
         "description": "The address block of a downloaded route file: a position with the "
                        "house number and street name stored after it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -541,8 +650,17 @@ __artifacts_v2__ = {
                  "blocks was not worked out. The file holds no time; the navigation log is "
                  "where a time for a destination can be found. A row records that the module "
                  "stored a route to that address. It does not establish that the vehicle "
-                 "arrived there.",
-        "paths": ('*/obn/storage/ViamotoRoute.mem*',),
+                 "arrived there. The flash image itself can be the input, as a raw image: the "
+                 "files are then read from the image's EFS partitions, where the route file is "
+                 "under route, and from the deleted files the reader recovers, matched under "
+                 "$Deleted. Source File then starts with the volume and names the $Deleted "
+                 "folder for a deleted file. A row found in both a live and a deleted file is "
+                 "listed once, under the file read first, which can be the deleted one. Rows "
+                 "from the flash image against rows from the extracted file set: xtrmp_item027 "
+                 "10 rows (9 with a deleted file as Source File) against 11, 0 not in the file "
+                 "set and 1 of the file set not among them.",
+        "paths": ('*/obn/storage/ViamotoRoute.mem*', '*/route/ViamotoRoute.mem*',
+                  '*/$Deleted/*/ViamotoRoute.mem.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, no ViamotoRoute.mem in the extracted set",
@@ -560,7 +678,7 @@ __artifacts_v2__ = {
         "description": "Positions with road names from a downloaded route file, in file order, "
                        "with the two numbers stored between each position and its name.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -592,8 +710,18 @@ __artifacts_v2__ = {
                  "eleven address blocks in the same files lie inside the area their file's "
                  "points cover. The road name table and the instruction text at the end of the "
                  "file are not read. A row records that the route the module stored passes "
-                 "that point. It does not establish that the vehicle drove it.",
-        "paths": ('*/obn/storage/ViamotoRoute.mem*',),
+                 "that point. It does not establish that the vehicle drove it. The flash image "
+                 "itself can be the input, as a raw image: the files are then read from the "
+                 "image's EFS partitions, where the route file is under route, and from the "
+                 "deleted files the reader recovers, matched under $Deleted. Source File then "
+                 "starts with the volume and names the $Deleted folder for a deleted file. A "
+                 "row found in both a live and a deleted file is listed once, under the file "
+                 "read first, which can be the deleted one. Rows from the flash image against "
+                 "rows from the extracted file set: xtrmp_item027 328 rows (301 with a deleted "
+                 "file as Source File) against 331, 0 not in the file set and 3 of the file "
+                 "set not among them.",
+        "paths": ('*/obn/storage/ViamotoRoute.mem*', '*/route/ViamotoRoute.mem*',
+                  '*/$Deleted/*/ViamotoRoute.mem.deleted-*'),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, extracted file set | 0 "
                              "rows, no ViamotoRoute.mem in the extracted set",
@@ -651,7 +779,8 @@ def _read(path):
 
 def _base_name(path):
     """The file name without the '(Deleted)' and '(CopyN)' marks an acquisition adds."""
-    return re.sub(r'\((?:Deleted|Copy\d+)\)', '', os.path.basename(path))
+    name = re.sub(r'\.deleted-\d{6}$', '', os.path.basename(path))
+    return re.sub(r'\((?:Deleted|Copy\d+)\)', '', name)
 
 
 def _distinct(paths):
