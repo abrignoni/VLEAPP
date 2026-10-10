@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "get_location_logs": {
-        "name": "Location Logs",
+        "name": "Chrysler - Location Logs",
         "description": "Location records (with accuracy, speed, course and the location method "
                        "each line names) parsed from Chrysler "
                        "JSR179 persistent logs.",

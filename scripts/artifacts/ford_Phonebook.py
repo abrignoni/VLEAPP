@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "get_PhoneBook": {
-        "name": "Phonebook Contacts",
+        "name": "Ford - Phonebook Contacts",
         "description": "Phonebook contacts (name + number list) from Ford vehicles (BTPhonebook).",
         "author": "@JaysonU25",
         "version": "0.2",

@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "bmw_connected_apple_devices": {
-        "name": "Connected Apple Devices",
+        "name": "BMW MGU - Connected Apple Devices",
         "description": "Media library records from the head unit's iap2 stores "
                        "(iap2_library table), with the identifier parsed from each store's "
                        "file name and the device UDID each record holds.",
@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "BMW Vehicles",
+        "category": "BMW MGU",
         "notes": "On the tested image each store's file name carried an identifier tagged btmac "
                  "or serial. That the unit keeps one store per device is not established here. "
                  "The identifier is parsed from the file name and reported alongside the device "
@@ -31,7 +31,7 @@ __artifacts_v2__ = {
         "artifact_icon": "smartphone",
     },
     "bmw_connected_device_media": {
-        "name": "Connected Device Media",
+        "name": "BMW MGU - Connected Device Media",
         "description": "Media items the head unit indexed from connected Apple devices, "
                        "with title, artist, album, genre and duration as the unit recorded "
                        "them.",
@@ -40,7 +40,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "BMW Vehicles",
+        "category": "BMW MGU",
         "notes": "From iap2_media_item joined to the artist, album, album artist, genre and "
                  "composer tables in the same store. Playback duration is reported as "
                  "stored because nothing available here establishes its units. The type and "

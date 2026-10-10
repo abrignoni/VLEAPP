@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "get_info": {
-        "name": "VIN",
+        "name": "Ford - VIN",
         "description": "Vehicle Identification Number(s) from a Ford vin.txt.",
         "author": "@JaysonU25",
         "version": "0.2",

@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "ford_diag_events": {
-        "name": "Diagnostic Events",
+        "name": "Ford SYNC 4 - Diagnostic Events",
         "description": "Rows of the head unit's events_metadata table, with the "
                        "creator_id of each one and the uploaded value where the record "
                        "carries a date string.",
@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "From events_metadata in diagnostics_slave.sqlite. The uploaded column is "
                  "declared INTEGER but holds either a human readable date string or 0 on the "
                  "tested image; that the string marks an upload is taken from the column "
@@ -37,7 +37,7 @@ __artifacts_v2__ = {
         "artifact_icon": "activity",
     },
     "ford_diag_upload_errors": {
-        "name": "Diagnostic Upload Errors",
+        "name": "Ford SYNC 4 - Diagnostic Upload Errors",
         "description": "Failures the head unit recorded while trying to upload diagnostic "
                        "events, each with a timestamp and the boot count current at the time.",
         "author": "@AlexisBrignoni, Claude",
@@ -45,7 +45,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "From upload_errors in diagnostics_slave.sqlite. timestamp is read as a Unix "
                  "time, with the unit chosen from the value's magnitude; on the tested image "
                  "all 281 values were ten digit integers, read as seconds. start_time is a "
@@ -66,7 +66,7 @@ __artifacts_v2__ = {
         "artifact_icon": "alert-triangle",
     },
     "ford_diag_identifiers": {
-        "name": "Diagnostic Identifiers",
+        "name": "Ford SYNC 4 - Diagnostic Identifiers",
         "description": "Identifier values the head unit stored beside its diagnostics "
                        "configuration, reported as stored.",
         "author": "@AlexisBrignoni, Claude",
@@ -74,7 +74,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "On the tested image each file held a single 64 character hexadecimal "
                  "value on one line, and the file name is the unit's own name for it. A 64 "
                  "character hex string is the length a SHA-256 digest prints to, but what "

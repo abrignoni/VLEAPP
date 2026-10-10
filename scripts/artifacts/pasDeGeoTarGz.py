@@ -1,9 +1,9 @@
 __artifacts_v2__ = {
     "pasDeGeoTarGzGps": {
-        "name": "RAM - PAS GPS Locations",
+        "name": "PAS Debug Log (RAM archive) - GPS Locations",
         "description": "GPS locations from a RAM pas_debug.log.1 inside an archivedata tar.gz.",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Latitude/Longitude exposed for the KML map. The log is read in-memory from the "
                  "tar.gz. Timestamp is the log line's clock reading. No zone is read from the "
                  "line. The value is stored as if it were UTC, and the offset from UTC is not "
@@ -12,11 +12,11 @@ __artifacts_v2__ = {
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'], "artifact_icon": "map-pin",
     },
     "pasDeGeoTarGzSpeed": {
-        "name": "RAM - PAS Road Speed Limits",
+        "name": "PAS Debug Log (RAM archive) - Road Speed Limits",
         "description": "Speed limit values (no road name is reported) from a RAM pas_debug.log.1 "
                        "(tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the "
                  "line. The value is stored as if it "
@@ -29,12 +29,12 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "alert-triangle",
     },
     "pasDeGeoTarGzApInfo": {
-        "name": "RAM - PAS Access Point List",
+        "name": "PAS Debug Log (RAM archive) - Access Point List",
         "description": "Wi-Fi SSID and signal lines, each shown with the BSSID from the most "
                        "recent \"Extracted BSSID\" line before it, from a RAM pas_debug.log.1 "
                        "(tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -44,10 +44,10 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "wifi",
     },
     "pasDeGeoTarGzVSpeed": {
-        "name": "RAM - PAS Vehicle Speed",
+        "name": "PAS Debug Log (RAM archive) - Vehicle Speed",
         "description": "Vehicle speed (kmph) from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -57,10 +57,10 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "navigation",
     },
     "pasDeGeoTarGzTransm": {
-        "name": "RAM - PAS Transmission Status",
+        "name": "PAS Debug Log (RAM archive) - Transmission Status",
         "description": "Transmission status from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -70,10 +70,10 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "settings",
     },
     "pasDeGeoTarGzTemp": {
-        "name": "RAM - PAS Outside Temperature",
+        "name": "PAS Debug Log (RAM archive) - Outside Temperature",
         "description": "Outside air temperature from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -83,12 +83,12 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "pasDeGeoTarGzOdometer": {
-        "name": "RAM - PAS Odometer",
+        "name": "PAS Debug Log (RAM archive) - Odometer",
         "description": "Odometer values (each shown with the time of the most recent "
                        "CAppLinkService line before it, not the time of the odometer line itself) "
                        "from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the clock reading of the "
                  "most recent CAppLinkService line before "
                  "the odometer line, not of the odometer "
@@ -101,10 +101,10 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "activity",
     },
     "pasDeGeoTarGzCurRoad": {
-        "name": "RAM - PAS Current Road",
+        "name": "PAS Debug Log (RAM archive) - Current Road",
         "description": "Current road from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -114,11 +114,11 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "map",
     },
     "pasDeGeoTarGzVehicle": {
-        "name": "RAM - PAS Vehicle Info",
+        "name": "PAS Debug Log (RAM archive) - Vehicle Info",
         "description": "Vehicle identity (VIN/make/model/platform) from a RAM pas_debug.log.1 "
                        "(tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "RAM Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Make, model, VIN and platform version "
                  "values, also written to the device "
                  "information log. Make and model show the "

@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "ford_installed_software": {
-        "name": "Installed Software",
+        "name": "Ford SYNC 4 - Installed Software",
         "description": "Software packages present on the head unit, each with the package "
                        "identifier, the part number, the display name, the version and the "
                        "package type the unit recorded.",
@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "From the packages table in pacman.db, the unit's own package manager "
                  "store. The query reads no install or update time, and none was found in "
                  "the table on the tested image, so this is an inventory of what is present "

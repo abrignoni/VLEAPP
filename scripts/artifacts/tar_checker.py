@@ -1,11 +1,11 @@
 __artifacts_v2__ = {
     "chryslerTarGps": {
-        "name": "Chrysler - Tar GZ GPS Locations",
+        "name": "PAS Debug Log (Chrysler archive) - GPS Locations",
         "description": "Latitude, longitude and heading from lines carrying \"lat:\", "
                        "\"lon:\" and \"heading:\" in a pas_debug log inside a Chrysler "
                        "[H-M]_*.tar.gz archive.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Latitude/Longitude exposed for the KML map. The log is read in memory from "
                  "the tar.gz. pas_debug.log.1 is read when present; pas_debug.log is read only "
                  "when it is not. Timestamp is the log line's clock reading. No zone is read "
@@ -16,11 +16,11 @@ __artifacts_v2__ = {
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'], "artifact_icon": "map-pin",
     },
     "chryslerTarSpeed": {
-        "name": "Chrysler - Tar GZ Road Speed Limits",
+        "name": "PAS Debug Log (Chrysler archive) - Road Speed Limits",
         "description": "Speed limit values (no road name is reported) from a pas_debug log inside "
                        "a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -32,12 +32,12 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "alert-triangle",
     },
     "chryslerTarApInfo": {
-        "name": "Chrysler - Tar GZ Access Point List",
+        "name": "PAS Debug Log (Chrysler archive) - Access Point List",
         "description": "Wi-Fi SSID and signal lines, each shown with the BSSID and time of "
                        "the most recent \"Extracted BSSID\" line before it, from a pas_debug "
                        "log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "PAS Debug Log",
         "notes": "BSSID Line Timestamp is the clock reading of the "
                  "most recent \"Extracted BSSID\" line "
                  "before the SSID line, not of the SSID "
@@ -49,10 +49,10 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "wifi",
     },
     "chryslerTarVSpeed": {
-        "name": "Chrysler - Tar GZ Vehicle Speed",
+        "name": "PAS Debug Log (Chrysler archive) - Vehicle Speed",
         "description": "Vehicle speed (kmph) from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock reading. No "
                  "zone is read from the line. The value is "
                  "stored as if it were UTC, and the offset from "
@@ -61,10 +61,10 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "navigation",
     },
     "chryslerTarTransm": {
-        "name": "Chrysler - Tar GZ Transmission Status",
+        "name": "PAS Debug Log (Chrysler archive) - Transmission Status",
         "description": "Transmission status from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock reading. No "
                  "zone is read from the line. The value is "
                  "stored as if it were UTC, and the offset from "
@@ -73,14 +73,14 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "settings",
     },
     "chryslerTarBrake": {
-        "name": "Chrysler - Tar GZ Brake Status",
+        "name": "PAS Debug Log (Chrysler archive) - Brake Status",
         "description": "eBrakePedalStatus values, shown as Brake Pedal Pressed for 1 and Brake "
                        "Pedal Released for 0 with no source recorded for that mapping, each "
                        "with the coordinates last logged before it, from a pas_debug log "
                        "inside a "
                        "Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last coordinates "
                  "the parser read before the event line, from "
@@ -101,13 +101,13 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "octagon",
     },
     "chryslerTarEngineTemp": {
-        "name": "Chrysler - Tar GZ Engine Temperature",
+        "name": "PAS Debug Log (Chrysler archive) - Engine Temperature",
         "description": "The first two characters of the logged engine coolant temperature "
                        "value, each with the coordinates last logged before it, from a "
                        "pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last "
                  "coordinates the parser read before the "
@@ -132,12 +132,12 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "chryslerTarInteriorTemp": {
-        "name": "Chrysler - Tar GZ Interior Temperature",
+        "name": "PAS Debug Log (Chrysler archive) - Interior Temperature",
         "description": "Vehicle interior temperature value as logged (unit not established), "
                        "each with the coordinates last logged before it, from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last "
                  "coordinates the parser read before the "
@@ -161,13 +161,13 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "chryslerTarTirePressure": {
-        "name": "Chrysler - Tar GZ Tire Pressure",
+        "name": "PAS Debug Log (Chrysler archive) - Tire Pressure",
         "description": "Tire pressure readings for the position tokens the parser recognises "
                        "(REAR_LEFT, REAR_REAR, FRONT_LEFT, FRONT_REAR as logged), each with "
                        "the coordinates last logged before it, from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last coordinates "
                  "the parser read before the event line, from "
@@ -190,14 +190,14 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "disc",
     },
     "chryslerTarGearState": {
-        "name": "Chrysler - Tar GZ Gear State",
+        "name": "PAS Debug Log (Chrysler archive) - Gear State",
         "description": "eGearState values (shown as Park for 1, Neutral for 2, Drive for 3 and "
                        "Reverse for 4; no source for that mapping is recorded and other values "
                        "are not listed), each with the coordinates last logged before it, from a "
                        "pas_debug log inside "
                        "a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last coordinates "
                  "the parser read before the event line, from "
@@ -216,11 +216,11 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "sliders",
     },
     "chryslerTarOutTemp": {
-        "name": "Chrysler - Tar GZ Outside Temperature",
+        "name": "PAS Debug Log (Chrysler archive) - Outside Temperature",
         "description": "Outside air temperature from a pas_debug log inside a Chrysler "
                        "[H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock reading. No "
                  "zone is read from the line. The value is "
                  "stored as if it were UTC, and the offset from "
@@ -229,14 +229,14 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "thermometer",
     },
     "chryslerTarDoor": {
-        "name": "Chrysler - Tar GZ Door Status",
+        "name": "PAS Debug Log (Chrysler archive) - Door Status",
         "description": "Driver door and trunk lift gate ajar status (0 shown as Closed, 1 "
                        "as Open; no source for that mapping is recorded, and other doors "
                        "are not reported), each with the coordinates last logged before it, "
                        "from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last coordinates "
                  "the parser read before the event line, from "
@@ -257,12 +257,12 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "log-out",
     },
     "chryslerTarOdometer": {
-        "name": "Chrysler - Tar GZ Odometer",
+        "name": "PAS Debug Log (Chrysler archive) - Odometer",
         "description": "Odometer values (each shown with the time of the most recent "
                        "CAppLinkService line before it, not the time of the odometer line itself) "
                        "from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "PAS Debug Log",
         "notes": "CAppLinkService Line Timestamp is the clock "
                  "reading of the most "
                  "recent CAppLinkService line before the "
@@ -275,10 +275,10 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "activity",
     },
     "chryslerTarCurRoad": {
-        "name": "Chrysler - Tar GZ Current Road",
+        "name": "PAS Debug Log (Chrysler archive) - Current Road",
         "description": "Current road from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Timestamp is the log line's clock reading. No "
                  "zone is read from the line. The value is "
                  "stored as if it were UTC, and the offset from "
@@ -287,11 +287,11 @@ __artifacts_v2__ = {
         "output_types": "standard", "artifact_icon": "map",
     },
     "chryslerTarVehicle": {
-        "name": "Chrysler - Tar GZ Vehicle Info",
+        "name": "PAS Debug Log (Chrysler archive) - Vehicle Info",
         "description": "Vehicle identity (make/model/year/VIN/platform) from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Chrysler Vehicles",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "PAS Debug Log",
         "notes": "Make, model, model year, VIN and "
                  "platform version values, also written "
                  "to the device information log. Make, "

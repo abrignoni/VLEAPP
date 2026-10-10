@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "get_phone_book_devices": {
-        "name": "PhoneBook Devices",
+        "name": "Chrysler - PhoneBook Devices",
         "description": "Phonebook BT device list with connect/disconnect times from Chrysler "
                        "vehicles (PhoneBookDeviceList bz2-compressed sqlite).",
         "author": "@JaysonU25",

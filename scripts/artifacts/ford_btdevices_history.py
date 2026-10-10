@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "get_bt_device_hist": {
-        "name": "BT Device History",
+        "name": "Ford - Device History In SmartDeviceLink Log",
         "description": "Device appeared and disappeared lines (name, serial, uuid, device type) "
                        "from a Ford smartdevicelink.log.",
         "author": "@JaysonU25",

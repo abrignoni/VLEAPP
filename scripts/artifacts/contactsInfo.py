@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "contactsInfo": {
-        "name": "Contacts",
+        "name": "Contacts In contact.db",
         "description": "Contact records (with phone, email, address and the device_id "
                        "each contact is linked to; a contact with several numbers or "
                        "addresses appears once per combination) from a vehicle "

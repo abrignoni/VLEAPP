@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "get_devices": {
-        "name": "Device Manager Devices",
+        "name": "Chrysler - Device Manager Devices",
         "description": "Device names and addresses (DeviceListTable) from Chrysler vehicles "
                        "(DeviceManagerDeviceList "
                        "bz2-compressed sqlite).",
