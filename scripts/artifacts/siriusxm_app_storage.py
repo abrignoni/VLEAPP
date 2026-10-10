@@ -81,9 +81,9 @@ __artifacts_v2__ = {
                        "start and end times each entry stores, its play, content and asset "
                        "types and the channel it names.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "SiriusXM App",
         "notes": "From the SiriusXM application's local storage folder, which two tested head "
@@ -111,11 +111,31 @@ __artifacts_v2__ = {
                  "from 2025-02-16 to 2026-02-26, and had no lastServerRecentsMap. Every entry "
                  "on both was of play type live and asset type channel, and none held a show "
                  "or episode title. A row records that the application stored that entry. It "
-                 "does not establish who was listening.",
+                 "does not establish who was listening. The free space of every volume a raw "
+                 "image input offers (<image>.<volume>.unallocated.bin with its run map) is "
+                 "read too, whichever volume the application is on; File Name names the "
+                 "volume. A released file's blocks can stay as they were until reused, so a "
+                 "document of this form can still start a free block. One is looked for at "
+                 "each 4,096 bytes of each free run, the block size of the tested QNX6 volume, "
+                 "and only the entries that parse and lie inside those first 4,096 bytes are "
+                 "reported: what follows a block in free space is not shown to be the same "
+                 "file. An entry from free space is reported once, with Free space as its "
+                 "Store and the offset in the image of the first document found holding it "
+                 "(empty when no run map is beside the file), and is left out when a file "
+                 "holds an entry with the same reported values. On the Ford unit's raw image "
+                 "that gave 17 more rows, from documents at 5 offsets on the storage volume, "
+                 "16 of them with an endDateTime, from 2023-12-06 to 2024-03-27: 45 rows in "
+                 "all against 28 from the files. An entry from free space was written to that "
+                 "volume at some time in a document of this form. Which file held it and when "
+                 "it was removed are not shown. The BMW was read from a logical zip; its "
+                 "volume is an ext filesystem, for which the reader offers no free space, and "
+                 "that was not run.",
         "paths": ('*localStorage/private/user/*/recentlyPlayedMap/*',
-                  '*localStorage/private/user/*/lastServerRecentsMap/*',),
+                  '*localStorage/private/user/*/lastServerRecentsMap/*',
+                  '*.unallocated.bin', '*.unallocated.tsv'),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 28 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 45 rows",
             "bmw_mgu_2024_pers_logical": "BMW MGU, pers volume zip | 9 rows",
         },
         "output_types": "standard",
@@ -257,11 +277,13 @@ __artifacts_v2__ = {
     },
 }
 
+import csv
 import json
+import mmap
 import os
 from datetime import datetime, timezone
 
-from scripts.ilapfuncs import artifact_processor, convert_unix_ts_to_utc, logdevinfo
+from scripts.ilapfuncs import artifact_processor, convert_unix_ts_to_utc, logdevinfo, logfunc
 
 
 def _read_value(file_found):
@@ -323,10 +345,16 @@ def siriusxm_app_account_and_device(context):
     return data_headers, data_list, '\n'.join(source_paths)
 
 
+_FREE_SPACE = '.unallocated.bin'
+_RUN_MAP = '.unallocated.tsv'
+_BLOCK = 4096
+_RECENTS_START = b'{"recentlyPlayeds":['
+
+
 def _documents(context):
     """(path, store folder, file name, parsed JSON) for each matched file that parses."""
     for file_found in sorted(str(f) for f in set(context.get_files_found())):
-        if os.path.isdir(file_found):
+        if os.path.isdir(file_found) or file_found.endswith((_FREE_SPACE, _RUN_MAP)):
             continue
         try:
             with open(file_found, 'rb') as handle:
@@ -361,6 +389,83 @@ def _text(value):
     return str(value)
 
 
+def _free_runs(path, size):
+    """(offset in the file, offset in the image, length) for each run of a free space
+    file, from the run map beside it. Without a usable map the file is one run and no
+    image offset is known."""
+    runs = []
+    try:
+        with open(path[:-len(_FREE_SPACE)] + _RUN_MAP, encoding='utf-8', newline='') as handle:
+            for row in list(csv.reader(handle, delimiter='\t'))[1:]:
+                runs.append((int(row[0]), int(row[1]), int(row[2])))
+    except (OSError, ValueError, IndexError):
+        runs = []
+    if not runs or sum(length for _start, _image, length in runs) != size:
+        logfunc(f'SiriusXM App: no usable run map beside {os.path.basename(path)}')
+        return [(0, None, size)]
+    return runs
+
+
+def _free_space_recents(path):
+    """(entry, offset in the image or None) for each recently played entry found in a
+    file of free space.
+
+    A released file's blocks can stay as they were until reused, so a document of this
+    form can still start a free block. One is looked for at each 4,096 bytes of each run,
+    the block size of the tested QNX6 volume. Only the entries that parse and lie inside
+    those first 4,096 bytes are given, whether or not the rest of the document parses:
+    what follows a block in free space is not shown to be the same file, and a later
+    version of a file rewritten at the same length would join on without a seam.
+    """
+    try:
+        size = os.path.getsize(path)
+        if not size:
+            return
+        handle = open(path, 'rb')  # pylint: disable=consider-using-with
+    except OSError:
+        return
+    try:
+        mapped = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ)
+    except (OSError, ValueError):
+        handle.close()
+        return
+    decoder = json.JSONDecoder()
+    try:
+        for start, image, length in _free_runs(path, size):
+            position = mapped.find(_RECENTS_START, start, start + length)
+            while position != -1:
+                if (position - start) % _BLOCK == 0:
+                    where = None if image is None else image + position - start
+                    text = mapped[position:min(start + length, position + _BLOCK)].decode(
+                        'utf-8', 'replace')
+                    index = len(_RECENTS_START)
+                    while index < len(text) and text[index] == '{':
+                        try:
+                            entry, end = decoder.raw_decode(text, index)
+                        except ValueError:
+                            break
+                        if isinstance(entry, dict):
+                            yield entry, where
+                        index = end + 1
+                position = mapped.find(_RECENTS_START, position + 1, start + length)
+    finally:
+        mapped.close()
+        handle.close()
+
+
+def _recent_row(entry):
+    return (
+        _utc(entry.get('startDateTime')), _utc(entry.get('endDateTime')),
+        _text(entry.get('startStreamDateTime')), _text(entry.get('endStreamDateTime')),
+        _text(entry.get('recentPlayType')), _text(entry.get('contentType')),
+        _text(entry.get('assetType')), _text(entry.get('channelGuid')),
+        _text(entry.get('assetGUID')), _text(entry.get('assetName')),
+        _text(entry.get('showTitle')), _text(entry.get('episodeTitle')),
+        _text(entry.get('startStreamTime')), _text(entry.get('endStreamTime')),
+        _text(entry.get('incognito')), _text(entry.get('gupId')),
+        _text(entry.get('deviceGuid')))
+
+
 @artifact_processor
 def siriusxm_app_recently_played(context):
     data_list = []
@@ -373,23 +478,30 @@ def siriusxm_app_recently_played(context):
         for entry in entries:
             if not isinstance(entry, dict):
                 continue
-            data_list.append((
-                _utc(entry.get('startDateTime')), _utc(entry.get('endDateTime')),
-                _text(entry.get('startStreamDateTime')), _text(entry.get('endStreamDateTime')),
-                _text(entry.get('recentPlayType')), _text(entry.get('contentType')),
-                _text(entry.get('assetType')), _text(entry.get('channelGuid')),
-                _text(entry.get('assetGUID')), _text(entry.get('assetName')),
-                _text(entry.get('showTitle')), _text(entry.get('episodeTitle')),
-                _text(entry.get('startStreamTime')), _text(entry.get('endStreamTime')),
-                _text(entry.get('incognito')), _text(entry.get('gupId')),
-                _text(entry.get('deviceGuid')), store, name))
+            data_list.append(_recent_row(entry) + (store, name, ''))
+
+    # Free space: an entry is reported once, and not at all when a file holds the same one.
+    seen = {row[:17] for row in data_list}
+    for file_found in sorted(str(f) for f in set(context.get_files_found())
+                             if str(f).endswith(_FREE_SPACE) and not os.path.isdir(str(f))):
+        found = False
+        for entry, where in _free_space_recents(file_found):
+            row = _recent_row(entry)
+            if row in seen:
+                continue
+            seen.add(row)
+            found = True
+            data_list.append(row + ('Free space', os.path.basename(file_found),
+                                    '' if where is None else where))
+        if found:
+            source_paths.append(file_found)
 
     data_headers = (('Start Date Time', 'datetime'), ('End Date Time', 'datetime'),
                     'startStreamDateTime (as stored)', 'endStreamDateTime (as stored)',
                     'Recent Play Type', 'Content Type', 'Asset Type', 'Channel GUID',
                     'Asset GUID', 'Asset Name', 'Show Title', 'Episode Title',
                     'startStreamTime (as stored)', 'endStreamTime (as stored)', 'Incognito',
-                    'gupId', 'Device GUID', 'Store', 'File Name')
+                    'gupId', 'Device GUID', 'Store', 'File Name', 'Offset In Image')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
