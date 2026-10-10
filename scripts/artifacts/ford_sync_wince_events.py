@@ -273,6 +273,143 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "bluetooth",
     },
+    "ford_sync_wince_log_device_activity_lines": {
+        "name": "Ford SYNC WinCE - Device Activity Lines In Log",
+        "description": "Lines of the module's log that record a Bluetooth device being "
+                       "activated or deactivated, a call list file being saved for a device, "
+                       "and the emergency assist code logging a phone connect or disconnect "
+                       "status event, read from the log files and the raw partition image, "
+                       "each with its tick count, a derived clock and where in the image it "
+                       "was found.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-10",
+        "last_update_date": "2026-10-10",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From Windows/LogFiles/MsgLog<n>.txt, the log text beside a crash dump and "
+                 "DiskImages/partition<n>.img, read the way the Log Events artifact reads "
+                 "them. Five lines are reported. 'CBTPairSvc::ActivateBTDevice() : Device "
+                 "<address>, 0x.., 0x..' is Device Activated and "
+                 "'CBTPairSvc::DeActivateBTDevice() : Device <address>, 0x..' is Device "
+                 "Deactivated: Device Address is the 12 hexadecimal digits on the line, "
+                 "shown in lower case with colons, and Values After Address holds the one or"
+                 " two hexadecimal values that follow it as stored, which nothing available "
+                 "here documents. 'PhoneCore:CCallHistoryList: Saved to "
+                 "[\\windows\\phonebook\\CH<address>.xml]' is Call List Saved, with the address"
+                 " taken from the file name. 'EmergencyAssist::HandlePhoneStatusEvent "
+                 "EVM_BTPHONE_CONNECT.' and the same with DISCONNECT are Assist Phone "
+                 "Connect and Assist Phone Disconnect; those lines name no device. Tested on"
+                 " ten units from their acquisition folders, eight SYNC Gen1 and two SYNC "
+                 "Gen2. Eight gave rows, 837 in all: 373 activations, 366 deactivations, 49 "
+                 "call list saves and, on the 2011 Ford Explorer XLT only, 10 assist "
+                 "connects and 39 assist disconnects. Two Gen1 units held none of these "
+                 "lines. The words activated and deactivated are the log's own; what the "
+                 "module does at that point is not documented here, so a row does not by "
+                 "itself establish that a call or a connection took place. A call list save "
+                 "line records that the module logged saving the call list file for that "
+                 "device at that point in the log. The call list document carries no date of"
+                 " its own saving. No reported line carries a date. Derived Clock, Nearest "
+                 "Clock Line, Clock Line Kind, Seconds From Clock Line and Clock Bias are "
+                 "worked out as in the Log Events artifact, whose notes give the checks "
+                 "behind them; 629 of the 837 rows have a derived clock, in 2003 on the Gen1"
+                 " units, which is the unit's own clock and not a calendar date to rely on. "
+                 "A line found in a log file and again in the partition image is one row, "
+                 "with Times Found, and the row keeps the reading that has a clock when only"
+                 " one does. Where Found is as in the Log Events artifact: on the two Gen2 "
+                 "units 385 rows sat only in free clusters, 121 only in allocated clusters "
+                 "in no listed file and 35 in a listed file. The image holds blocks of the "
+                 "log the file system has released, so the rows are what survived, not a "
+                 "full history. A row records that the module logged the line. It does not "
+                 "establish who carried the device.",
+        "paths": (
+            '*/Windows/LogFiles/MsgLog*.txt*',
+            '*/Windows/DumpFiles/*.RTL',
+            '*/DiskImages/partition*.img',
+        ),
+        "sample_data": {
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 20 rows",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, acquisition folder | 12 rows",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 3 rows",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 0 rows, no"
+                             " such line in the log files or the partition image",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 0 rows, no"
+                             " such line in the log files or the partition image",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 243 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 372 rows",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 169 "
+                             "rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 16 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, acquisition folder | 2 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "bluetooth",
+    },
+    "ford_sync_wince_log_power_lines": {
+        "name": "Ford SYNC WinCE - Power Lines In Log",
+        "description": "Lines of the module's log that record a power state being started and, "
+                       "on the tested SYNC Gen1 version 5 unit, a change in the system state "
+                       "the log spells out in six named fields (sysRunSt, HmiSt, SysReady, "
+                       "IgnSt, PwrMode and DrvDstr, as the log writes them), read from the log "
+                       "files and the raw partition image, each with its tick count, a derived "
+                       "clock and where in the image it was found.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-10",
+        "last_update_date": "2026-10-10",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From Windows/LogFiles/MsgLog<n>.txt, the log text beside a crash dump and "
+                 "DiskImages/partition<n>.img, read the way the Log Events artifact reads "
+                 "them. 'PM: PlatformSetSystemPowerState( <name> ) started.' is Power State "
+                 "Started, and State Or Change is the name on the line: waiton, waitsuspend, "
+                 "suspend, displayonly, infotainment, reboot and vhm occurred on the tested "
+                 "units. The names are the log's own and what each state does is not "
+                 "documented here. Lines of the same call that give a number in place of a "
+                 "name are not reported. 'SM: <name>CoreStateMachine::onEvent SystemState: "
+                 "sysRunSt:<a>-><b> HmiSt: SysReady: IgnSt: PwrMode: DrvDstr:' is System State "
+                 "Change, reported only when one or more of the six pairs differs, and State "
+                 "Or Change then lists the pairs that differ, as written. Two state machines "
+                 "write the line. A change is one row when the event, the change and the tick "
+                 "are the same. On the tested unit no change was written by both machines at "
+                 "the same tick. Tested on ten units from their acquisition folders, eight "
+                 "SYNC Gen1 and two SYNC Gen2, which gave 2,282 rows: 1,073 power state starts "
+                 "on all ten units and 1,209 system state changes, all on the Gen1 version 5 "
+                 "unit (2019 Ford Fusion). Of those 1,209, 894 change only DrvDstr between 0 "
+                 "and 1, 162 change only HmiSt, and 153 change IgnSt, PwrMode or sysRunSt, "
+                 "such as IgnSt:Run->Off with PwrMode:Run->Access. What DrvDstr stands for is "
+                 "not established here. No reported line carries a date. Derived Clock, "
+                 "Nearest Clock Line, Clock Line Kind, Seconds From Clock Line and Clock Bias "
+                 "are worked out as in the Log Events artifact, whose notes give the checks "
+                 "behind them; 1,424 of the 2,282 rows have a derived clock, in 2003 on the "
+                 "Gen1 units, which is the unit's own clock and not a calendar date to rely "
+                 "on. A line found in a log file and again in the partition image is one row, "
+                 "with Times Found, and the row keeps the reading that has a clock when only "
+                 "one does. Where Found is as in the Log Events artifact. The image holds "
+                 "blocks of the log the file system has released, so the rows are what "
+                 "survived, not a full history. A row records that the module logged the line. "
+                 "It does not establish who was in the vehicle.",
+        "paths": (
+            '*/Windows/LogFiles/MsgLog*.txt*',
+            '*/Windows/DumpFiles/*.RTL',
+            '*/DiskImages/partition*.img',
+        ),
+        "sample_data": {
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 33 rows",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, acquisition folder | 27 rows",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 27 rows",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 32 rows",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 33 rows",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 1352 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 404 rows",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 320 "
+                             "rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 21 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, acquisition folder | 33 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "power",
+    },
     "ford_sync_wince_log_clock_lines": {
         "name": "Ford SYNC WinCE - Clock Lines In Log",
         "description": "Lines of the module's log that state a date and time, one row per line: "
@@ -508,6 +645,22 @@ _PAIRED = re.compile(
     rb'\[0x0000(?P<address>[0-9A-Fa-f]{12})\], active = (?P<active>\d+), '
     rb'primary = (?P<primary>\d+), pairorder = (?P<order>\d+)'
     rb'|' + _CLOCK_ALTERNATIVES + rb')')
+_ACTIVITY = re.compile(
+    rb'(?P<tick>\d{1,10}) +(?:'
+    rb'CBTPairSvc::(?P<act>Activate|DeActivate)BTDevice\(\) : Device '
+    rb'(?P<address>[0-9A-Fa-f]{12}), (?P<rest>0x[0-9A-Fa-f]+(?:, 0x[0-9A-Fa-f]+)?)'
+    rb'|EmergencyAssist::HandlePhoneStatusEvent EVM_BTPHONE_(?P<assist>CONNECT|DISCONNECT)\.'
+    rb'|PhoneCore:CCallHistoryList: Saved to \[\\windows\\phonebook\\CH'
+    rb'(?P<saved>[0-9A-Fa-f]{12})\.xml\]'
+    rb'|' + _CLOCK_ALTERNATIVES + rb')')
+_STATE_FIELDS = ('sysRunSt', 'HmiSt', 'SysReady', 'IgnSt', 'PwrMode', 'DrvDstr')
+_POWER = re.compile(
+    rb'(?P<tick>\d{1,10}) +(?:'
+    rb'PM: PlatformSetSystemPowerState\( (?P<state>[A-Za-z]+) \) started\.'
+    rb'|SM: \w{1,24}CoreStateMachine::onEvent SystemState: (?P<system>'
+    rb'sysRunSt:\w+->\w+ HmiSt:\w+->\w+ SysReady:\w+->\w+ IgnSt:\w+->\w+ '
+    rb'PwrMode:\w+->\w+ DrvDstr:\w+->\w+)'
+    rb'|' + _CLOCK_ALTERNATIVES + rb')')
 _CLOCK = re.compile(rb'(?P<tick>\d{1,10}) +(?:' + _CLOCK_ALTERNATIVES + rb')')
 _NOT_LOG_TEXT = re.compile(rb'[^\t\r\n\x20-\x7e]')
 
@@ -679,6 +832,38 @@ def _describe_paired(match):
     return None
 
 
+def _describe_activity(match):
+    """(event, detail, address, values) for a device activity line; None for a clock line."""
+    if match.group('act'):
+        event = 'Device Activated' if match.group('act') == b'Activate' \
+            else 'Device Deactivated'
+        return (event, '', _address(match.group('address').decode('ascii')),
+                match.group('rest').decode('ascii'))
+    if match.group('assist'):
+        event = 'Assist Phone Connect' if match.group('assist') == b'CONNECT' \
+            else 'Assist Phone Disconnect'
+        return event, '', '', ''
+    if match.group('saved'):
+        return 'Call List Saved', '', _address(match.group('saved').decode('ascii')), ''
+    return None
+
+
+def _describe_power(match):
+    """(event, detail, '', '') for a power line; None for a clock line or no change."""
+    if match.group('state'):
+        return 'Power State Started', match.group('state').decode('ascii'), '', ''
+    if match.group('system'):
+        changed = []
+        for pair in match.group('system').decode('ascii').split(' '):
+            name, _colon, values = pair.partition(':')
+            before, _arrow, after = values.partition('->')
+            if name in _STATE_FIELDS and before != after:
+                changed.append(pair)
+        if changed:
+            return 'System State Change', ' '.join(changed), '', ''
+    return None
+
+
 def _clock_line(match):
     """(clock, kind) for a line that states a date and time, else None.
 
@@ -811,13 +996,12 @@ def _collect(context, label, find, listed_lines):
     return rows, source_paths
 
 
-@artifact_processor
-def ford_sync_wince_log_phone_lines(context):
-    rows, source_paths = _collect(
-        context, 'log phone lines', lambda data: _events(data, _PHONE, _describe_phone),
-        lambda image: _listed_event_lines(image, _PHONE, _describe_phone))
-    # One line can be found in a log file and again in the partition image, where the
-    # stretch around it can lack a clock line. Keep one row a line, the one with a clock.
+def _one_row_a_line(context, rows):
+    """Report rows, one a log line, from what _collect gathered.
+
+    One line can be found in a log file and again in the partition image, where the
+    stretch around it can lack a clock line. Keep one row a line, the one with a clock.
+    """
     lines = {}
     for row, (found, offset, path, places) in rows.items():
         key = row[1:6]
@@ -832,6 +1016,46 @@ def ford_sync_wince_log_phone_lines(context):
     data_list = [row + (found, _places(places), offset, context.get_relative_path(path))
                  for row, found, offset, path, places in lines.values()]
     data_list.sort(key=lambda row: (row[0] == '', row[0], row[5]))
+    return data_list
+
+
+@artifact_processor
+def ford_sync_wince_log_device_activity_lines(context):
+    rows, source_paths = _collect(
+        context, 'log device activity lines',
+        lambda data: _events(data, _ACTIVITY, _describe_activity),
+        lambda image: _listed_event_lines(image, _ACTIVITY, _describe_activity))
+    data_list = [(row[0], row[1]) + row[3:] for row in _one_row_a_line(context, rows)]
+
+    data_headers = (('Derived Clock', 'datetime'), 'Event', 'Device Address',
+                    'Values After Address (as stored)', 'Tick',
+                    ('Nearest Clock Line', 'datetime'), 'Clock Line Kind',
+                    'Seconds From Clock Line', 'Clock Bias (as stored)', 'Times Found',
+                    'Where Found', 'Offset', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+@artifact_processor
+def ford_sync_wince_log_power_lines(context):
+    rows, source_paths = _collect(
+        context, 'log power lines',
+        lambda data: _events(data, _POWER, _describe_power),
+        lambda image: _listed_event_lines(image, _POWER, _describe_power))
+    data_list = [row[:3] + row[5:] for row in _one_row_a_line(context, rows)]
+
+    data_headers = (('Derived Clock', 'datetime'), 'Event', 'State Or Change', 'Tick',
+                    ('Nearest Clock Line', 'datetime'), 'Clock Line Kind',
+                    'Seconds From Clock Line', 'Clock Bias (as stored)', 'Times Found',
+                    'Where Found', 'Offset', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+@artifact_processor
+def ford_sync_wince_log_phone_lines(context):
+    rows, source_paths = _collect(
+        context, 'log phone lines', lambda data: _events(data, _PHONE, _describe_phone),
+        lambda image: _listed_event_lines(image, _PHONE, _describe_phone))
+    data_list = _one_row_a_line(context, rows)
 
     data_headers = (('Derived Clock', 'datetime'), 'Event', 'Device Name',
                     'Value', 'Attempt', 'Tick',
