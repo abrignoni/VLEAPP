@@ -205,6 +205,74 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "link",
     },
+    "ford_sync_wince_log_paired_device_lines": {
+        "name": "Ford SYNC WinCE - Paired Device Lines In Log",
+        "description": "Entries of the paired device list the module writes into its log, read "
+                       "from the log files and the raw partition image: one row per distinct "
+                       "entry, with the device name, device address, device number, the active "
+                       "and primary values and pair order on the line, how many times its line "
+                       "was found across the sources and where in the image.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-10",
+        "last_update_date": "2026-10-10",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From lines of the form 'device: <n>. [<name>] [0x0000<address>], active = "
+                 "<a>, primary = <p>, pairorder = <o>' in Windows/LogFiles/MsgLog<n>.txt, the "
+                 "log text beside a crash dump and DiskImages/partition<n>.img, read the way "
+                 "the Log Events artifact reads them. The log writes the device list again and "
+                 "again, so lines with the same name, address and four numbers are one row. "
+                 "Times Found is how many times the line was found across every source, and a "
+                 "line in an extracted file is counted again where the image holds it. Device "
+                 "Address is the 12 hexadecimal digits in the second bracket, shown in lower "
+                 "case with colons. Tested on ten units from their acquisition folders, eight "
+                 "SYNC Gen1 and two SYNC Gen2: 1,803 line readings (937 in the partition "
+                 "images, 866 in the extracted log files and crash dump text, a line present "
+                 "in both counted in both) gave 39 rows holding 33 device addresses, counted "
+                 "per unit. On the eight Gen1 units the addresses were the same ones the "
+                 "Paired Devices In Log artifact reads from the log files. The 2014 Edge's two "
+                 "extracted log files hold no such line and the Explorer's extracted set has "
+                 "no log file, so their rows came from the partition image alone: 2 rows for 1 "
+                 "address on the 2014 Ford Edge SEL and 7 rows for 6 addresses on the 2011 "
+                 "Ford Explorer XLT, all in free clusters or in allocated clusters in no "
+                 "listed file. An independent parse of the Explorer listed 7 Bluetooth "
+                 "addresses, and the 6 here are among them. A device has more than one row "
+                 "when its numbers, or its name, differ between lines; on the tested units "
+                 "only the numbers differed. Active and Primary are shown as stored and what "
+                 "each value stands for is not documented here; Pair Order is the number the "
+                 "line calls pairorder. No such line carries a date. Earliest Derived Clock "
+                 "and Latest Derived Clock are the lowest and highest clock derived for the "
+                 "row's lines, worked out as in the Log Events artifact, whose notes give the "
+                 "checks behind it; 26 of the 39 rows have one, in 2003 on the Gen1 units, "
+                 "which is the unit's own clock and not a calendar date to rely on, and in "
+                 "2020 on 2 rows of the Explorer. Where Found is as in the Log Events artifact "
+                 "and lists every place the row's lines sat. Source File is the first matched "
+                 "file, in path order, that held the row; on the tested units that is the "
+                 "partition image for every row, and Where Found says where else the line sat. "
+                 "The text after pairorder on the line is not surfaced. A row records that the "
+                 "module listed the device as paired in its log. It does not establish when "
+                 "the device was paired or who carried it.",
+        "paths": (
+            '*/Windows/LogFiles/MsgLog*.txt*',
+            '*/Windows/DumpFiles/*.RTL',
+            '*/DiskImages/partition*.img',
+        ),
+        "sample_data": {
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 1 row",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, acquisition folder | 5 rows",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 2 rows",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 4 rows",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 4 rows",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 3 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 2 rows",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 7 rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 4 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, acquisition folder | 7 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "bluetooth",
+    },
     "ford_sync_wince_log_clock_lines": {
         "name": "Ford SYNC WinCE - Clock Lines In Log",
         "description": "Lines of the module's log that state a date and time, one row per line: "
@@ -434,6 +502,12 @@ _PHONE = re.compile(
     rb'(?P<connected>[0-9A-Fa-f]{8}) '
     rb'|Phone::OnPhoneHFPPortDisconnected \((?P<disconnected>\d+)\)'
     rb'|' + _CLOCK_ALTERNATIVES + rb')')
+_PAIRED = re.compile(
+    rb'(?P<tick>\d{1,10}) +(?:'
+    rb'\tdevice: (?P<index>\d+)\. \[(?P<name>[^\r\n]{0,80}?)\] '
+    rb'\[0x0000(?P<address>[0-9A-Fa-f]{12})\], active = (?P<active>\d+), '
+    rb'primary = (?P<primary>\d+), pairorder = (?P<order>\d+)'
+    rb'|' + _CLOCK_ALTERNATIVES + rb')')
 _CLOCK = re.compile(rb'(?P<tick>\d{1,10}) +(?:' + _CLOCK_ALTERNATIVES + rb')')
 _NOT_LOG_TEXT = re.compile(rb'[^\t\r\n\x20-\x7e]')
 
@@ -592,6 +666,16 @@ def _describe_phone(match):
         return 'Connected', '', match.group('connected').decode('ascii').lower(), ''
     if match.group('disconnected'):
         return 'Disconnected', '', int(match.group('disconnected')), ''
+    return None
+
+
+def _describe_paired(match):
+    """(event, name, address, numbers) for a paired device line; None for a clock line."""
+    if match.group('address'):
+        return ('Paired Device', match.group('name').decode('utf-8', 'replace'),
+                _address(match.group('address').decode('ascii')),
+                (int(match.group('index')), int(match.group('active')),
+                 int(match.group('primary')), int(match.group('order'))))
     return None
 
 
@@ -754,6 +838,40 @@ def ford_sync_wince_log_phone_lines(context):
                     ('Nearest Clock Line', 'datetime'), 'Clock Line Kind',
                     'Seconds From Clock Line', 'Clock Bias (as stored)',
                     'Times Found', 'Where Found', 'Offset', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+@artifact_processor
+def ford_sync_wince_log_paired_device_lines(context):
+    rows, source_paths = _collect(
+        context, 'log paired device lines',
+        lambda data: _events(data, _PAIRED, _describe_paired),
+        lambda image: _listed_event_lines(image, _PAIRED, _describe_paired))
+    # The log writes the device list again and again. One row a distinct entry, with how
+    # many lines held it and the earliest and latest clock derived for them.
+    devices = {}
+    for row, (found, _offset, path, places) in rows.items():
+        derived, _event, name, address, numbers = row[:5]
+        key = (name, address) + numbers
+        if key not in devices:
+            devices[key] = [found, derived, derived, path, set(places)]
+            continue
+        kept = devices[key]
+        kept[0] += found
+        kept[4] |= places
+        if derived:
+            kept[1] = min(kept[1], derived) if kept[1] else derived
+            kept[2] = max(kept[2], derived)
+    data_list = [(first, last, name, address, index, active, primary, order, found,
+                  _places(places), context.get_relative_path(path))
+                 for (name, address, index, active, primary, order),
+                 (found, first, last, path, places) in devices.items()]
+    data_list.sort(key=lambda row: (row[3], row[4], row[0] == '', row[0]))
+
+    data_headers = (('Earliest Derived Clock', 'datetime'), ('Latest Derived Clock', 'datetime'),
+                    'Device Name', 'Device Address', 'Device Number', 'Active (as stored)',
+                    'Primary (as stored)', 'Pair Order', 'Times Found', 'Where Found',
+                    'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
