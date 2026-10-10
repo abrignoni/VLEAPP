@@ -499,6 +499,48 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "corner-up-right",
     },
+    "gm_onstar_lg_nav_clip_names": {
+        "name": "GM OnStar LG Gen9 - Navigation Clip Names",
+        "description": "Clip names listed in the Dyn Clips lines of the telematics module's "
+                       "turn-by-turn navigation log: the clip number and the text stored for "
+                       "it, with the line's log time and the clip's position in the line.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From the 'Dyn Clips' lines of obn/storage/flight, the log the Navigation "
+                 "Guidance Prompts artifact reads. A line is 'Dyn Clips,' followed by "
+                 "<number>=<text> items separated by commas, and one row is one item, with the "
+                 "line's log time and the item's position in the line. Clip Text is as stored. "
+                 "The code writes %20 as a space, as the guidance prompt artifact does for "
+                 "Street, but no clip text on the tested unit held %20. The file states no "
+                 "time zone, and Line Time is written out as stored with no offset applied. "
+                 "The log's guidance prompt lines carry a list of numbers after the word "
+                 "audio. On the tested unit 50 of the 70 clip numbers appear in those lists "
+                 "and 20 do not. The log does not say what a clip is; the reading that it is a "
+                 "piece of a spoken prompt is an inference from that word and is not "
+                 "established here. A number is reused: on the tested unit 52 of the 70 "
+                 "distinct numbers carried more than one text, each in a different line, so a "
+                 "number has to be read with its line. Data came from one generation 9 unit, "
+                 "xtrmp_item027: 530 rows from 22 lines of 4 to 40 items, on 12 days from "
+                 "2015-11-26 to 2017-04-27, with clip numbers from 9043 to 9898, and the same "
+                 "rows from the extracted file set and from the flash image as raw input. On "
+                 "the other five tested units the log was zero bytes. The same unit's flash "
+                 "image also holds 286 files named arg_<number>.amr, 284 of them deleted and 2 "
+                 "live, with 65 distinct numbers, every one of them a clip number in these "
+                 "lines. Those files do not open with an AMR file header and are not decoded "
+                 "here; this artifact reports the text only. A row records that the log stored "
+                 "that text for that clip number at that time. It does not establish that the "
+                 "prompt was played or that the road was driven.",
+        "paths": ('*/storage/flight*', '*/$Deleted/*/flight.deleted-*'),
+        "sample_data": {
+            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, extracted file set | 530 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "list",
+    },
     "gm_onstar_lg_embedded_phone_numbers": {
         "name": "GM OnStar LG Gen9 - Embedded Phone Stored Numbers",
         "description": "Phone numbers held in two fixed fields of the telematics module's "
@@ -1296,6 +1338,39 @@ def gm_onstar_lg_nav_destinations(context):
     data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude',
                     'Latitude (as stored)', 'Longitude (as stored)', 'Identical Files',
                     'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+_FLIGHT_CLIPS = re.compile(r'^Dyn Clips,(.*)$')
+_FLIGHT_CLIP = re.compile(r'(\d+)=([^,]*)')
+
+
+@artifact_processor
+def gm_onstar_lg_nav_clip_names(context):
+    data_list = []
+    source_paths = []
+    seen = set()
+    files = [f for f in _regular_files(context) if _base_name(f) == 'flight']
+    for file_found, data, copies in _distinct(files):
+        found = False
+        for stamp, text in _flight_lines(data):
+            match = _FLIGHT_CLIPS.match(text)
+            if not match:
+                continue
+            for position, (number, name) in enumerate(_FLIGHT_CLIP.findall(match.group(1)), 1):
+                row = (stamp, position, number, name.replace('%20', ' '))
+                # a line kept in two versions of the log is one line
+                if row in seen:
+                    continue
+                seen.add(row)
+                found = True
+                data_list.append(row + (copies, context.get_relative_path(file_found)))
+        if found:
+            source_paths.append(file_found)
+    data_list.sort(key=lambda row: (row[0], row[1]))
+
+    data_headers = (('Line Time', 'datetime'), 'Position In Line', 'Clip Number', 'Clip Text',
+                    'Identical Files', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
