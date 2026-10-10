@@ -72,6 +72,18 @@ before phase 2, or the installer ships an unsigned executable inside a signed wr
 ad hoc; a Developer ID signature replaces that one. `verify` is the last step before
 anything is uploaded.
 
+On Windows, `release.yml` signs with SignPath through its GitHub action, not with
+`--sign-tool`: SignPath signs only what a workflow stored as an artifact of its own run,
+which is how it checks the binary was built from this repository on GitHub's runners, so
+nothing on the build machine can sign. Windows releases ship only the single-file
+`dist/vleapp.exe`, so it is the one file sent, in one request, as `vleapp.exe`. VLEAPP
+bundles no third-party executable, so nothing else would need signing. The artifact
+configuration SignPath applies, `vleapp-portable`, is kept in `packaging/signpath/` and
+must be edited there and in SignPath together. Signing appends to the executable and the
+single file finds its archive by reading from its end, so it is smoke-tested again once
+signed. `build.py installer --sign-tool` still works on Windows for a local build;
+releases do not use it.
+
 ## What the driver guarantees
 
 The version is read from `vleapp_version` in `scripts/version_info.py` as text and passed
@@ -105,10 +117,19 @@ and from source, a 69 MB bundle and a 32 MB disk image.
 
 ## What is and is not wired up
 
-Windows (x64 and ARM64): the folder build and an Inno Setup installer, which on ARM64
-installs only on ARM64. Unlike RLEAPP and iLEAPP, the ARM64 legs need no OpenSSL step:
-nothing VLEAPP requires depends on `cryptography`, which publishes no win_arm64 wheels, and
-the leg built without it before this driver existed. macOS (Apple silicon and Intel): `.app` and `.dmg`. The `.dmg` is
+Windows (x64 and ARM64): releases ship only a `--onefile` build, zipped alone as the
+portable download so it keeps the name `vleapp.exe` that the docs and calling tools use.
+There is no installer since 2026-10-10, as in RLEAPP: it was a second file to sign, as
+well as the folder build inside it. The cost is that the single file unpacks itself to
+`%TEMP%` on every start, so it is slower to start and blocked where AppLocker or WDAC
+forbid running programs from `%TEMP%`; the footer sends those users to the source.
+Rehearsals dispatched by hand are signed too; `test_builds.yml` signs nothing. The
+portable zip used to hold the folder build, whose `_internal` directory confused users.
+The Inno Setup script and `build.py installer` remain for local builds, the installer on
+ARM64 installing only on ARM64. Unlike RLEAPP and iLEAPP, the ARM64 legs need no OpenSSL
+step: nothing VLEAPP requires depends on `cryptography`, which publishes no win_arm64
+wheels, and the leg built without it before this driver existed. macOS (Apple silicon and
+Intel): `.app` and `.dmg`. The `.dmg` is
 laid out by dmgbuild from `packaging/dmg_settings.py`: the app and an Applications link
 either side of the arrow on `packaging/dmg_background.png`. The settings place the icons
 for that 960x540 image, so a new background keeps its size and its arrow where it is.
@@ -130,8 +151,8 @@ once and has to report the version. Linux builds are made on Ubuntu 22.04 for it
 requests that touch packaging.
 
 `release.yml` runs the same steps when a `v*` tag is pushed, refuses a tag that is not
-`v` + `vleapp_version`, names the assets `VLEAPP-<version>-<platform>-<arch>` (setup.exe
-and portable.zip on Windows, .dmg on macOS, .AppImage on Linux; no Linux .tar.gz), stages
+`v` + `vleapp_version`, names the assets `VLEAPP-<version>-<platform>-<arch>`
+(portable.zip on Windows, .dmg on macOS, .AppImage on Linux; no Linux .tar.gz), stages
 them in `release-assets/` (never `assets/`, which holds the window's images), adds
 `SHA256SUMS.txt`, and creates a **draft** release; publishing is a click. Dispatched by
 hand, it builds the assets without creating a release. `.github/release-footer.md` is
@@ -141,7 +162,33 @@ appended to the notes. macOS is signed with a Developer ID, smoke-tested again a
 `MACOS_NOTARY_KEY`, `MACOS_NOTARY_KEY_ID` and `MACOS_NOTARY_ISSUER_ID` secrets are set.
 A tag refuses to publish without them, and the macOS legs check that first, before
 building; a dispatched rehearsal builds unsigned. The footer tells users the disk images
-are notarised, which holds only because of that refusal. Windows signing is not wired.
+are notarised, which holds only because of that refusal.
+
+Windows is signed by SignPath when the `SIGNPATH_API_TOKEN` repository secret is set. The
+job carries `actions: read` so SignPath can download the uploaded artifact, and the SignPath
+GitHub App (github.com/apps/signpath) must be installed on the repository: SignPath's
+documentation calls it optional, but without it every request fails with "Failed to
+retrieve GitHub App token" (seen on iLEAPP, 2026-10-10). Only the owner of this
+personal-account repository can install it. Repository variables:
+`SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG`, `SIGNPATH_SIGNING_POLICY`
+(`test-signing` or `release-signing`), `SIGNPATH_CERT_SUBJECT` (optional, passed to
+`verify --subject`) and, under `test-signing`, `SIGNPATH_TEST_CERT_B64`, the root of the
+test certificate's chain as a base64 `.cer`, which only the runner is told to trust so
+`verify` still checks a chain. A test-signed binary is trusted by no Windows, so a tag
+signs only under `release-signing`; under any other policy, or without the token, a tag
+builds unsigned and says so in a warning, as releases did before signing was wired. A
+rehearsal signs under whichever policy is set. When `release-signing` is in place, change
+the footer's "not signed yet" paragraph and the README's code signing policy, and make a
+tag refuse an unsigned Windows build the way macOS does, since the footer will then
+promise a signature.
+
+A repository secret is usable by a workflow on any branch of this repository, though
+never by a pull request from a fork. Before `release-signing`, SignPath should require a
+manual approval of each request, which shows the branch and commit it came from. The
+owner can go further: rulesets requiring a pull request on `main` and restricting who
+creates `v*` tags, and a `release` environment admitting only those refs, holding the
+token, with `environment: release` on the build job. Only the owner can create
+environments and rulesets on this personal-account repository.
 
 Set the release version in `scripts/version_info.py` first, tag that commit, then bump to
 the next `-dev`: the tag check compares the two.
@@ -149,5 +196,6 @@ the next `-dev`: the tag check compares the two.
 These names replaced the per-program downloads (`vleappGUI-v*-Windows_x86_64.zip`,
 `vleapp-v*-macOS_Apple_Silicon.zip`, `vleappGUI-v*-macOS_Mac_Intel.dmg`,
 `vleapp-v*-Linux_x86_64.AppImage` and the like, up to v2026.4.1), which leapps.org links to. The footer
-tells tools that launch VLEAPP what changed for them: on Windows and macOS the executable
-needs its folder, and `vleappGUI` is gone. Keep that note while those names are new.
+tells tools that launch VLEAPP what changed for them: the Windows zip holds one file and
+there is no Windows installer, the macOS executable needs its folder, and `vleappGUI` is
+gone. Keep that note while those names are new.

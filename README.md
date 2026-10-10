@@ -12,8 +12,8 @@ Download a pre-built release, no Python installation required, from
 
 | Platform | Download |
 | -------- | -------- |
-| Windows (Intel/AMD) | `VLEAPP-*-windows-x64-setup.exe` (installer) or `VLEAPP-*-windows-x64-portable.zip` |
-| Windows (ARM) | `VLEAPP-*-windows-arm64-setup.exe` or `VLEAPP-*-windows-arm64-portable.zip` |
+| Windows (Intel/AMD) | `VLEAPP-*-windows-x64-portable.zip` |
+| Windows (ARM) | `VLEAPP-*-windows-arm64-portable.zip` |
 | macOS (Apple Silicon) | `VLEAPP-*-macos-arm64.dmg` |
 | macOS (Intel) | `VLEAPP-*-macos-x64.dmg` |
 | Linux (Intel/AMD) | `VLEAPP-*-linux-x64.AppImage` |
@@ -21,13 +21,12 @@ Download a pre-built release, no Python installation required, from
 
 Each download holds one program, `vleapp`. `SHA256SUMS.txt` in each release lets you check a download.
 
-**GUI**: open VLEAPP the usual way: from the Start menu after installing on Windows, by
-double-clicking `vleapp.exe` in the portable folder, VLEAPP in Applications on macOS, or
-the AppImage on Linux. Started without arguments, it opens the window.
+**GUI**: open VLEAPP the usual way: by double-clicking `vleapp.exe` from the zip on
+Windows, VLEAPP in Applications on macOS, or the AppImage on Linux. Started without
+arguments, it opens the window.
 
 **CLI**: give `vleapp` arguments in a terminal and it runs as a command line instead. The
-output folder must already exist. On Windows, keep `vleapp.exe` in its folder with the
-files beside it.
+output folder must already exist. On Windows, use `vleapp.exe` from the zip.
 
 ```
 vleapp.exe -t fs -i C:\path\to\extraction -o C:\path\to\output\
