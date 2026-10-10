@@ -668,6 +668,72 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "globe",
     },
+    "ford_sync4_update_packages": {
+        "name": "Ford SYNC 4 - Package Transfers In Log",
+        "description": "Packages named in three lines of the platform log's cpm component, one "
+                       "row per package id, with the first and last log time, the total bytes "
+                       "and highest percentage of its transfer progress lines, the states "
+                       "logged and the number of checksum verified lines.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-10",
+        "last_update_date": "2026-10-10",
+        "requirements": "none",
+        "category": "Ford SYNC 4",
+        "notes": "From the module's rolling platform log. Three inputs are read, and a row "
+                 "says which held it in Found In: the live log files "
+                 "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
+                 "copies), a file of the storage volume's free space "
+                 "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
+                 "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from three lines of the cpm component (matched as any component "
+                 "whose name starts with cpm; only cpm exists on the tested unit), each ending "
+                 "with a source position in brackets: 'Transfer PROGRESS. pkg=<id>, <n>% (<n> "
+                 "B/<n> B) <n> Mbps, freeSpace=<n> MB, progressTypeWord=<word>.', which also "
+                 "occurs with no percentage and '(<n> B/-)'; 'Message sent to listener. "
+                 "pkg=<id>, topic=STATE, state=<word>.'; and 'VBF file checksum verified. "
+                 "pkg=<id>.'. Lines are folded on the package id, one row per id, with the "
+                 "first and last log time of its lines. Total Bytes is the second byte count "
+                 "of its last progress line that states one, as stored with its commas; "
+                 "Highest Percent is the largest percentage among its progress lines, read as "
+                 "a number; Progress Lines counts both shapes; States lists the state words in "
+                 "log time order, each once. Only a line that runs to a newline and matches "
+                 "the whole of one of those shapes is counted. The live log files of the "
+                 "tested unit hold no such line, so the logical zip gave no rows; the raw "
+                 "image gave 20 rows, 2 with a first log time on 2023-07-18 and 18 on "
+                 "2023-12-06. Every package id was six characters. 19 packages had progress "
+                 "lines, 11 of them with a percentage and a total, 10 reaching 100 percent; 16 "
+                 "showed the states STARTED, COMPLETED, CLOSED, 2 COMPLETED, CLOSED, 1 "
+                 "COMPLETED and 1 none; 18 had a checksum verified line. The progress lines "
+                 "carry the word update as their progressTypeWord. Nothing available here "
+                 "documents what a package id identifies or what the states mean, so none is "
+                 "translated. A row records that the cpm component logged those lines for that "
+                 "id. It does not establish what was installed.",
+        "paths": (
+            '*/rwdata/logs/*fdplog*.txt*',
+            '*.unallocated.bin',
+            '*.unallocated.tsv',
+            '*/DiskImages/mmcblk0.img',
+        ),
+        "sample_data": {
+            "ford_syncg4_logical": "Ford Sync 4, logical zip | 0 rows: not in the live log files",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 20 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "download",
+    },
     "ford_sync4_profile_lines": {
         "name": "Ford SYNC 4 - Personal Profile Lines In Log",
         "description": "Personal profile lines in the platform log, one row for each run of "
@@ -828,7 +894,20 @@ _PROFILE = (
                 r'\d+)$'),
      lambda m: ('Switch profile completed', m.group(1))),
 )
-_RULES = _POWER + _BATTERY + _PHONE + _SIRIUS + _NETWORK + _PROFILE
+# The package manager's lines end with the source position in brackets.
+_UPDATES = (
+    # with a percentage and a total, or with neither: '(<n> B/-)'
+    ('cpm', re.compile(r'^Transfer PROGRESS\. pkg=(\w+), +(?:([\d.]+)% )?\([\d,]+ B/'
+                       r'(?:([\d,]+) B|-)\) [\d.]+ Mbps, freeSpace=[\d,]+ MB, '
+                       r'progressTypeWord=\w+\. \[[\w.]+:\d+:\w+\]$'),
+     lambda m: (m.group(1), 'progress', (m.group(2), m.group(3)))),
+    ('cpm', re.compile(r'^Message sent to listener\. pkg=(\w+), topic=STATE, state=(\w+)\. '
+                       r'\[[\w.]+:\d+:\w+\]$'),
+     lambda m: (m.group(1), 'state', m.group(2))),
+    ('cpm', re.compile(r'^VBF file checksum verified\. pkg=(\w+)\. \[[\w.]+:\d+:\w+\]$'),
+     lambda m: (m.group(1), 'verified', '')),
+)
+_RULES = _POWER + _BATTERY + _PHONE + _SIRIUS + _NETWORK + _PROFILE + _UPDATES
 _DEGREE = 1000000
 _LOG_FILE = 'Log file'
 _FREE_SPACE = 'Free space file'
@@ -1284,5 +1363,40 @@ def ford_sync4_profile_lines(context):
                  for first, last, kind, values, count, kinds in data_list]
     data_headers = (('First Log Time', 'datetime'), ('Last Log Time', 'datetime'),
                     'Line Kind', 'Values (as stored)', 'Lines', 'Found In')
+    return data_headers, data_list, '\n'.join(sources)
+
+
+@artifact_processor
+def ford_sync4_update_packages(context):
+    rows, sources = _rule_rows(context, _UPDATES)
+    packages = {}
+    for stamp, (package, kind, value), where, _times in rows:
+        entry = packages.setdefault(package, ['', '', '', 0.0, 0, [], 0, 0, set(), False])
+        if stamp:
+            entry[0] = min(entry[0], stamp) if entry[0] else stamp
+            entry[1] = max(entry[1], stamp)
+        if kind == 'progress':
+            percent, total = value
+            if total:
+                entry[2] = total
+            if percent:
+                entry[3] = max(entry[3], float(percent))
+                entry[9] = True
+            entry[4] += 1
+        elif kind == 'state':
+            if value not in entry[5]:
+                entry[5].append(value)
+            entry[6] += 1
+        else:
+            entry[7] += 1
+        entry[8].update(where.split(', '))
+    data_list = [(first, last, package, total, highest if has_percent else '', progress,
+                  ', '.join(states), state_lines, verified, _found_in(kinds))
+                 for package, (first, last, total, highest, progress, states, state_lines,
+                               verified, kinds, has_percent)
+                 in sorted(packages.items(), key=lambda item: (item[1][0], item[0]))]
+    data_headers = (('First Log Time', 'datetime'), ('Last Log Time', 'datetime'), 'Package',
+                    'Total Bytes (as stored)', 'Highest Percent', 'Progress Lines',
+                    'States (as stored)', 'State Lines', 'Checksum Verified Lines', 'Found In')
     return data_headers, data_list, '\n'.join(sources)
 
