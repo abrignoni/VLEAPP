@@ -56,9 +56,9 @@ __artifacts_v2__ = {
                        "handset, with the first name, last name, email, phone number and the "
                        "number type text the database stores.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "Nuance VCA",
         "notes": "From T_Person joined to T_Phone_Number and S_Phone_Number_Type in "
@@ -72,9 +72,22 @@ __artifacts_v2__ = {
                  "the number. One row is one phone number, so a person with two numbers has "
                  "two rows. The Email column was empty on every tested row. A row records that "
                  "the voice-control component held the contact for that handset. It does not "
-                 "establish that any number was dialled.",
+                 "establish that any number was dialled. A partition image can be the input, "
+                 "as a raw image: the live files are then read from its file system, and on "
+                 "exFAT a phonebook file named by an orphan entry is read too, matched under "
+                 "$Deleted. An orphan entry is a file entry still marked in use, in a "
+                 "directory cluster the volume marks allocated and the directory tree no "
+                 "longer reaches; nothing in it says the file was deleted, and Source File "
+                 "names the $Deleted folder for such a row. On xtrmp_item016, partition 2, "
+                 "whose Windows directory lists nothing, that gave 120 rows against 7 from the "
+                 "extracted file set: the same 7, and 113 from one orphan phonebook file with "
+                 "a different twelve-digit value in its name, which Handset Address shows. "
+                 "That value is not in the unit's device table. The file opened whole and "
+                 "passed SQLite's integrity check. When it was last current, and why its "
+                 "directory is no longer linked, are not established.",
         "paths": (
             '*/Nuance/VCA/PhoneBook_*.sqlite*',
+            '*/$Deleted/*/PhoneBook_*.sqlite.deleted-*',
             '*/Nuance/VCA/phone????????????_*.sqlite*',
         ),
         "sample_data": {
