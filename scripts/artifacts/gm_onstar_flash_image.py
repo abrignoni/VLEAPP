@@ -16,6 +16,7 @@ record is kept only when it stands in a run of at least five consecutive valid r
 an image with no navigation data gives a handful of chance matches and no runs.
 """
 
+import bisect
 import os
 import re
 import struct
@@ -30,9 +31,9 @@ __artifacts_v2__ = {
                        "per second, with the time, latitude, longitude, speed and heading of "
                        "each record.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "GM OnStar Flash Image",
         "notes": "Read from the module's raw flash image, matched as "
@@ -66,7 +67,27 @@ __artifacts_v2__ = {
                  "same item more than once; it is reported once, with Times Found, and Image "
                  "Offset is where it was first read. Run Length is the number of records in "
                  "the run the row belongs to. A record states where the module's receiver "
-                 "placed itself at that time. It does not establish who was in the vehicle.",
+                 "placed itself at that time. It does not establish who was in the vehicle. "
+                 "The three tested generation 8 images (xtrmp_item033, xtrmp_item034 and "
+                 "xtrmp_item035) each hold about 2,400 stretches of about 40 to 54 bytes, most "
+                 "46 to 52, in which one two-byte value repeats, about 0.7 percent of the "
+                 "image. About 9 in 10 are 4,100 to 4,400 bytes from the next, some about "
+                 "twice that, at positions that differ per image. In a 2.5 MiB range of "
+                 "firmware the three units share (offsets 0x20000 to 0x2A0000), of the 608 "
+                 "stretches one image has, 596 fall where a second image has no stretch, and "
+                 "in all 596 the second image holds no repeated value; 98 percent of the bytes "
+                 "that differ between two images in that range lie in those stretches. They "
+                 "are not content the units share, and their even spacing at offsets that "
+                 "differ per image is consistent with a fault in how the flash was read. Each "
+                 "unit was read once, so that is not established, and neither is the cause. "
+                 "One 64-byte stretch per image is the same in all three and is stored "
+                 "content. Crosses Repeated Stretch says Yes when the bytes of a row's record "
+                 "or line overlap such a stretch (40 bytes or more of one repeated two-byte "
+                 "value whose two bytes differ). A record a stretch crosses can be cut, lost, "
+                 "or reported with changed values: 30, 21 and 26 reported records in the three "
+                 "images say Yes, and a position that jumps away from its neighbours should be "
+                 "checked against that column and Image Offset. No row of the tested "
+                 "generation 9 image says Yes.",
         "paths": ('*/LargeOutputFiles/image.bin',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9 (LG), flash image | 0 rows, "
@@ -92,9 +113,9 @@ __artifacts_v2__ = {
                        "image, with the log time and the latitude and longitude each line "
                        "states.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "GM OnStar Flash Image",
         "notes": "Read from the module's raw flash image, matched as "
@@ -117,7 +138,23 @@ __artifacts_v2__ = {
                  "same item more than once; it is reported once, with Times Found, and Image "
                  "Offset is where it was first read. A row records that the module logged a "
                  "route to that destination at that time. It does not establish that the "
-                 "vehicle arrived there.",
+                 "vehicle arrived there. The three tested generation 8 images (xtrmp_item033, "
+                 "xtrmp_item034 and xtrmp_item035) each hold about 2,400 stretches of about 40 "
+                 "to 54 bytes, most 46 to 52, in which one two-byte value repeats, about 0.7 "
+                 "percent of the image. About 9 in 10 are 4,100 to 4,400 bytes from the next, "
+                 "some about twice that, at positions that differ per image. In a 2.5 MiB "
+                 "range of firmware the three units share (offsets 0x20000 to 0x2A0000), of "
+                 "the 608 stretches one image has, 596 fall where a second image has no "
+                 "stretch, and in all 596 the second image holds no repeated value; 98 percent "
+                 "of the bytes that differ between two images in that range lie in those "
+                 "stretches. They are not content the units share, and their even spacing at "
+                 "offsets that differ per image is consistent with a fault in how the flash "
+                 "was read. Each unit was read once, so that is not established, and neither "
+                 "is the cause. One 64-byte stretch per image is the same in all three and is "
+                 "stored content. Crosses Repeated Stretch says Yes when the bytes of a row's "
+                 "record or line overlap such a stretch (40 bytes or more of one repeated "
+                 "two-byte value whose two bytes differ). A line a stretch crosses can be cut "
+                 "or lost. No reported row in the tested images says Yes.",
         "paths": ('*/LargeOutputFiles/image.bin',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9 (LG), flash image | 0 rows, "
@@ -143,9 +180,9 @@ __artifacts_v2__ = {
                        "flash image, with the log time, the maneuver, the street named and the "
                        "distance text of each prompt.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "GM OnStar Flash Image",
         "notes": "Read from the module's raw flash image, matched as "
@@ -169,7 +206,25 @@ __artifacts_v2__ = {
                  "same item more than once; it is reported once, with Times Found, and Image "
                  "Offset is where it was first read. A row records that the module issued that "
                  "prompt. It names a street on the planned route and does not by itself place "
-                 "the vehicle on it; the GPS Track artifact holds the positions.",
+                 "the vehicle on it; the GPS Track artifact holds the positions. The three "
+                 "tested generation 8 images (xtrmp_item033, xtrmp_item034 and xtrmp_item035) "
+                 "each hold about 2,400 stretches of about 40 to 54 bytes, most 46 to 52, in "
+                 "which one two-byte value repeats, about 0.7 percent of the image. About 9 in "
+                 "10 are 4,100 to 4,400 bytes from the next, some about twice that, at "
+                 "positions that differ per image. In a 2.5 MiB range of firmware the three "
+                 "units share (offsets 0x20000 to 0x2A0000), of the 608 stretches one image "
+                 "has, 596 fall where a second image has no stretch, and in all 596 the second "
+                 "image holds no repeated value; 98 percent of the bytes that differ between "
+                 "two images in that range lie in those stretches. They are not content the "
+                 "units share, and their even spacing at offsets that differ per image is "
+                 "consistent with a fault in how the flash was read. Each unit was read once, "
+                 "so that is not established, and neither is the cause. One 64-byte stretch "
+                 "per image is the same in all three and is stored content. Crosses Repeated "
+                 "Stretch says Yes when the bytes of a row's record or line overlap such a "
+                 "stretch (40 bytes or more of one repeated two-byte value whose two bytes "
+                 "differ). A line a stretch crosses can be cut, lost, or reported with the "
+                 "repeated characters in its text: 2, 2 and 0 reported prompts in the three "
+                 "images say Yes.",
         "paths": ('*/LargeOutputFiles/image.bin',),
         "sample_data": {
             "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9 (LG), flash image | 0 rows, "
@@ -229,6 +284,25 @@ def _record(data, offset):
     return stamp, latitude, longitude, speed, heading
 
 
+_STRETCH = re.compile(rb'(?s)(..)\1{19,}')
+
+
+def _stretches(data):
+    """(start, end) of each stretch of 40 bytes or more in which one two-byte value
+    repeats, leaving out a value whose two bytes are equal (erased or zeroed space)."""
+    return [(match.start(), match.end()) for match in _STRETCH.finditer(data)
+            if match.group(1)[0] != match.group(1)[1]]
+
+
+def _crosses(stretches, start, end):
+    """'Yes' when the bytes from start to end overlap a stretch, else 'No'."""
+    index = bisect.bisect_right(stretches, (start, len(stretches) and stretches[-1][1] + 1))
+    for low, high in stretches[max(index - 1, 0):index + 1]:
+        if low < end and start < high:
+            return 'Yes'
+    return 'No'
+
+
 def _record_runs(data):
     """Offsets of position records that stand in runs, and the count left out as isolated.
 
@@ -271,6 +345,7 @@ def gm_onstar_flash_gps_track(context):
     source_paths = []
     for file_found, data in _images(context):
         kept, isolated = _record_runs(data)
+        stretches = _stretches(data)
         rows = {}
         for offset, run_length in kept:
             stamp, latitude, longitude, speed, heading = _record(data, offset)
@@ -281,20 +356,21 @@ def gm_onstar_flash_gps_track(context):
             if key in rows:
                 rows[key][0] += 1
             else:
-                rows[key] = [1, offset, run_length]
+                rows[key] = [1, offset, run_length,
+                             _crosses(stretches, offset, offset + _RECORD.size)]
         logfunc(f'GM OnStar flash image: {len(kept)} position records in runs, '
                 f'{len(rows)} distinct, {isolated} isolated candidates left out, in '
                 f'{os.path.basename(file_found)}')
         if rows:
             source_paths.append(file_found)
         relative = context.get_relative_path(file_found)
-        for key, (found, offset, run_length) in rows.items():
-            data_list.append(key + (found, offset, run_length, relative))
+        for key, (found, offset, run_length, crossed) in rows.items():
+            data_list.append(key + (found, offset, run_length, crossed, relative))
     data_list.sort(key=lambda row: row[0])
 
     data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude', 'Speed (km/h)',
                     'Heading (degrees)', 'Times Found', 'Image Offset', 'Run Length',
-                    'Source File')
+                    'Crosses Repeated Stretch', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
@@ -304,6 +380,7 @@ def gm_onstar_flash_nav_destinations(context):
     source_paths = []
     for file_found, data in _images(context):
         rows = {}
+        stretches = _stretches(data)
         for match in _DEST.finditer(data):
             groups = match.groups()
             stamp = _line_time(groups)
@@ -317,17 +394,18 @@ def gm_onstar_flash_nav_destinations(context):
             if key in rows:
                 rows[key][0] += 1
             else:
-                rows[key] = [1, match.start()]
+                rows[key] = [1, match.start(),
+                             _crosses(stretches, match.start(), match.end())]
         if rows:
             source_paths.append(file_found)
         relative = context.get_relative_path(file_found)
-        for key, (found, offset) in rows.items():
-            data_list.append(key + (found, offset, relative))
+        for key, (found, offset, crossed) in rows.items():
+            data_list.append(key + (found, offset, crossed, relative))
     data_list.sort(key=lambda row: row[0])
 
     data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude',
                     'Latitude (as stored)', 'Longitude (as stored)', 'Times Found',
-                    'Image Offset', 'Source File')
+                    'Image Offset', 'Crosses Repeated Stretch', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
@@ -337,6 +415,7 @@ def gm_onstar_flash_nav_guidance(context):
     source_paths = []
     for file_found, data in _images(context):
         rows = {}
+        stretches = _stretches(data)
         for match in _PROMPT.finditer(data):
             groups = match.groups()
             stamp = _line_time(groups)
@@ -348,14 +427,15 @@ def gm_onstar_flash_nav_guidance(context):
             if key in rows:
                 rows[key][0] += 1
             else:
-                rows[key] = [1, match.start()]
+                rows[key] = [1, match.start(),
+                             _crosses(stretches, match.start(), match.end())]
         if rows:
             source_paths.append(file_found)
         relative = context.get_relative_path(file_found)
-        for key, (found, offset) in rows.items():
-            data_list.append(key + (found, offset, relative))
+        for key, (found, offset, crossed) in rows.items():
+            data_list.append(key + (found, offset, crossed, relative))
     data_list.sort(key=lambda row: row[0])
 
     data_headers = (('Prompt Time', 'datetime'), 'Maneuver', 'Street', 'Distance Text',
-                    'Times Found', 'Image Offset', 'Source File')
+                    'Times Found', 'Image Offset', 'Crosses Repeated Stretch', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
