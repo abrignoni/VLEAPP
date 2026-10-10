@@ -37,7 +37,7 @@ __artifacts_v2__ = {
                        "the list the line belongs to, the location id and the latitude and "
                        "longitude it carries, with the first and last time each was logged.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -79,9 +79,10 @@ __artifacts_v2__ = {
                  "with its run map present, a line is not read across two runs that were not "
                  "neighbours on the disk (without the map the file is read as one stretch and "
                  "the run log says so), and in an image an unfinished line is cut where the "
-                 "next one starts. A line cut that way is reported as far as it reads, so a "
-                 "handful of rows can differ between inputs: on the tested unit the image and "
-                 "the other two inputs together differed by zero to two rows per artifact. A "
+                 "next one starts. A line that does not run to a newline is not reported here, "
+                 "because the longitude can be the line's last value (131 of 265 such lines in "
+                 "the tested log files) and can then be cut with it. On the tested unit the "
+                 "image gave the same 27 rows and line counts with and without that rule. A "
                  "row records that the module logged that location for the vehicle's charge "
                  "settings. It does not establish that the vehicle was there, or when.",
         "paths": (
@@ -166,7 +167,7 @@ __artifacts_v2__ = {
                        "time, the kind of line it came from and the result, altitude or "
                        "heading the line states.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -207,11 +208,13 @@ __artifacts_v2__ = {
                  "middle of a line. In a free space file with its run map present, a line is "
                  "not read across two runs that were not neighbours on the disk (without the "
                  "map the file is read as one stretch and the run log says so), and in an "
-                 "image an unfinished line is cut where the next one starts. A line cut that "
-                 "way is reported as far as it reads, so a handful of rows can differ between "
+                 "image an unfinished line is cut where the next one starts. A line that does "
+                 "not run to a newline keeps its latitude and longitude, which a separator "
+                 "follows, and its last value, the altitude or heading, is left empty: two "
+                 "rows on the tested unit's image. A handful of rows can differ between "
                  "inputs: on the tested unit the image and the other two inputs together "
-                 "differed by zero to two rows per artifact. A row records that the module "
-                 "logged that position at that time. It does not establish who was driving.",
+                 "differed by two rows. A row records that the module logged that position at "
+                 "that time. It does not establish who was driving.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -232,7 +235,7 @@ __artifacts_v2__ = {
                        "first and last time it was logged, the number of lines, the strongest "
                        "signal and the channels.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -271,9 +274,10 @@ __artifacts_v2__ = {
                  "present, a line is not read across two runs that were not neighbours on the "
                  "disk (without the map the file is read as one stretch and the run log says "
                  "so), and in an image an unfinished line is cut where the next one starts. A "
-                 "line cut that way is reported as far as it reads, so a handful of rows can "
-                 "differ between inputs: on the tested unit the image and the other two inputs "
-                 "together differed by zero to two rows per artifact.",
+                 "line that does not run to a newline still counts toward its access point "
+                 "when it reads as far as the channel, but its channel is not taken from it. "
+                 "On the tested unit the image gave the same 164 rows with and without that "
+                 "rule.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -293,7 +297,7 @@ __artifacts_v2__ = {
                        "odometer value, current street and ignition with driver door, each "
                        "with its log time and the values the line states.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -325,21 +329,27 @@ __artifacts_v2__ = {
                  "lines a number with no unit stated, and street lines three labelled fields, "
                  "the first a name that can be empty. Nothing available here documents the "
                  "numbers, so none is relabelled. The logical zip gave 18 rows; the raw image "
-                 "gave 370 from 2023-07-18 to 2024-03-29: gear 193, door 108, odometer 31, "
-                 "current street 19, ignition with driver door 19. Three of the 108 door rows "
-                 "on the image were cut lines and carry unrelated text after the first value. "
-                 "The door, gear and odometer rows were compared with a list of log lines from "
-                 "the same image made by another tool (a file kept beside the image, its maker "
-                 "not recorded): 318 of its 319 distinct lines are among them. Times Found "
-                 "counts how often the same line was found. A block can end in the middle of a "
-                 "line. In a free space file with its run map present, a line is not read "
-                 "across two runs that were not neighbours on the disk (without the map the "
-                 "file is read as one stretch and the run log says so), and in an image an "
-                 "unfinished line is cut where the next one starts. A line cut that way is "
-                 "reported as far as it reads, so a handful of rows can differ between inputs: "
-                 "on the tested unit the image and the other two inputs together differed by "
-                 "zero to two rows per artifact. A row records that the module logged that "
-                 "line. It does not establish who opened a door or drove the vehicle.",
+                 "gave 369 from 2023-07-18 to 2024-03-29: gear 193, door 107, odometer 31, "
+                 "current street 19, ignition with driver door 19. The door, gear and odometer "
+                 "rows were compared with a list of log lines from the same image made by "
+                 "another tool (a file kept beside the image, its maker not recorded): 316 of "
+                 "its 319 lines, counted as distinct by time to the second, signal and values, "
+                 "are among them, and the other three are door lines that list holds with the "
+                 "text that followed the cut. Times Found counts how often the same line was "
+                 "found. A block can end in the middle of a line. In a free space file with "
+                 "its run map present, a line is not read across two runs that were not "
+                 "neighbours on the disk (without the map the file is read as one stretch and "
+                 "the run log says so), and in an image an unfinished line is cut where the "
+                 "next one starts. What follows a cut line is whatever the next block holds, "
+                 "which can be other text with its own newline. A door, gear or odometer line "
+                 "is therefore reported whole only when it runs to a newline and holds nothing "
+                 "but 'name = number' values. From any other one, only the values at its start "
+                 "that a separator follows are kept and Whole Line says No, and a line with no "
+                 "such value is not reported. A current street or ignition line that does not "
+                 "run to a newline is reported as far as it reads and Whole Line says No. On "
+                 "the tested unit's image two door rows say No and one door line was not "
+                 "reported. A row records that the module logged that line. It does not "
+                 "establish who opened a door or drove the vehicle.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -348,7 +358,7 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 18 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 370 rows",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 369 rows",
         },
         "output_types": "standard",
         "artifact_icon": "activity",
@@ -379,6 +389,12 @@ _SIGNALS = (
     ('redcap', re.compile(r'handle_ignition_and_door_status \S+ \S+ (.*)$'),
      'Ignition and driver door'),
 )
+# One value of a door, gear or odometer line, up to the separator that follows it.
+_PAIR = re.compile(r'([A-Za-z][\w ]*? = \d+)(?=\s*,)')
+# The values at the start of a cut line, each with its separator.
+_LEADING = re.compile(r'(?:[A-Za-z][\w ]*? = \d+\s*,\s*)+')
+# A whole door, gear or odometer line: nothing but such values.
+_PAIRS = re.compile(r'[A-Za-z][\w ]*? = \d+(?:\s*,\s*[A-Za-z][\w ]*? = \d+)*')
 _DEGREE = 1000000
 _LOG_FILE = 'Log file'
 _FREE_SPACE = 'Free space file'
@@ -438,12 +454,16 @@ def _runs(path, size):
 
 
 def _matches(mapped, runs):
-    """(match, text bytes) for each line in each stretch.
+    """(match, text bytes, whole) for each line in each stretch.
 
     A block can end in the middle of a line. In an image the next block then starts
     another line with no newline between the two, and the unfinished line's text would
     run on into it. The text is cut where a new line starts, and the search goes on
     from there, so the second line is found as well.
+
+    'whole' is true when the text ran to a newline. A line that stops any other way (the
+    stretch ends, another line starts, or bytes that are not log text follow) is cut, and
+    its last value may be cut with it.
     """
     for start, end in runs:
         position = start
@@ -453,16 +473,19 @@ def _matches(mapped, runs):
                 break
             text = match.group(10)
             inner = _LINE_START.search(text)
+            whole = not inner and match.end() < end \
+                and mapped[match.end():match.end() + 1] == b'\n'
             if inner:
                 text = text[:inner.start()]
                 position = match.start(10) + inner.start()
             else:
                 position = max(match.end(), match.start() + 1)
-            yield match, text
+            yield match, text, whole
 
 
 def _scan(path):
-    """(log time, time text, component, sequence id, text) for each kept line of one input.
+    """(log time, time text, component, sequence id, text, whole) for each kept line of one
+    input.
 
     The input is mapped, not read, and a line is found by its own shape, so the same
     reader serves a log file, a file of free space and a raw image.
@@ -480,7 +503,7 @@ def _scan(path):
         handle.close()
         return
     try:
-        for match, raw_text in _matches(mapped, _runs(path, size)):
+        for match, raw_text, whole in _matches(mapped, _runs(path, size)):
             component = match.group(8).decode('utf-8', 'replace')
             text = raw_text.decode('utf-8', 'replace').rstrip('\r ')
             if not _kept(component, text):
@@ -494,7 +517,7 @@ def _scan(path):
                 except ValueError:
                     stamp = ''
             exact = match.group(0)[:27].decode('ascii', 'replace')
-            yield stamp, exact, component, int(match.group(9)), text
+            yield stamp, exact, component, int(match.group(9)), text, whole
     finally:
         mapped.close()
         handle.close()
@@ -504,7 +527,8 @@ def _log_lines(context):
     """Kept lines of every matched input, each once, oldest first.
 
     Returns (lines, source paths). A line is (log time, component, text, found in, times
-    found, sequence id); 'found in' names the kinds of input that held it.
+    found, sequence id, whole); 'found in' names the kinds of input that held it, and
+    'whole' is true when any copy of it ran to a newline.
     """
     # the .tsv beside a free space file is its run map, read with it and not as a source
     paths = sorted(str(f) for f in set(context.get_files_found())
@@ -528,18 +552,20 @@ def _log_lines(context):
                 continue
             seen_content.add(digest)
         found = False
-        for stamp, exact, component, sequence, text in _scan(path):
+        for stamp, exact, component, sequence, text, whole in _scan(path):
             found = True
             entry = merged.setdefault((exact, component, sequence, text),
-                                      [stamp, set(), 0])
+                                      [stamp, set(), 0, False])
             entry[1].add(kind)
             entry[2] += 1
+            entry[3] = entry[3] or whole
         if found:
             used.append(path)
         if kind != _LOG_FILE:
             logfunc(f'Ford SYNC 4 platform log: read {os.path.basename(path)} as '
                     f'{kind.lower()}')
-    lines = [(entry[0], component, text, ', '.join(sorted(entry[1])), entry[2], sequence)
+    lines = [(entry[0], component, text, ', '.join(sorted(entry[1])), entry[2], sequence,
+              entry[3])
              for (exact, component, sequence, text), entry in sorted(merged.items())]
     _SCANNED.clear()
     _SCANNED[key] = (lines, used)
@@ -554,8 +580,9 @@ def _found_in(kinds):
 def ford_sync4_charge_locations(context):
     lines, sources = _log_lines(context)
     found = {}
-    for stamp, component, text, where, _times, _sequence in lines:
-        if component != 'evChargeSettings':
+    for stamp, component, text, where, _times, _sequence, whole in lines:
+        # the longitude can be the last value of the line, so a cut line can hold part of one
+        if component != 'evChargeSettings' or not whole:
             continue
         match = _CHARGE.search(text)
         if not match:
@@ -590,7 +617,7 @@ def ford_sync4_nav_searches(context):
     searches = {}
     order = []
     pending = None
-    for stamp, component, text, where, _times, _sequence in lines:
+    for stamp, component, text, where, _times, _sequence, _whole in lines:
         if component != 'vendor.garmin' or 'hmi.analytics' not in text:
             continue
         head = _ANALYTICS_HEAD.search(text)
@@ -653,18 +680,19 @@ def _number(text):
 def ford_sync4_positions(context):
     lines, sources = _log_lines(context)
     data_list = []
-    for stamp, component, text, where, times, _sequence in lines:
+    for stamp, component, text, where, times, _sequence, whole in lines:
         if component != 'lbs':
             continue
         trimble = _TRIMBLE.match(text)
         ublox = None if trimble else _UBLOX.match(text)
         if trimble:
             data_list.append((stamp, _number(trimble.group(2)), _number(trimble.group(3)),
-                              'Trimble Output', trimble.group(1), trimble.group(4), '', where,
-                              times))
+                              'Trimble Output', trimble.group(1),
+                              trimble.group(4) if whole else '', '', where, times))
         elif ublox:
             data_list.append((stamp, _number(ublox.group(1)), _number(ublox.group(2)),
-                              'UbloxReader', '', '', ublox.group(3), where, times))
+                              'UbloxReader', '', '', ublox.group(3) if whole else '', where,
+                              times))
 
     data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude', 'Line Kind',
                     'Result (as stored)', 'Altitude (as stored)', 'Heading (as stored)',
@@ -676,7 +704,7 @@ def ford_sync4_positions(context):
 def ford_sync4_wifi_access_points(context):
     lines, sources = _log_lines(context)
     found = {}
-    for stamp, component, text, where, _times, _sequence in lines:
+    for stamp, component, text, where, _times, _sequence, whole in lines:
         if component != 'CM':
             continue
         match = _ACCESS_POINT.search(text)
@@ -691,7 +719,9 @@ def ford_sync4_wifi_access_points(context):
         entry[2] += 1
         signal = int(match.group(4))
         entry[3] = signal if entry[3] is None else max(entry[3], signal)
-        entry[4].add(match.group(5))
+        if whole:
+            # a cut line can end inside the channel number
+            entry[4].add(match.group(5))
         entry[5].add(match.group(3))
         entry[6].update(where.split(', '))
 
@@ -712,15 +742,25 @@ def ford_sync4_wifi_access_points(context):
 def ford_sync4_vehicle_signals(context):
     lines, sources = _log_lines(context)
     data_list = []
-    for stamp, component, text, where, times, _sequence in lines:
+    for stamp, component, text, where, times, _sequence, whole in lines:
         for name, pattern, label in _SIGNALS:
             if component != name:
                 continue
             match = pattern.search(text)
             if match:
-                data_list.append((stamp, label, match.group(1).strip(), where, times))
+                values = match.group(1).strip()
+                if name == 'nav.enginelib' and not (whole and _PAIRS.fullmatch(values)):
+                    # A cut line is followed by whatever the next block holds, which can
+                    # be other text with its own newline. Only the 'name = number' pairs
+                    # that came before the cut are kept.
+                    whole = False
+                    leading = _LEADING.match(values)
+                    values = ', '.join(_PAIR.findall(leading.group(0))) if leading else ''
+                if values:
+                    data_list.append((stamp, label, values, 'Yes' if whole else 'No', where,
+                                      times))
                 break
 
-    data_headers = (('Log Time', 'datetime'), 'Signal', 'Values (as stored)', 'Found In',
-                    'Times Found')
+    data_headers = (('Log Time', 'datetime'), 'Signal', 'Values (as stored)',
+                    'Whole Line', 'Found In', 'Times Found')
     return data_headers, data_list, '\n'.join(sources)
