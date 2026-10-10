@@ -133,6 +133,141 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "activity",
     },
+    "ford_sync_wince_log_phone_lines": {
+        "name": "Ford SYNC WinCE - Phone Connection Lines In Log",
+        "description": "Lines of the module's log that name a phone connection attempt, a "
+                       "connected HFP port or a disconnected one, in the log's own terms, read "
+                       "from the log files and the raw partition image, each with its tick "
+                       "count, a clock derived from the nearest line that states a date and "
+                       "time, and where in the image it was found.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-10",
+        "last_update_date": "2026-10-10",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From Windows/LogFiles/MsgLog<n>.txt, the log text beside a crash dump and "
+                 "DiskImages/partition<n>.img, read the way the Log Events artifact reads "
+                 "them. Three lines are reported. 'PhoneCore: Connecting to phone: [<name>] "
+                 "(0x<address>). Attempt = <n>.' is a Connection Attempt: Device Name is the "
+                 "name in brackets, Value the address shown in lower case with colons and "
+                 "Attempt the number on the line. Earlier Gen1 versions write it as 'CBTPhone: "
+                 "Connecting to phone: [<name>] (0x<address>)' with no attempt number, and "
+                 "Attempt is then empty, as it is on one line of the 2014 Edge that is cut "
+                 "short. 'Phone::OnPhoneHFPPortConnected: Last connected phone BT_ADDr=' is "
+                 "Connected: Value is the eight hexadecimal digits the line holds after a "
+                 "two-character prefix, in lower case, and on the seven tested lines they "
+                 "equalled the last eight digits of an address in a Connection Attempt line of "
+                 "the same unit. 'Phone::OnPhoneHFPPortDisconnected (<n>)' is Disconnected: "
+                 "Value is the number in parentheses as stored, 131073 on all 22 tested lines, "
+                 "and the line names no device. Tested on ten units from their acquisition "
+                 "folders, eight SYNC Gen1 and two SYNC Gen2. Nine gave rows, 425 in all: six "
+                 "earlier Gen1 units 81 attempts between them, none with an attempt number, "
+                 "the Gen1 version 5 unit (2019 Ford Fusion) 86 attempts, the 2014 Ford Edge "
+                 "SEL 185 attempts and 2 disconnects, and the 2011 Ford Explorer XLT 44 "
+                 "attempts, 7 connected lines and 20 disconnects. One Gen1 unit held none of "
+                 "these lines. An attempt is the module trying to connect to a paired phone. "
+                 "It does so whether or not the phone answers: on the Edge, lines saying the "
+                 "attempt hit a timeout stood in the same log. It does not establish that the "
+                 "phone connected. No reported line carries a date. Derived Clock, Nearest "
+                 "Clock Line, Clock Line Kind, Seconds From Clock Line and Clock Bias are "
+                 "worked out as in the Log Events artifact, whose notes give the checks behind "
+                 "them; 345 of the 425 rows have a derived clock, and on the Gen1 units that "
+                 "clock is in 2003, the unit's own clock and not a calendar date to rely on. A "
+                 "line found in a log file and again in the partition image is one row, with "
+                 "Times Found, and the row keeps the reading that has a clock when only one "
+                 "does. Where Found is as in the Log Events artifact: on the two Gen2 units "
+                 "184 rows sat only in free clusters, 56 only in allocated clusters in no "
+                 "listed file and 18 in a listed file. The image holds blocks of the log the "
+                 "file system has released, so the rows are what survived, not a full history. "
+                 "Other lines of the same connection code, such as the timeout line, are not "
+                 "reported. A row records that the module logged the line. It does not "
+                 "establish who carried the phone.",
+        "paths": (
+            '*/Windows/LogFiles/MsgLog*.txt*',
+            '*/Windows/DumpFiles/*.RTL',
+            '*/DiskImages/partition*.img',
+        ),
+        "sample_data": {
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 9 rows",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, acquisition folder | 4 rows",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 20 rows",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 38 rows",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 0 rows, "
+                             "none of these lines in the log files or the partition image",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 86 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 187 rows",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 71 "
+                             "rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 9 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, acquisition folder | 1 row",
+        },
+        "output_types": "standard",
+        "artifact_icon": "link",
+    },
+    "ford_sync_wince_log_clock_lines": {
+        "name": "Ford SYNC WinCE - Clock Lines In Log",
+        "description": "Lines of the module's log that state a date and time, one row per line: "
+                       "the log save line and, on SYNC Gen2, the clock service line, read from "
+                       "the log files and the raw partition image, with the tick count and where"
+                       " in the image the line was found.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-10",
+        "last_update_date": "2026-10-10",
+        "requirements": "none",
+        "category": "Ford SYNC WinCE",
+        "notes": "From Windows/LogFiles/MsgLog<n>.txt, the log text beside a crash dump and "
+                 "DiskImages/partition<n>.img, read the way the Log Events artifact reads "
+                 "them. Two lines state a date and time: the log save line ('SYSHEALTH: start "
+                 "saving retailmsg at', written month first) and, on Gen2, the clock service "
+                 "line ('SyncClockSvc!MFDMessageThreadProc: (YMDhms)', written year first). "
+                 "Clock On Line is the value the line states, written out with no offset "
+                 "applied. These are the lines the Log Events artifact derives its clock from, "
+                 "shown here as rows of their own because each one records that the module was "
+                 "running and logging at that reading of its clock. Tested on ten units from "
+                 "their acquisition folders, eight SYNC Gen1 and two SYNC Gen2, which gave "
+                 "1,077 rows: 441 log save lines and 636 clock service lines. The eight Gen1 "
+                 "units gave 123 rows, log save lines only, and every reading fell in 2003, so "
+                 "on those units it is the unit's own clock and not a calendar date to rely "
+                 "on. The 2014 Ford Edge SEL gave 589 rows with readings from 2010 to 2020 and "
+                 "the 2011 Ford Explorer XLT 365 rows with readings from 2010 to 2033; a "
+                 "reading outside the vehicle's life is the clock being unset or wrong, and "
+                 "nothing here says which readings were right. The clock service line also has "
+                 "a Bias line beside it, which the Log Events artifact shows and which is not "
+                 "applied here. An independent parse of the two Gen2 units listed 414 and 239 "
+                 "distinct time update times; all 407 and 229 clock service readings here are "
+                 "among them. Its log saving times matched 23 of 182 and 17 of 136 log save "
+                 "readings here, and why the rest differ was not resolved. A line found in "
+                 "more than one place is one row, with Times Found. Where Found is as in the "
+                 "Log Events artifact; the Gen1 partition images are FAT with 2,048-byte "
+                 "sectors, which the reader does not read, so their rows read 'file system not "
+                 "read' beside 'extracted file' when a log file held the line too. On the Gen1 "
+                 "units 14 of the 123 rows came from the partition image alone. The Log Save "
+                 "Clock Readings artifact lists the save lines of the log files with their "
+                 "line numbers; this one adds the partition image and the clock service line. "
+                 "A row records what the module's clock read when it wrote the line.",
+        "paths": (
+            '*/Windows/LogFiles/MsgLog*.txt*',
+            '*/Windows/DumpFiles/*.RTL',
+            '*/DiskImages/partition*.img',
+        ),
+        "sample_data": {
+            "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 12 rows",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, acquisition folder | 8 rows",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 6 rows",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 9 rows",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 7 rows",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 64 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 589 rows",
+            "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 365 "
+                             "rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 11 rows",
+            "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, acquisition folder | 6 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "clock",
+    },
     "ford_sync_wince_flash_call_history": {
         "name": "Ford SYNC WinCE - Call History In Flash Image",
         "description": "Call list entries read from the call list documents in the module's "
@@ -278,6 +413,20 @@ _EVENT = re.compile(
     rb'(?P<clock>\d{1,4}/\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}:\d{1,2})'
     rb'|SyncClockSvc!MFDMessageThreadProc:  Bias = (?P<bias>-?\d+) '
     rb')')
+_CLOCK_ALTERNATIVES = (
+    rb'SYSHEALTH: start saving retailmsg at (?P<save>\d\d/\d\d/\d{4} \d\d:\d\d:\d\d)'
+    rb'|SyncClockSvc!MFDMessageThreadProc: \(YMDhms\) '
+    rb'(?P<clock>\d{1,4}/\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}:\d{1,2})'
+    rb'|SyncClockSvc!MFDMessageThreadProc:  Bias = (?P<bias>-?\d+) ')
+_PHONE = re.compile(
+    rb'(?P<tick>\d{1,10}) +(?:'
+    rb'(?:PhoneCore|CBTPhone): Connecting to phone: \[(?P<name>[^\r\n\]]{0,80})\] '
+    rb'\(0x(?P<address>[0-9A-Fa-f]{1,12})\)(?:\. Attempt = (?P<attempt>\d+)\.)?'
+    rb'|Phone::OnPhoneHFPPortConnected: Last connected phone BT_ADDr=\dx'
+    rb'(?P<connected>[0-9A-Fa-f]{8}) '
+    rb'|Phone::OnPhoneHFPPortDisconnected \((?P<disconnected>\d+)\)'
+    rb'|' + _CLOCK_ALTERNATIVES + rb')')
+_CLOCK = re.compile(rb'(?P<tick>\d{1,10}) +(?:' + _CLOCK_ALTERNATIVES + rb')')
 _NOT_LOG_TEXT = re.compile(rb'[^\t\r\n\x20-\x7e]')
 
 
@@ -425,6 +574,19 @@ def _describe(match):
     return None
 
 
+def _describe_phone(match):
+    """(event, detail, value, second value) for a phone line; None for a clock line."""
+    if match.group('address'):
+        return ('Connection Attempt', match.group('name').decode('utf-8', 'replace'),
+                _address(match.group('address').decode('ascii')),
+                int(match.group('attempt')) if match.group('attempt') else '')
+    if match.group('connected'):
+        return 'Connected', '', match.group('connected').decode('ascii').lower(), ''
+    if match.group('disconnected'):
+        return 'Disconnected', '', int(match.group('disconnected')), ''
+    return None
+
+
 def _clock_line(match):
     """(clock, kind) for a line that states a date and time, else None.
 
@@ -443,7 +605,7 @@ def _clock_line(match):
     return None
 
 
-def _sessions(data):
+def _sessions(data, pattern=_EVENT):
     """Runs of matched lines that share one stretch of log and one boot.
 
     Two matched lines belong together only when every byte between them is log text and
@@ -453,7 +615,7 @@ def _sessions(data):
     run = []
     previous_end = None
     previous_tick = None
-    for match in _EVENT.finditer(data):
+    for match in pattern.finditer(data):
         tick = int(match.group('tick'))
         joined = previous_end is not None and tick >= previous_tick and \
             _NOT_LOG_TEXT.search(data, previous_end, match.start()) is None
@@ -476,9 +638,9 @@ def _nearest(anchors, tick):
     return best
 
 
-def _events(data):
+def _events(data, pattern=_EVENT, describe=_describe):
     """Event rows of one source, each with the clock derived from the nearest clock line."""
-    for run in _sessions(data):
+    for run in _sessions(data, pattern):
         anchors = []
         biases = []
         for match in run:
@@ -489,7 +651,7 @@ def _events(data):
                 biases.append((int(match.group('tick')), int(match.group('bias'))))
         last_odometer = None
         for match in run:
-            described = _describe(match)
+            described = describe(match)
             if described is None:
                 continue
             tick = int(match.group('tick'))
@@ -512,14 +674,95 @@ def _events(data):
                    match.start(), bytes(match.group(0)))
 
 
-def _listed_event_lines(image):
+def _listed_event_lines(image, pattern=_EVENT, describe=_describe):
     """The text of every event line in the files an exFAT image lists."""
     lines = set()
     for content in image.listed_files():
-        for match in _EVENT.finditer(content):
-            if _describe(match) is not None:
+        for match in pattern.finditer(content):
+            if describe(match) is not None:
                 lines.add(bytes(match.group(0)))
     return lines
+
+
+def _clock_rows(data):
+    """((clock, kind, tick), offset, line) for each line that states a date and time."""
+    for match in _CLOCK.finditer(data):
+        stated = _clock_line(match)
+        if stated is None:
+            continue
+        yield ((stated[0].strftime('%Y-%m-%d %H:%M:%S'), stated[1],
+                int(match.group('tick'))), match.start(), bytes(match.group(0)))
+
+
+def _collect(context, label, find, listed_lines):
+    """Rows of every source, folded: {row: [times found, offset, path, places]}."""
+    rows = {}
+    source_paths = []
+    for file_found, data in _sources(context):
+        hits = list(find(data))
+        image = _ExfatImage(file_found) if _is_partition_image(file_found) else None
+        listed = listed_lines(image) if image is not None and image.readable and hits \
+            else set()
+        for row, offset, line in hits:
+            place = _EXTRACTED_FILE if image is None else image.place(offset, line in listed)
+            if row in rows:
+                rows[row][0] += 1
+                rows[row][3].add(place)
+            else:
+                rows[row] = [1, offset, file_found, {place}]
+                if file_found not in source_paths:
+                    source_paths.append(file_found)
+        logfunc(f'Ford SYNC WinCE {label}: {len(hits)} lines in '
+                f'{os.path.basename(file_found)}')
+        if image is not None:
+            image.close()
+    return rows, source_paths
+
+
+@artifact_processor
+def ford_sync_wince_log_phone_lines(context):
+    rows, source_paths = _collect(
+        context, 'log phone lines', lambda data: _events(data, _PHONE, _describe_phone),
+        lambda image: _listed_event_lines(image, _PHONE, _describe_phone))
+    # One line can be found in a log file and again in the partition image, where the
+    # stretch around it can lack a clock line. Keep one row a line, the one with a clock.
+    lines = {}
+    for row, (found, offset, path, places) in rows.items():
+        key = row[1:6]
+        if key not in lines:
+            lines[key] = [row, found, offset, path, set(places)]
+            continue
+        kept = lines[key]
+        kept[1] += found
+        kept[4] |= places
+        if not kept[0][0] and row[0]:
+            kept[0], kept[2], kept[3] = row, offset, path
+    data_list = [row + (found, _places(places), offset, context.get_relative_path(path))
+                 for row, found, offset, path, places in lines.values()]
+    data_list.sort(key=lambda row: (row[0] == '', row[0], row[5]))
+
+    data_headers = (('Derived Clock', 'datetime'), 'Event', 'Device Name',
+                    'Value', 'Attempt', 'Tick',
+                    ('Nearest Clock Line', 'datetime'), 'Clock Line Kind',
+                    'Seconds From Clock Line', 'Clock Bias (as stored)',
+                    'Times Found', 'Where Found', 'Offset', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+@artifact_processor
+def ford_sync_wince_log_clock_lines(context):
+    def listed_lines(image):
+        return {bytes(match.group(0)) for content in image.listed_files()
+                for match in _CLOCK.finditer(content) if _clock_line(match) is not None}
+
+    rows, source_paths = _collect(context, 'log clock lines', _clock_rows, listed_lines)
+    data_list = [row + (found, _places(places), offset, context.get_relative_path(path))
+                 for row, (found, offset, path, places) in rows.items()]
+    data_list.sort(key=lambda row: (row[0], row[2]))
+
+    data_headers = (('Clock On Line', 'datetime'), 'Clock Line Kind', 'Tick', 'Times Found',
+                    'Where Found', 'Offset', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
 
 
 @artifact_processor
