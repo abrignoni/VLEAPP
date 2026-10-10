@@ -167,9 +167,9 @@ __artifacts_v2__ = {
                        "time, the kind of line it came from and the result, altitude or "
                        "heading the line states.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-10-10",
         "requirements": "none",
         "category": "Ford SYNC 4",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
@@ -187,23 +187,27 @@ __artifacts_v2__ = {
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
-                 "free. Each line's time carries a Z and is reported as the line states it; a "
-                 "line dated 1970 is reported with an empty time, and no reported row on the "
-                 "tested unit had one. A line found in more than one input is reported once. "
-                 "Rows come from two lines of the lbs component: 'Trimble Output res=<result> "
-                 "lat=, lon=, alt=' and 'UbloxReader: lat = , lon = , heading = '. Latitude "
-                 "and longitude are the decimal numbers the line prints as lat and lon, with "
-                 "no unit stated; all were within the range of degrees on the tested unit. The "
-                 "logical zip gave 120 rows; the raw image gave 2,381, 1,716 from the first "
-                 "line and 665 from the second, from 2023-07 to 2024-03 with 2,284 of them in "
-                 "2024-03. Result is the first line's own word, Success on 1,632 rows and "
-                 "Failure on 84; a Failure row, three of which have a latitude of zero, is "
-                 "reported as the log states it and should not be read as a fix. The raw-image "
-                 "rows were compared with a list of log lines from the same image made by "
-                 "another tool (a file kept beside the image, its maker not recorded): 2,377 "
-                 "of its 2,378 distinct positions are among them with the same time and "
-                 "coordinates. Which receiver or computation each line reports, and how the "
-                 "two relate, is not established here; the labels are the log's own words. "
+                 "free. Each line's time carries a Z and is reported to the second as the line "
+                 "states it; a line dated 1970 is reported with an empty time, and no reported "
+                 "row on the tested unit had one. A line found in more than one input is "
+                 "reported once. Rows come from four lines of the lbs component: 'Trimble "
+                 "Input lat=, lon=, alt=', 'Trimble Output res=<result> lat=, lon=, alt=', "
+                 "'UbloxReader: lat = , lon = , heading = ' and 'Raw GPS: latitude= , "
+                 "longitude= '. Latitude and longitude are the decimal numbers the line prints "
+                 "as lat and lon (latitude and longitude on the Raw GPS line), with no unit "
+                 "stated; all were within the range of degrees on the tested unit. The logical "
+                 "zip gave 214 rows; the raw image gave 4,283, from 2023-07 to 2024-03 with "
+                 "4,133 of them in 2024-03: Trimble Input 1,716, Trimble Output 1,716, "
+                 "UbloxReader 665 and Raw GPS 186. Result is the Trimble Output line's own "
+                 "word, Success on 1,632 rows and Failure on 84; a Failure row, three of which "
+                 "have a latitude of zero, is reported as the log states it and should not be "
+                 "read as a fix. Eight Trimble Input rows also have a latitude of zero. The "
+                 "raw-image rows were compared with a strings listing kept beside the image (a "
+                 "Sysinternals Strings output, by its header): 2,377 of its 2,378 distinct "
+                 "positions are among them with the same time and coordinates; that comparison "
+                 "was made on the Trimble Output and UbloxReader rows, before the other two "
+                 "lines were read. Which receiver or computation each line reports, and how "
+                 "the two relate, is not established here; the labels are the log's own words. "
                  "Times Found counts how often the same line was found. A block can end in the "
                  "middle of a line. In a free space file with its run map present, a line is "
                  "not read across two runs that were not neighbours on the disk (without the "
@@ -211,7 +215,8 @@ __artifacts_v2__ = {
                  "image an unfinished line is cut where the next one starts. A line that does "
                  "not run to a newline keeps its latitude and longitude, which a separator "
                  "follows, and its last value, the altitude or heading, is left empty: two "
-                 "rows on the tested unit's image. A handful of rows can differ between "
+                 "rows on the tested unit's image. A Raw GPS line ends with its longitude, so "
+                 "a cut Raw GPS line is not reported. A handful of rows can differ between "
                  "inputs: on the tested unit the image and the other two inputs together "
                  "differed by two rows. A row records that the module logged that position at "
                  "that time. It does not establish who was driving.",
@@ -222,8 +227,8 @@ __artifacts_v2__ = {
             '*/DiskImages/mmcblk0.img',
         ),
         "sample_data": {
-            "ford_syncg4_logical": "Ford Sync 4, logical zip | 120 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 2381 rows",
+            "ford_syncg4_logical": "Ford Sync 4, logical zip | 214 rows",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 4283 rows",
         },
         "output_types": "all",
         "artifact_icon": "map-pin",
@@ -263,21 +268,20 @@ __artifacts_v2__ = {
                  "markers, which are removed. Lines are folded on the name and address. The "
                  "logical zip gave 2 rows; the raw image gave 164 rows from 759 lines, from "
                  "2023-05-22 to 2024-03-29, every one with a name and a six-byte address. The "
-                 "raw-image rows were compared with a list of log lines from the same image "
-                 "made by another tool (a file kept beside the image, its maker not recorded): "
-                 "all 164 of its distinct name and address pairs are among them. Strongest "
-                 "Signal is the highest rssi among the lines, and Security Values are the sec "
-                 "numbers seen, as stored; nothing available here documents the sec numbers. A "
-                 "row records that the module logged that access point in a scan result with a "
-                 "signal value. It does not establish that the module connected to it. A block "
-                 "can end in the middle of a line. In a free space file with its run map "
-                 "present, a line is not read across two runs that were not neighbours on the "
-                 "disk (without the map the file is read as one stretch and the run log says "
-                 "so), and in an image an unfinished line is cut where the next one starts. A "
-                 "line that does not run to a newline still counts toward its access point "
-                 "when it reads as far as the channel, but its channel is not taken from it. "
-                 "On the tested unit the image gave the same 164 rows with and without that "
-                 "rule.",
+                 "raw-image rows were compared with a strings listing kept beside the image (a "
+                 "Sysinternals Strings output, by its header): all 164 of its distinct name "
+                 "and address pairs are among them. Strongest Signal is the highest rssi among "
+                 "the lines, and Security Values are the sec numbers seen, as stored; nothing "
+                 "available here documents the sec numbers. A row records that the module "
+                 "logged that access point in a scan result with a signal value. It does not "
+                 "establish that the module connected to it. A block can end in the middle of "
+                 "a line. In a free space file with its run map present, a line is not read "
+                 "across two runs that were not neighbours on the disk (without the map the "
+                 "file is read as one stretch and the run log says so), and in an image an "
+                 "unfinished line is cut where the next one starts. A line that does not run "
+                 "to a newline still counts toward its access point when it reads as far as "
+                 "the channel, but its channel is not taken from it. On the tested unit the "
+                 "image gave the same 164 rows with and without that rule.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -338,29 +342,28 @@ __artifacts_v2__ = {
                  "from 2023-07-18 to 2024-03-29: tire pressures 241, gear 193, driver "
                  "distraction state 189 (DD_OFF 99, DD_ON 90), door 107, odometer 31, current "
                  "street 19, ignition with driver door 19, odometer in a vehicle data "
-                 "notification 18. The door, gear and odometer rows were compared with a list "
-                 "of log lines from the same image made by another tool (a file kept beside "
-                 "the image, its maker not recorded): 316 of its 319 lines, counted as "
-                 "distinct by time to the second, signal and values, are among them, and the "
-                 "other three are door lines that list holds with the text that followed the "
-                 "cut. Times Found counts how often the same line was found. A block can end "
-                 "in the middle of a line. In a free space file with its run map present, a "
-                 "line is not read across two runs that were not neighbours on the disk "
-                 "(without the map the file is read as one stretch and the run log says so), "
-                 "and in an image an unfinished line is cut where the next one starts. What "
-                 "follows a cut line is whatever the next block holds, which can be other text "
-                 "with its own newline. A door, gear, odometer or tire pressure line is "
-                 "therefore reported whole only when it runs to a newline and holds nothing "
-                 "but 'name = number' values. From any other one, only the values at its start "
-                 "that a separator follows are kept and Whole Line says No, and a line with no "
-                 "such value is not reported. A current street or ignition line that does not "
-                 "run to a newline is reported as far as it reads and Whole Line says No. A "
-                 "driver distraction or vehicle data notification is reported only when the "
-                 "line ends with its closing brackets, so one that is cut or has other text "
-                 "after it is not reported. On the tested unit's image two door rows and one "
-                 "tire pressure row say No, and one door line was not reported. A row records "
-                 "that the module logged that line. It does not establish who opened a door or "
-                 "drove the vehicle.",
+                 "notification 18. The door, gear and odometer rows were compared with a "
+                 "strings listing kept beside the image (a Sysinternals Strings output, by its "
+                 "header): 316 of its 319 lines, counted as distinct by time to the second, "
+                 "signal and values, are among them, and the other three are door lines that "
+                 "list holds with the text that followed the cut. Times Found counts how often "
+                 "the same line was found. A block can end in the middle of a line. In a free "
+                 "space file with its run map present, a line is not read across two runs that "
+                 "were not neighbours on the disk (without the map the file is read as one "
+                 "stretch and the run log says so), and in an image an unfinished line is cut "
+                 "where the next one starts. What follows a cut line is whatever the next "
+                 "block holds, which can be other text with its own newline. A door, gear, "
+                 "odometer or tire pressure line is therefore reported whole only when it runs "
+                 "to a newline and holds nothing but 'name = number' values. From any other "
+                 "one, only the values at its start that a separator follows are kept and "
+                 "Whole Line says No, and a line with no such value is not reported. A current "
+                 "street or ignition line that does not run to a newline is reported as far as "
+                 "it reads and Whole Line says No. A driver distraction or vehicle data "
+                 "notification is reported only when the line ends with its closing brackets, "
+                 "so one that is cut or has other text after it is not reported. On the tested "
+                 "unit's image two door rows and one tire pressure row say No, and one door "
+                 "line was not reported. A row records that the module logged that line. It "
+                 "does not establish who opened a door or drove the vehicle.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -808,6 +811,8 @@ _ANALYTICS_ATTRS = re.compile(r'hmi\.analytics: Attributes: (.*)$')
 _ATTR = re.compile(r'\[(\w+): ([^\]]*)\]')
 _TRIMBLE = re.compile(r'^Trimble Output res=(\w+) lat=(-?[\d.]+), lon=(-?[\d.]+), alt=(-?[\d.]+)')
 _UBLOX = re.compile(r'^UbloxReader: lat = (-?[\d.]+), lon = (-?[\d.]+), heading = (-?[\d.]+)')
+_TRIMBLE_IN = re.compile(r'^Trimble Input lat=(-?[\d.]+), lon=(-?[\d.]+), alt=(-?[\d.]+)')
+_RAW_GPS = re.compile(r'^Raw GPS: latitude= (-?[\d.]+), longitude= (-?[\d.]+)$')
 _ACCESS_POINT = re.compile(r'ap\[\d+\] ssid = "(.*?)", bssid = (\S+?), sec = (\d+), '
                            r'rssi = (-?\d+),\s+chan = (\d+)')
 _MARKER = re.compile(r'</?SD2>')
@@ -920,7 +925,8 @@ _SCANNED = {}
 def _kept(component, text):
     """True for the lines some artifact of this module reports."""
     if component == 'lbs':
-        return text.startswith(('Trimble Output', 'UbloxReader: lat'))
+        return text.startswith(('Trimble Output', 'UbloxReader: lat', 'Trimble Input',
+                                'Raw GPS: latitude'))
     if component == 'CM':
         return ' ssid = ' in text
     if component == 'evChargeSettings':
@@ -1209,6 +1215,17 @@ def ford_sync4_positions(context):
             data_list.append((stamp, _number(ublox.group(1)), _number(ublox.group(2)),
                               'UbloxReader', '', '', ublox.group(3) if whole else '', where,
                               times))
+        else:
+            given = _TRIMBLE_IN.match(text)
+            raw = _RAW_GPS.match(text)
+            if given:
+                data_list.append((stamp, _number(given.group(1)), _number(given.group(2)),
+                                  'Trimble Input', '', given.group(3) if whole else '', '',
+                                  where, times))
+            elif raw and whole:
+                # the longitude is the last value of the line
+                data_list.append((stamp, _number(raw.group(1)), _number(raw.group(2)),
+                                  'Raw GPS', '', '', '', where, times))
 
     data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude', 'Line Kind',
                     'Result (as stored)', 'Altitude (as stored)', 'Heading (as stored)',
