@@ -294,10 +294,11 @@ __artifacts_v2__ = {
     "ford_sync4_vehicle_signals": {
         "name": "Ford SYNC 4 - Vehicle Signals In Log",
         "description": "Vehicle signal lines in the platform log: door status, gear position, "
-                       "odometer value, current street and ignition with driver door, each "
-                       "with its log time and the values the line states.",
+                       "odometer value, current street, ignition with driver door, tire "
+                       "pressures, driver distraction state and the odometer in a vehicle data "
+                       "notification, each with its log time and the values the line states.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.2",
+        "version": "0.3",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
@@ -323,33 +324,43 @@ __artifacts_v2__ = {
                  "Rows come from five lines: the navigation engine's sigDoorStatus, "
                  "sigGearPosition and sigSetOdometerValue lines, the navigation service's "
                  "current street line, and a line that states the driver door and ignition "
-                 "status together. Values is the text of the line after its label, with a "
-                 "trailing 'successful' removed from street lines: door lines give a number "
-                 "for each door and the tailgate, gear and ignition lines a number, odometer "
-                 "lines a number with no unit stated, and street lines three labelled fields, "
-                 "the first a name that can be empty. Nothing available here documents the "
-                 "numbers, so none is relabelled. The logical zip gave 18 rows; the raw image "
-                 "gave 369 from 2023-07-18 to 2024-03-29: gear 193, door 107, odometer 31, "
-                 "current street 19, ignition with driver door 19. The door, gear and odometer "
-                 "rows were compared with a list of log lines from the same image made by "
-                 "another tool (a file kept beside the image, its maker not recorded): 316 of "
-                 "its 319 lines, counted as distinct by time to the second, signal and values, "
-                 "are among them, and the other three are door lines that list holds with the "
-                 "text that followed the cut. Times Found counts how often the same line was "
-                 "found. A block can end in the middle of a line. In a free space file with "
-                 "its run map present, a line is not read across two runs that were not "
-                 "neighbours on the disk (without the map the file is read as one stretch and "
-                 "the run log says so), and in an image an unfinished line is cut where the "
-                 "next one starts. What follows a cut line is whatever the next block holds, "
-                 "which can be other text with its own newline. A door, gear or odometer line "
-                 "is therefore reported whole only when it runs to a newline and holds nothing "
+                 "status together. Three more were added: the navigation service's 'Received "
+                 "new tire pressures' line, and the AppLinkService JSON notifications "
+                 "UI.OnDriverDistraction, for its state, and VehicleInfo.OnVehicleData when it "
+                 "carries only an odometer value. Values is the text of the line after its "
+                 "label, with a trailing 'successful' removed from street lines: door lines "
+                 "give a number for each door and the tailgate, gear and ignition lines a "
+                 "number, odometer lines a number with no unit stated, street lines three "
+                 "labelled fields, the first a name that can be empty, tire pressure lines "
+                 "four numbers with no unit stated, and the two notifications the state word "
+                 "or the odometer number. Nothing available here documents the numbers, so "
+                 "none is relabelled. The logical zip gave 27 rows; the raw image gave 817 "
+                 "from 2023-07-18 to 2024-03-29: tire pressures 241, gear 193, driver "
+                 "distraction state 189 (DD_OFF 99, DD_ON 90), door 107, odometer 31, current "
+                 "street 19, ignition with driver door 19, odometer in a vehicle data "
+                 "notification 18. The door, gear and odometer rows were compared with a list "
+                 "of log lines from the same image made by another tool (a file kept beside "
+                 "the image, its maker not recorded): 316 of its 319 lines, counted as "
+                 "distinct by time to the second, signal and values, are among them, and the "
+                 "other three are door lines that list holds with the text that followed the "
+                 "cut. Times Found counts how often the same line was found. A block can end "
+                 "in the middle of a line. In a free space file with its run map present, a "
+                 "line is not read across two runs that were not neighbours on the disk "
+                 "(without the map the file is read as one stretch and the run log says so), "
+                 "and in an image an unfinished line is cut where the next one starts. What "
+                 "follows a cut line is whatever the next block holds, which can be other text "
+                 "with its own newline. A door, gear, odometer or tire pressure line is "
+                 "therefore reported whole only when it runs to a newline and holds nothing "
                  "but 'name = number' values. From any other one, only the values at its start "
                  "that a separator follows are kept and Whole Line says No, and a line with no "
                  "such value is not reported. A current street or ignition line that does not "
-                 "run to a newline is reported as far as it reads and Whole Line says No. On "
-                 "the tested unit's image two door rows say No and one door line was not "
-                 "reported. A row records that the module logged that line. It does not "
-                 "establish who opened a door or drove the vehicle.",
+                 "run to a newline is reported as far as it reads and Whole Line says No. A "
+                 "driver distraction or vehicle data notification is reported only when the "
+                 "line ends with its closing brackets, so one that is cut or has other text "
+                 "after it is not reported. On the tested unit's image two door rows and one "
+                 "tire pressure row say No, and one door line was not reported. A row records "
+                 "that the module logged that line. It does not establish who opened a door or "
+                 "drove the vehicle.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
             '*.unallocated.bin',
@@ -357,11 +368,365 @@ __artifacts_v2__ = {
             '*/DiskImages/mmcblk0.img',
         ),
         "sample_data": {
-            "ford_syncg4_logical": "Ford Sync 4, logical zip | 18 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 369 rows",
+            "ford_syncg4_logical": "Ford Sync 4, logical zip | 27 rows",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 817 rows",
         },
         "output_types": "standard",
         "artifact_icon": "activity",
+    },
+    "ford_sync4_power_events": {
+        "name": "Ford SYNC 4 - Power Manager Events In Log",
+        "description": "Power manager lines in the platform log that name an event: ignition, "
+                       "engine off, door ajar and the other events the line names, CAN event "
+                       "lines, the ignition status and the remote start status, each with its "
+                       "log time and the value the line states.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC 4",
+        "notes": "From the module's rolling platform log. Three inputs are read, and a row "
+                 "says which held it in Found In: the live log files "
+                 "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
+                 "copies), a file of the storage volume's free space "
+                 "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
+                 "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time: 8 of the reported rows on "
+                 "the tested unit, in the logical zip and in the raw image. A line found in "
+                 "more than one input is reported once. Rows come from the PowerManager "
+                 "components' lines 'event <name>, EventValue = <n>', 'CAN event: <text>', "
+                 "'BodyInfo_HS<n>.Ignition_Status=<n>' and 'Remote_Start_Status is <word>'. "
+                 "Event is the name the line gives, or CAN event, and Value is the number or "
+                 "text the line states, as stored. Nothing available here documents the "
+                 "numbers, so none is relabelled. The logical zip gave 158 rows; the raw image "
+                 "gave 1,359, of which 1,351 are dated, from 2023-07-18 to 2024-03-29: "
+                 "IgnitionOnEvent 320, CAN event 231, Ignition_Status 177, IlluminationEvent "
+                 "167, TransportmodeEvent 166, Remote_Start_Status 164, DriverDoorAjarEvent "
+                 "45, EngineOffEvent 27, eCallEvent 23, LBIEvent 17, KeyOffPwMdeEvent 12, "
+                 "PassengerDoorAjarEvent 10. Both distinct CAN event texts on the tested unit "
+                 "name a door. A row records that the power manager logged that event. It does "
+                 "not establish who opened a door or switched the ignition. A row is reported "
+                 "only for a line that runs to a newline and matches the whole of a shape "
+                 "named here. A line cut at the end of a block is still reported if the next "
+                 "block begins with a newline and the shortened text fits the shape; that was "
+                 "not seen on the tested unit. Times Found counts how often the same line was "
+                 "found. In a free space file with its run map present, a line is not read "
+                 "across two runs that were not neighbours on the disk.",
+        "paths": (
+            '*/rwdata/logs/*fdplog*.txt*',
+            '*.unallocated.bin',
+            '*.unallocated.tsv',
+            '*/DiskImages/mmcblk0.img',
+        ),
+        "sample_data": {
+            "ford_syncg4_logical": "Ford Sync 4, logical zip | 158 rows",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 1359 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "power",
+    },
+    "ford_sync4_battery_voltage": {
+        "name": "Ford SYNC 4 - Battery Voltage Lines In Log",
+        "description": "Battery voltage lines the power manager wrote to the platform log, "
+                       "each with its log time and the three numbers the line states.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC 4",
+        "notes": "From the module's rolling platform log. Three inputs are read, and a row "
+                 "says which held it in Found In: the live log files "
+                 "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
+                 "copies), a file of the storage volume's free space "
+                 "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
+                 "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from the PowerManager line 'Batt Voltage = <n>, PwrCurTargetState "
+                 "= <n>, Lvi_Flag =<n>'. The three numbers are as stored: the line states no "
+                 "unit and nothing available here documents them. The logical zip gave 133 "
+                 "rows; the raw image gave 2,148 from 2023-07-18 to 2024-03-29, with Batt "
+                 "Voltage between 113 and 151, one PwrCurTargetState value and an Lvi_Flag of "
+                 "0 on every row. A row records that the power manager logged that line at "
+                 "that time. A row is reported only for a line that runs to a newline and "
+                 "matches the whole of a shape named here. A line cut at the end of a block is "
+                 "still reported if the next block begins with a newline and the shortened "
+                 "text fits the shape; that was not seen on the tested unit. Times Found "
+                 "counts how often the same line was found. In a free space file with its run "
+                 "map present, a line is not read across two runs that were not neighbours on "
+                 "the disk.",
+        "paths": (
+            '*/rwdata/logs/*fdplog*.txt*',
+            '*.unallocated.bin',
+            '*.unallocated.tsv',
+            '*/DiskImages/mmcblk0.img',
+        ),
+        "sample_data": {
+            "ford_syncg4_logical": "Ford Sync 4, logical zip | 133 rows",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 2148 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "battery",
+    },
+    "ford_sync4_phone_status": {
+        "name": "Ford SYNC 4 - Bluetooth Phone Status In Log",
+        "description": "Bluetooth phone status lines in the platform log: the phone status "
+                       "line with its seven numbers, the Bluetooth radio status event line, "
+                       "the connected phone notification and the number of phone devices, each "
+                       "with its log time.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC 4",
+        "notes": "From the module's rolling platform log. Three inputs are read, and a row "
+                 "says which held it in Found In: the live log files "
+                 "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
+                 "copies), a file of the storage volume's free space "
+                 "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
+                 "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from four lines: the bluetooth.btbridge line 'PhnStatus: <n>, "
+                 "BTStatus: <n>: NetworkStatus: <n>: MicStatus: <n>, BatteryLevel: <n>, "
+                 "SignalStrength <n>, DefaultStatus:<n>' (Phone status), its "
+                 "'bt_event_radio_status, state <n>' line (Radio status), and the "
+                 "voice.dialog.phone.initiator lines 'BT notification for connected phone: "
+                 "<word>' and 'Number Of Phone Devices = <n>'. Values are as stored and "
+                 "nothing available here documents the numbers. The logical zip gave 59 rows; "
+                 "the raw image gave 221 from 2023-07-18 to 2024-03-29: phone status 136 with "
+                 "four distinct sets of values, radio status 52, connected phone notification "
+                 "17, every one DISCONNECTED, and number of phone devices 16, every one 0. No "
+                 "reported line names a phone. A row records that the module logged that line. "
+                 "It does not establish that a phone was or was not in the vehicle. A row is "
+                 "reported only for a line that runs to a newline and matches the whole of a "
+                 "shape named here. A line cut at the end of a block is still reported if the "
+                 "next block begins with a newline and the shortened text fits the shape; that "
+                 "was not seen on the tested unit. Times Found counts how often the same line "
+                 "was found. In a free space file with its run map present, a line is not read "
+                 "across two runs that were not neighbours on the disk.",
+        "paths": (
+            '*/rwdata/logs/*fdplog*.txt*',
+            '*.unallocated.bin',
+            '*.unallocated.tsv',
+            '*/DiskImages/mmcblk0.img',
+        ),
+        "sample_data": {
+            "ford_syncg4_logical": "Ford Sync 4, logical zip | 59 rows",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 221 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "smartphone",
+    },
+    "ford_sync4_sirius_channel": {
+        "name": "Ford SYNC 4 - SiriusXM Channel Lines In Log",
+        "description": "SiriusXM lines in the platform log that name a channel: the current "
+                       "channel line and the connectivity banner line with its chn# value, "
+                       "each with its log time.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC 4",
+        "notes": "From the module's rolling platform log. Three inputs are read, and a row "
+                 "says which held it in Found In: the live log files "
+                 "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
+                 "copies), a file of the storage volume's free space "
+                 "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
+                 "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from two lines of the Sirius_Emma_Audio_Svc components: the "
+                 "SXMAPIData_CCRI line 'Current channel : <text>', and the first line of the "
+                 "ConnectivityBanner message, from 'ipAvailable: <n>' to 'chn#: <n>'. That "
+                 "line must end ', ch' or ', ch.' after the chn# value: the message is wrapped "
+                 "across log lines, and a banner line that wraps a letter or two later is not "
+                 "reported (23 of 621 banner lines in the tested unit's free space). Values "
+                 "are as stored. The live log files of the tested unit hold neither line, so "
+                 "the logical zip gave no rows; the raw image gave 1,070 from 2023-12-06 to "
+                 "2024-03-27: current channel 453, with five distinct channel texts each "
+                 "followed by the words BAD PAUSE POINT, and connectivity banner 617. What "
+                 "those words and the banner's numbers mean is not documented here. A row "
+                 "records that the service logged that channel at that time. It does not "
+                 "establish who was listening. A row is reported only for a line that runs to "
+                 "a newline and matches the whole of a shape named here. A line cut at the end "
+                 "of a block is still reported if the next block begins with a newline and the "
+                 "shortened text fits the shape; that was not seen on the tested unit. Times "
+                 "Found counts how often the same line was found. In a free space file with "
+                 "its run map present, a line is not read across two runs that were not "
+                 "neighbours on the disk.",
+        "paths": (
+            '*/rwdata/logs/*fdplog*.txt*',
+            '*.unallocated.bin',
+            '*.unallocated.tsv',
+            '*/DiskImages/mmcblk0.img',
+        ),
+        "sample_data": {
+            "ford_syncg4_logical": "Ford Sync 4, logical zip | 0 rows: not in the live log files",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 1070 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "radio",
+    },
+    "ford_sync4_network_lines": {
+        "name": "Ford SYNC 4 - Network Lines In Log",
+        "description": "Network lines in the platform log: the wlan.dcs lines that state an "
+                       "interface name and a MAC address, and the network up and down lines "
+                       "with the IP address they state, each with its log time.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC 4",
+        "notes": "From the module's rolling platform log. Three inputs are read, and a row "
+                 "says which held it in Found In: the live log files "
+                 "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
+                 "copies), a file of the storage volume's free space "
+                 "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
+                 "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from two lines: the wlan.dcs line 'intf = <interface> has mac = "
+                 "<address>' (Interface address), and the voice.utils.media.playerimpl line "
+                 "'onNetworkStatusChanged, Player(<name>): Network update (UP IP: <address>)' "
+                 "or '(DOWN IP: )' (Network update). Values are as stored. The logical zip "
+                 "gave 55 rows; the raw image gave 127 from 2023-07-18 to 2024-03-29: "
+                 "interface address 28, with two distinct interface and address pairs, and "
+                 "network update 99. Which interface or network the address on an UP line "
+                 "belongs to is not established here. A row is reported only for a line that "
+                 "runs to a newline and matches the whole of a shape named here. A line cut at "
+                 "the end of a block is still reported if the next block begins with a newline "
+                 "and the shortened text fits the shape; that was not seen on the tested unit. "
+                 "Times Found counts how often the same line was found. In a free space file "
+                 "with its run map present, a line is not read across two runs that were not "
+                 "neighbours on the disk.",
+        "paths": (
+            '*/rwdata/logs/*fdplog*.txt*',
+            '*.unallocated.bin',
+            '*.unallocated.tsv',
+            '*/DiskImages/mmcblk0.img',
+        ),
+        "sample_data": {
+            "ford_syncg4_logical": "Ford Sync 4, logical zip | 55 rows",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 127 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "globe",
+    },
+    "ford_sync4_profile_lines": {
+        "name": "Ford SYNC 4 - Personal Profile Lines In Log",
+        "description": "Personal profile lines in the platform log, one row for each run of "
+                       "lines that state the same values, with the first and last log time of "
+                       "the run and the number of lines.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-09",
+        "last_update_date": "2026-10-09",
+        "requirements": "none",
+        "category": "Ford SYNC 4",
+        "notes": "From the module's rolling platform log. Three inputs are read, and a row "
+                 "says which held it in Found In: the live log files "
+                 "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
+                 "copies), a file of the storage volume's free space "
+                 "(<image>.<volume>.unallocated.bin, as qnxprobe --unallocated writes it, with "
+                 "its run map beside it), and the raw image (DiskImages/mmcblk0.img) when the "
+                 "input is the acquisition folder. The log files roll. On the tested unit the "
+                 "free space and the image held log lines the files no longer held. Nothing is "
+                 "carved by file type and no file system is followed: a line is found by its "
+                 "own shape, a date and time ending in Z, a host, a process, a component and a "
+                 "sequence id. The tested log files hold lines from 524 components. Only the "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
+                 "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
+                 "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
+                 "free. Each line's time carries a Z and is reported as the line states it; a "
+                 "line dated 1970 is reported with an empty time, and no reported row on the "
+                 "tested unit had one. A line found in more than one input is reported once. "
+                 "Rows come from three PASA_HMI_IF.Cluster lines: 'Personal profile id "
+                 "received from BCM : <n> <word> received', 'Personal profile selected from "
+                 "BCM. Profile Id: <n> key associated: <n>' and 'Notification for switch "
+                 "profile completed from NPP. Profile Id = <n>', which the log writes with two "
+                 "spaces before the equals sign. The lines of one kind are taken in log order "
+                 "and a new row starts when the values change, so a row is a run of lines that "
+                 "state the same values, with its first and last log time and the number of "
+                 "lines. On the tested unit each kind stated one set of values throughout, so "
+                 "each gave one row and the split into runs was not exercised: the logical zip "
+                 "gave 3 rows from 671 lines, and the raw image 3 rows from 8,992 lines "
+                 "(4,493, 4,489 and 10) from 2023-07-18 to 2024-03-29. What the profile ids "
+                 "stand for is not documented here. A row records that the module logged those "
+                 "values. It does not establish who was driving. A row is reported only for a "
+                 "line that runs to a newline and matches the whole of a shape named here. A "
+                 "line cut at the end of a block is still reported if the next block begins "
+                 "with a newline and the shortened text fits the shape; that was not seen on "
+                 "the tested unit. In a free space file with its run map present, a line is "
+                 "not read across two runs that were not neighbours on the disk.",
+        "paths": (
+            '*/rwdata/logs/*fdplog*.txt*',
+            '*.unallocated.bin',
+            '*.unallocated.tsv',
+            '*/DiskImages/mmcblk0.img',
+        ),
+        "sample_data": {
+            "ford_syncg4_logical": "Ford Sync 4, logical zip | 3 rows",
+            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 3 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "user",
     },
 }
 
@@ -388,13 +753,82 @@ _SIGNALS = (
                                r'(?: successful)?$'), 'Current street'),
     ('redcap', re.compile(r'handle_ignition_and_door_status \S+ \S+ (.*)$'),
      'Ignition and driver door'),
+    ('nav.service', re.compile(r'Received new tire pressures: (.*)$'), 'Tire pressures'),
+    ('AppLinkService.ZONE_23',
+     re.compile(r'"method":"UI\.OnDriverDistraction","params":\{"state":"(\w+)"\}\}\]$'),
+     'Driver distraction state'),
+    ('AppLinkService.ZONE_23',
+     re.compile(r'"method":"VehicleInfo\.OnVehicleData","params":\{"odometer":(\d+)\}\}\]$'),
+     'Odometer in vehicle data notification'),
 )
+# The signals whose line is nothing but 'name = number' values.
+_PAIR_SIGNALS = ('Door status', 'Gear position', 'Odometer value', 'Tire pressures')
 # One value of a door, gear or odometer line, up to the separator that follows it.
 _PAIR = re.compile(r'([A-Za-z][\w ]*? = \d+)(?=\s*,)')
 # The values at the start of a cut line, each with its separator.
 _LEADING = re.compile(r'(?:[A-Za-z][\w ]*? = \d+\s*,\s*)+')
 # A whole door, gear or odometer line: nothing but such values.
 _PAIRS = re.compile(r'[A-Za-z][\w ]*? = \d+(?:\s*,\s*[A-Za-z][\w ]*? = \d+)*')
+# The other artifacts: (component prefix, pattern, what the row says). Each pattern runs to
+# the end of the line, and only a line that ran to a newline is reported.
+_POWER = (
+    ('PowerManager.', re.compile(r'=event (\w+), EventValue = (\d+)$'),
+     lambda m: (m.group(1), m.group(2))),
+    ('PowerManager.', re.compile(r'=CAN event: ([a-z ]+)$'),
+     lambda m: ('CAN event', m.group(1))),
+    ('PowerManager.', re.compile(r'=BodyInfo_HS\d\.(Ignition_Status)=(\d+)$'),
+     lambda m: (m.group(1), m.group(2))),
+    ('PowerManager.', re.compile(r'=(Remote_Start_Status) is (\w+)$'),
+     lambda m: (m.group(1), m.group(2))),
+)
+_BATTERY = (
+    ('PowerManager.', re.compile(r'=Batt Voltage = (\d+), PwrCurTargetState = (\d+), '
+                                 r'Lvi_Flag =(\d+)$'),
+     lambda m: (m.group(1), m.group(2), m.group(3))),
+)
+_PHONE = (
+    ('bluetooth.btbridge', re.compile(r'(PhnStatus: \d+, BTStatus: \d+: NetworkStatus: \d+: '
+                                      r'MicStatus: \d+, BatteryLevel: \d+, '
+                                      r'SignalStrength \d+, DefaultStatus:\d+)$'),
+     lambda m: ('Phone status', m.group(1))),
+    ('bluetooth.btbridge', re.compile(r'bt_event_radio_status, (state \d+)$'),
+     lambda m: ('Radio status', m.group(1))),
+    ('voice.dialog.phone.initiator',
+     re.compile(r'^BT notification for connected phone: (\w+)$'),
+     lambda m: ('Connected phone notification', m.group(1))),
+    ('voice.dialog.phone.initiator', re.compile(r'^Number Of Phone Devices = (\d+)$'),
+     lambda m: ('Number of phone devices', m.group(1))),
+)
+_SIRIUS = (
+    ('Sirius_Emma_Audio_Svc.', re.compile(r'\[SXMAPIData_CCRI\]\S+\|Current channel\s+: '
+                                          r'(\S+)((?: [\w ]+)?)$'),
+     lambda m: ('Current channel', (m.group(1) + m.group(2)).strip())),
+    ('Sirius_Emma_Audio_Svc.', re.compile(r'\[ConnectivityBanner\]\S+\|(ipAvailable: \d+, '
+                                          r'satAvailable: \d+, [\w ,:#]*chn#: \d+), ch\.?$'),
+     lambda m: ('Connectivity banner', m.group(1))),
+)
+_NETWORK = (
+    ('wlan.dcs', re.compile(r'^intf = (\S+ has mac = [0-9a-fA-F:]{17})$'),
+     lambda m: ('Interface address', m.group(1))),
+    ('voice.utils.media.playerimpl',
+     re.compile(r'onNetworkStatusChanged, (Player\(\w*\)): Network update '
+                r'\(((?:UP|DOWN) IP: [\d.]*)\)$'),
+     lambda m: ('Network update', m.group(1) + ' ' + m.group(2))),
+)
+_PROFILE = (
+    ('PASA_HMI_IF.Cluster',
+     re.compile(r'=Personal profile id received from BCM : (\d+ \w+) received$'),
+     lambda m: ('Profile id received from BCM', m.group(1))),
+    ('PASA_HMI_IF.Cluster',
+     re.compile(r'=Personal profile selected from BCM\. (Profile Id: \d+ key associated: '
+                r'\d+)$'),
+     lambda m: ('Profile selected from BCM', m.group(1))),
+    ('PASA_HMI_IF.Cluster',
+     re.compile(r'=Notification for switch profile completed from NPP\. (Profile Id  = '
+                r'\d+)$'),
+     lambda m: ('Switch profile completed', m.group(1))),
+)
+_RULES = _POWER + _BATTERY + _PHONE + _SIRIUS + _NETWORK + _PROFILE
 _DEGREE = 1000000
 _LOG_FILE = 'Log file'
 _FREE_SPACE = 'Free space file'
@@ -414,7 +848,10 @@ def _kept(component, text):
         return 'ChargeLocationMsg' in text
     if component == 'vendor.garmin':
         return 'hmi.analytics' in text
-    return any(component == name and pattern.search(text) for name, pattern, _ in _SIGNALS)
+    if any(component == name and pattern.search(text) for name, pattern, _ in _SIGNALS):
+        return True
+    return any(component.startswith(prefix) and pattern.search(text)
+               for prefix, pattern, _ in _RULES)
 
 
 def _source_kind(path):
@@ -749,7 +1186,7 @@ def ford_sync4_vehicle_signals(context):
             match = pattern.search(text)
             if match:
                 values = match.group(1).strip()
-                if name == 'nav.enginelib' and not (whole and _PAIRS.fullmatch(values)):
+                if label in _PAIR_SIGNALS and not (whole and _PAIRS.fullmatch(values)):
                     # A cut line is followed by whatever the next block holds, which can
                     # be other text with its own newline. Only the 'name = number' pairs
                     # that came before the cut are kept.
@@ -764,3 +1201,88 @@ def ford_sync4_vehicle_signals(context):
     data_headers = (('Log Time', 'datetime'), 'Signal', 'Values (as stored)',
                     'Whole Line', 'Found In', 'Times Found')
     return data_headers, data_list, '\n'.join(sources)
+
+
+def _rule_rows(context, rules):
+    """(log time, values the rule gives, found in, times found) for each whole line a rule
+    matches, oldest first, and the source paths."""
+    lines, sources = _log_lines(context)
+    rows = []
+    for stamp, component, text, where, times, _sequence, whole in lines:
+        if not whole:
+            continue
+        for prefix, pattern, values in rules:
+            match = pattern.search(text) if component.startswith(prefix) else None
+            if match:
+                rows.append((stamp, values(match), where, times))
+                break
+    return rows, sources
+
+
+def _kind_and_values(context, rules):
+    rows, sources = _rule_rows(context, rules)
+    data_list = [(stamp, kind, values, where, times)
+                 for stamp, (kind, values), where, times in rows]
+    data_headers = (('Log Time', 'datetime'), 'Line Kind', 'Values (as stored)', 'Found In',
+                    'Times Found')
+    return data_headers, data_list, '\n'.join(sources)
+
+
+@artifact_processor
+def ford_sync4_power_events(context):
+    rows, sources = _rule_rows(context, _POWER)
+    data_list = [(stamp, event, value, where, times)
+                 for stamp, (event, value), where, times in rows]
+    data_headers = (('Log Time', 'datetime'), 'Event', 'Value (as stored)', 'Found In',
+                    'Times Found')
+    return data_headers, data_list, '\n'.join(sources)
+
+
+@artifact_processor
+def ford_sync4_battery_voltage(context):
+    rows, sources = _rule_rows(context, _BATTERY)
+    data_list = [(stamp, voltage, state, flag, where, times)
+                 for stamp, (voltage, state, flag), where, times in rows]
+    data_headers = (('Log Time', 'datetime'), 'Batt Voltage (as stored)',
+                    'PwrCurTargetState (as stored)', 'Lvi_Flag (as stored)', 'Found In',
+                    'Times Found')
+    return data_headers, data_list, '\n'.join(sources)
+
+
+@artifact_processor
+def ford_sync4_phone_status(context):
+    return _kind_and_values(context, _PHONE)
+
+
+@artifact_processor
+def ford_sync4_sirius_channel(context):
+    return _kind_and_values(context, _SIRIUS)
+
+
+@artifact_processor
+def ford_sync4_network_lines(context):
+    return _kind_and_values(context, _NETWORK)
+
+
+@artifact_processor
+def ford_sync4_profile_lines(context):
+    rows, sources = _rule_rows(context, _PROFILE)
+    runs = {}
+    data_list = []
+    for stamp, (kind, values), where, _times in rows:
+        run = runs.get(kind)
+        if run is None or run[3] != values:
+            # the values changed for this kind of line: a new run starts
+            run = runs[kind] = [stamp, stamp, kind, values, 0, set()]
+            data_list.append(run)
+        if stamp:
+            run[0] = run[0] or stamp
+            run[1] = stamp
+        run[4] += 1
+        run[5].update(where.split(', '))
+    data_list = [(first, last, kind, values, count, _found_in(kinds))
+                 for first, last, kind, values, count, kinds in data_list]
+    data_headers = (('First Log Time', 'datetime'), ('Last Log Time', 'datetime'),
+                    'Line Kind', 'Values (as stored)', 'Lines', 'Found In')
+    return data_headers, data_list, '\n'.join(sources)
+
