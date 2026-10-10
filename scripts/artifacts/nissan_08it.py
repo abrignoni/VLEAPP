@@ -376,7 +376,7 @@ __artifacts_v2__ = {
                        "fields of the record, shown as stored, whose meaning is not "
                        "established.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -418,8 +418,12 @@ __artifacts_v2__ = {
                  "start with NEPO and are logged and not read. Files with identical content "
                  "are read once and Identical Files gives how many there were; it held one "
                  "value, 2, on all 32 rows: two of the unit's three acquisition folders hold "
-                 "the same pair of files. A row records that the unit's navigation backup held "
-                 "that entry. It does not establish that the vehicle went there.",
+                 "the same pair of files. Not read from the same files: a run of 52 records of "
+                 "332 bytes from offset 0x1f8, each starting with a text field. They held 16 "
+                 "distinct texts, one of them on 32 of the 52 records, no marker bytes and no "
+                 "date were found in them, and which list they are is not established. A row "
+                 "records that the unit's navigation backup held that entry. It does not "
+                 "establish that the vehicle went there.",
         "paths": ('*/BUP/*BACKUP.CUR*', '*/BUP/*BACKUP.PRE*'),
         "sample_data": {
             "xtrmp_item057": "Nissan 08IT generation 3000, extracted file set | 0 rows, "
