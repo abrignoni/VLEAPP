@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "ford_power_history": {
-        "name": "Power and Reset History",
+        "name": "Ford SYNC 4 - Power and Reset History",
         "description": "Reset detail blocks from the head unit's reset-history.txt, each "
                        "with its \"AP shutdown time\" and \"reset end time\" stamps, the boot "
                        "count, and the wake source and target mode stored in that block.",
@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "From the Reset Details section of reset-history.txt. The file also opens "
                  "with a shorter summary table covering the same cycles; the detail blocks "
                  "are parsed instead because they carry more fields. The file's own Notes "
@@ -44,7 +44,7 @@ __artifacts_v2__ = {
         "artifact_icon": "power",
     },
     "ford_power_last_shutdown": {
-        "name": "Last Shutdown",
+        "name": "Ford SYNC 4 - Last Shutdown",
         "description": "The shutdown the head unit recorded most recently, with the boot "
                        "count, the time, the uptime for that cycle and the initiator and "
                        "reason it stored.",
@@ -53,7 +53,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "From last-shutdown.txt, a file that held a single record on the tested "
                  "image. real time is read as a Unix time in milliseconds and divided by "
                  "1000. On ford_syncg4_logical that reading and the record's up-time, taken "
@@ -71,7 +71,7 @@ __artifacts_v2__ = {
         "artifact_icon": "power",
     },
     "ford_power_reset_reason": {
-        "name": "Last Reset Reason",
+        "name": "Ford SYNC 4 - Last Reset Reason",
         "description": "The reset the head unit recorded most recently in its own reset "
                        "reason file, with the boot count, the time, and the initiator and "
                        "reason it stored.",
@@ -80,7 +80,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "From reset-reason.txt, a file that held a single record on the tested "
                  "image. Same field vocabulary as last-shutdown.txt, and real time is read "
                  "the same way, as milliseconds divided by 1000. On the tested image this "

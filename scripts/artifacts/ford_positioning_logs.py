@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "ford_positioning_fixes": {
-        "name": "Positioning Log Coordinates",
+        "name": "Ford SYNC 4 - Positioning Log Coordinates",
         "description": "Latitude and longitude values the head unit's positioning service "
                        "wrote to its own log, with the label of the log line each "
                        "one came from.",
@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "From every file the paths pattern matches: fdplog.np.txt and its rotated "
                  "and pre_ copies. A file whose bytes equal a file already read is "
                  "skipped, and the Source File column names the file each row came from. "
@@ -36,7 +36,7 @@ __artifacts_v2__ = {
         "artifact_icon": "map-pin",
     },
     "ford_nav_search_events": {
-        "name": "Navigation Analytics Events",
+        "name": "Ford SYNC 4 - Navigation Analytics Events",
         "description": "Events from hmi.analytics lines in the head unit's "
                        "fdplog.vn.txt logs, each with its phase, attributes, redacted field "
                        "names and thread id.",
@@ -45,7 +45,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "From the hmi.analytics lines in every file the paths pattern matches: "
                  "fdplog.vn.txt and its rotated and pre_ copies. A file whose bytes equal "
                  "a file already read is skipped, and the Source File column names the "

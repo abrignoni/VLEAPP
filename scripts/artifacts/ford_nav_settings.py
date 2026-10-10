@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "ford_nav_user_settings": {
-        "name": "Navigation User Settings",
+        "name": "Garmin Navigation App - User Settings",
         "description": "Settings the built-in navigation application stored against a user "
                        "profile, each with the value as stored and the row's time_stamp.",
         "author": "@AlexisBrignoni, Claude",
@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Garmin Navigation App",
         "notes": "From the user_setting table in the navigation application's "
                  "data_manager.sqlite. time_stamp is read as a Unix time, with the unit chosen "
                  "from the value's magnitude. The table's own definition gives the column a "
@@ -33,7 +33,7 @@ __artifacts_v2__ = {
         "artifact_icon": "settings",
     },
     "ford_nav_global_settings": {
-        "name": "Navigation Global Settings",
+        "name": "Garmin Navigation App - Global Settings",
         "description": "Settings the built-in navigation application stored without a user "
                        "profile, each with the value as stored and the row's time_stamp.",
         "author": "@AlexisBrignoni, Claude",
@@ -41,7 +41,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Garmin Navigation App",
         "notes": "From the global_setting table in the same store as the user settings, with "
                  "the same columns except that no profile is recorded. time_stamp is read as "
                  "a Unix time, with the unit chosen from the value's magnitude, and values "

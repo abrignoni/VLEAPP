@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "get_devices_json": {
-        "name": "Devices from json",
+        "name": "Ford - Bluetooth Devices In devices.json",
         "description": "Bluetooth devices (MAC, serial, name) from a Ford devices.json. An entry "
                        "missing any of the three values is not listed, and a repeated entry is "
                        "listed once.",

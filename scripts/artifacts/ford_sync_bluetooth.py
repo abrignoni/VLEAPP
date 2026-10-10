@@ -14,7 +14,7 @@ from scripts.ilapfuncs import artifact_processor, open_sqlite_db_readonly
 
 __artifacts_v2__ = {
     "ford_sync_bt_contacts": {
-        "name": "Bluetooth Phonebook",
+        "name": "Ford SYNC Gen3 - Bluetooth Phonebook",
         "description": "Contacts in the head unit's numbered PhoneBook tables, with the "
                        "names, the phone numbers the record carried, email and postal "
                        "address as stored. One row per contact per table number, shown as "
@@ -24,7 +24,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-30",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC Gen3",
         "notes": "From the PhoneBook<N> tables of BT/btpbk, an extension-less SQLite store "
                  "on the user data partition. On the tested unit the tables were numbered 1 "
                  "to 12, and this artifact reads PhoneBook1 to PhoneBook12 only. That each "
@@ -48,7 +48,7 @@ __artifacts_v2__ = {
         "artifact_icon": "book-open",
     },
     "ford_sync_bt_calls": {
-        "name": "Bluetooth Call History",
+        "name": "Ford SYNC Gen3 - Bluetooth Call History",
         "description": "Rows of the head unit's numbered Combined tables, with the call "
                        "time assembled from the stored components, the direction, and the "
                        "name and number the record "
@@ -58,7 +58,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-30",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC Gen3",
         "notes": "From the Combined<N> tables of BT/btpbk, which the unit maintains "
                  "alongside separate InCall<N>, DialCall<N> and MissCall<N> tables. "
                  "Combined is the table read. Direction is decoded from CallType, and that "
@@ -83,7 +83,7 @@ __artifacts_v2__ = {
         "artifact_icon": "phone",
     },
     "ford_sync_bt_paired_devices": {
-        "name": "Bluetooth Paired Devices",
+        "name": "Ford SYNC Gen3 - Bluetooth Paired Devices",
         "description": "Rows of the head unit's PairedDevInfo table, with the name, model, "
                        "manufacturer, network name, software version, Bluetooth address and "
                        "subscriber number stored in each.",
@@ -92,7 +92,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-30",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC Gen3",
         "notes": "From PairedDevInfo in BT/btpersist, joined to DeviceOrder and "
                  "HFPdeviceOrder on DeviceID (shown as Device ID) for the primary-device "
                  "flags, which are reported as stored because nothing available here "

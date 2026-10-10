@@ -1,13 +1,13 @@
 __artifacts_v2__ = {
     "get_ford_gps_speed_data": {
-        "name": "GPS Speed Data",
+        "name": "Ford SYNC 4 - Dead Reckoning Speed Data In Log",
         "description": "Dead-reckoning speed/heading data from Ford fdp logs.",
         "author": "@JaysonU25",
         "version": "0.2",
         "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "Time Stamp is the date and time inside the DR data line, stored as if it were "
                  "UTC with no conversion; the zone of that value is not established here. "
                  "Unparseable values are kept as stored. Only DR data lines marked GPSDataValid=1 "

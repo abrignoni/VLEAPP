@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "get_Model": {
-        "name": "Vehicle Model",
+        "name": "Ford - Bluetooth Device Name",
         "description": "The device_name value from a Ford bluetooth_v1.ddb, reported as stored. "
                        "Whether it names the vehicle model is not established.",
         "author": "@JaysonU25",

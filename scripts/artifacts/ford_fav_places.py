@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "get_fav_places": {
-        "name": "Favorite places",
+        "name": "Ford - Recent and Favorite Places",
         "description": "Places from Ford recents_storage and favorites_storage files (id, "
                        "label, address, coordinates). The table does not say which of the two "
                        "files a row came from. An empty label or address is shown as \"None\", "

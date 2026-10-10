@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "btDevices": {
-        "name": "Bluetooth Devices",
+        "name": "Ford SYNC - Bluetooth Devices In Devlog",
         "description": "Bluetooth device details from Ford SYNC devlog text logs "
                        "(BT/devlog_*.txt), one row per file. Each column shows the last matching "
                        "line in the file.",
@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2021-07-02",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Bluetooth",
+        "category": "Ford Vehicles",
         "notes": "",
         "paths": ('*/BT/devlog_*.txt',),
         "output_types": "standard",

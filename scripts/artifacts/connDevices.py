@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "connDevices": {
-        "name": "Connected Devices",
+        "name": "Connected Devices In devices.db",
         "description": "Rows of the device_master table in a vehicle infotainment devices.db. Last "
                        "Connected Time is last_connected_time read as a Unix time (unit chosen by "
                        "magnitude) and shown in UTC.",

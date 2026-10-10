@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "ford_hmi_localstorage": {
-        "name": "HMI Local Storage",
+        "name": "Ford SYNC 4 - HMI Local Storage",
         "description": "Values the head unit's HMI applications stored in Chromium Local "
                        "Storage, with the time each write batch was recorded. Superseded "
                        "versions of a key are reported alongside the current one.",
@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "The HMI applications are Chromium based and keep their state in Local "
                  "Storage, which is a LevelDB store. It is read here with the vendored "
                  "ccl_leveldb reader rather than by scanning the files, because LevelDB "

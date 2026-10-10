@@ -1,6 +1,6 @@
 __artifacts_v2__ = {
     "ford_hmi_app_state": {
-        "name": "HMI Application State",
+        "name": "Ford SYNC 4 - HMI Application State",
         "description": "State the head unit's HMI applications persisted to IndexedDB, "
                        "reported by application, database, object store and key with "
                        "the value as stored.",
@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "The HMI applications are Chromium based and persist state to IndexedDB, "
                  "whose values are V8 serialized rather than plain text. It is read here "
                  "with the vendored ccl_chromium_indexeddb reader; scanning the raw files "
@@ -33,7 +33,7 @@ __artifacts_v2__ = {
         "artifact_icon": "database",
     },
     "ford_vehicle_capabilities": {
-        "name": "Vehicle Capability Values",
+        "name": "Ford SYNC 4 - Vehicle Capability Values",
         "description": "One stored value for each topic in the HMI applications' "
                        "MQTT_API_TOPIC_MAP database: the record with the highest "
                        "LevelDB sequence number for that topic in the first "
@@ -43,7 +43,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford SYNC 4",
         "notes": "From the topic map the HMI applications keep in IndexedDB, read with the "
                  "vendored ccl_chromium_indexeddb reader. Each row is one topic. Where a "
                  "store's files hold several versions of a topic, the version with the "

@@ -9,7 +9,7 @@ every artifact's notes rather than left to a reader.
 
 __artifacts_v2__ = {
     "ford_nav_paired_devices": {
-        "name": "Navigation Paired Devices",
+        "name": "Garmin Navigation App - Paired Devices",
         "description": "Rows of the device table in the navigation application's "
                        "data_manager.sqlite, with the account rows linked to each. "
                        "Unexercised: the tables were empty on the one tested "
@@ -19,7 +19,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Garmin Navigation App",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a "
                  "scratch copy of that store and confirming it executes, joins across the "
@@ -37,7 +37,7 @@ __artifacts_v2__ = {
         "artifact_icon": "smartphone",
     },
     "ford_nav_call_log": {
-        "name": "Navigation Call Log",
+        "name": "Garmin Navigation App - Call Log",
         "description": "Rows of the call_log table in the navigation application's "
                        "data_manager.sqlite, with the contact and device rows they link to. "
                        "Unexercised: the table was empty on the one tested extraction.",
@@ -46,7 +46,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Garmin Navigation App",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes, joins across the related tables and returns its "
@@ -70,7 +70,7 @@ __artifacts_v2__ = {
         "artifact_icon": "phone",
     },
     "ford_nav_sms": {
-        "name": "Navigation Messages",
+        "name": "Garmin Navigation App - Messages",
         "description": "Rows of the sms table in the navigation application's data_manager.sqlite, "
                        "with the contact, conversation and device rows they link to. Unexercised: "
                        "the table was empty on the one tested extraction.",
@@ -79,7 +79,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Garmin Navigation App",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes, joins across the related tables and returns its "
@@ -102,7 +102,7 @@ __artifacts_v2__ = {
         "artifact_icon": "message-square",
     },
     "ford_nav_contacts": {
-        "name": "Navigation Contacts",
+        "name": "Garmin Navigation App - Contacts",
         "description": "Rows of the contact table in the navigation application's "
                        "data_manager.sqlite (unexercised: empty on the one tested "
                        "extraction), "
@@ -112,7 +112,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Garmin Navigation App",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a "
                  "scratch copy of that store and confirming it executes, joins across the "
@@ -131,7 +131,7 @@ __artifacts_v2__ = {
         "artifact_icon": "user",
     },
     "ford_nav_calendar": {
-        "name": "Navigation Calendar",
+        "name": "Garmin Navigation App - Calendar",
         "description": "Rows of the calendar_event table in the navigation application's "
                        "data_manager.sqlite, with the event_instance start and end times "
                        "linked to each. Unexercised: the tables were empty on the one "
@@ -141,7 +141,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Garmin Navigation App",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes, joins across the related tables and returns its "
@@ -164,7 +164,7 @@ __artifacts_v2__ = {
         "artifact_icon": "calendar",
     },
     "ford_nav_trips": {
-        "name": "Navigation Trips",
+        "name": "Garmin Navigation App - Trips",
         "description": "Rows of the trips table in the navigation application's "
                        "data_manager.sqlite, with their waypoints as stored. Unexercised: "
                        "the table was empty on the one tested extraction.",
@@ -173,7 +173,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Garmin Navigation App",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes and returns its declared columns, so the SQL is "
@@ -201,7 +201,7 @@ __artifacts_v2__ = {
         "artifact_icon": "map",
     },
     "ford_nav_search_history": {
-        "name": "Navigation Search History",
+        "name": "Garmin Navigation App - Search History",
         "description": "Rows of the search_history table in the navigation application's "
                        "data_manager.sqlite. Unexercised: the table was empty on the one tested "
                        "extraction.",
@@ -210,7 +210,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Garmin Navigation App",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes and returns its declared columns, so the SQL is "
