@@ -224,6 +224,56 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "music",
     },
+    "gm_ga130_library_entry_times": {
+        "name": "GM GA-130 - Media Library Entry Times",
+        "description": "Times the media engine stamped on its library entries, grouped: one "
+                       "row per database file, media store and date_added second, with how "
+                       "many entries carry it and the earliest and latest last_sync among "
+                       "them.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-10-10",
+        "last_update_date": "2026-10-10",
+        "requirements": "none",
+        "category": "GM GA-130",
+        "notes": "From the library table of storage/bk1/mme and storage/bk2/mme, joined to "
+                 "mediastores on msid for the store's name, identifier and kind. Tested on two "
+                 "units read from their extracted file sets, a 2014 Chevrolet Equinox LT and a "
+                 "2015 Chevrolet Malibu, which gave 729 and 1,409 rows, grouping 17,623 and "
+                 "46,725 dated library entries; the library tables held 18,001 and 46,968 "
+                 "rows. Each entry is tied to a media store by msid, and the entries are not "
+                 "reported one by one: entries of one media store whose date_added falls in "
+                 "the same second are one row, and Entries is how many there were. It ran from "
+                 "1 to 500 on the tested rows. Date Added is the stored integer read as "
+                 "nanoseconds since 1970, cut to the second and shown as UTC, the same reading "
+                 "the Media Stores artifact derives for its times; on these rows it fell "
+                 "between 2014 and 2020. Earliest Last Sync and Latest Last Sync are the "
+                 "lowest and highest last_sync among the grouped entries, read the same way. "
+                 "On the tested rows neither was earlier than Date Added, the earliest "
+                 "equalled it to the second on 2,012 of the 2,138 rows, and the two differed "
+                 "from each other on 16. date_added and last_sync are the column names; what "
+                 "the media engine means by each is not established here beyond the name. "
+                 "Entries whose date_added is zero or too small to be a date are not grouped "
+                 "and the run log counts them: 378 and 243 on the tested units. Store Kind is "
+                 "the mssname column: ipod on 2,007 of the tested rows, mediafs on 120 and "
+                 "devb on 11. Both database files are read and Source File says which. On the "
+                 "Malibu the two files held no row in common; on the Equinox 4 of the 5 rows "
+                 "from bk1 repeat rows in bk2. An independent parse of the same two units "
+                 "listed 735 and 1,440 distinct media interaction times; 735 and 1,436 of them "
+                 "are among the three time columns here, the four others read as seconds after "
+                 "1970, and no Date Added value here was missing from that parse. A row "
+                 "records that the media engine stamped library entries for that store with "
+                 "that time. It does not establish what was played or who attached the store.",
+        "paths": ('*/storage/bk*/mme*',),
+        "sample_data": {
+            "xtrmp_item025": "2014 Chevy Equinox LT, GA-130, extracted file set | "
+                             "729 rows",
+            "xtrmp_item061": "2015 Chevrolet Malibu, GA-130, extracted file set | "
+                             "1409 rows",
+        },
+        "output_types": "standard",
+        "artifact_icon": "clock",
+    },
     "gm_ga130_media_index": {
         "name": "GM GA-130 - Media Name Index",
         "description": "Song names with the artist, album and genre the index links them to, "
@@ -698,6 +748,47 @@ def gm_ga130_played_media(context):
     data_headers = (('Last Played', 'datetime'), 'Title', 'File Name', 'Full Play Count',
                     'Duration (as stored)', 'Media Store Name', 'Media Store Identifier',
                     'Media Store ID', 'Library ID', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+@artifact_processor
+def gm_ga130_library_entry_times(context):
+    data_list = []
+    source_paths = []
+    floor = 31536000 * 10**9
+    for file_found, db in _databases(context, lambda name: name.startswith('mme')):
+        names = _tables(db)
+        if 'library' not in names:
+            continue
+        stores = {row.get('msid'): row for row in _rows(db, 'mediastores')} \
+            if 'mediastores' in names else {}
+        try:
+            rows = db.execute(
+                'SELECT msid, date_added / 1000000000, COUNT(*), MIN(last_sync), '
+                'MAX(last_sync) FROM library WHERE typeof(date_added) = "integer" '
+                'AND date_added >= ? GROUP BY 1, 2 ORDER BY 2, 1', (floor,)).fetchall()
+            undated = db.execute(
+                'SELECT COUNT(*) FROM library WHERE typeof(date_added) != "integer" '
+                'OR date_added < ?', (floor,)).fetchone()[0]
+        except sqlite3.Error as ex:
+            logfunc(f'GM GA-130: could not read library times: {ex}')
+            continue
+        source_paths.append(file_found)
+        if undated:
+            logfunc(f'GM GA-130: {undated} library entries of '
+                    f'{os.path.basename(file_found)} carry no date_added that reads as a '
+                    f'date and are not grouped')
+        for msid, second, count, first_sync, last_sync in rows:
+            store = stores.get(msid, {})
+            data_list.append((
+                _nanoseconds(second * 10**9), _nanoseconds(first_sync),
+                _nanoseconds(last_sync), count, _text(store.get('name')),
+                _text(store.get('identifier')), _text(store.get('mssname')), msid,
+                context.get_relative_path(file_found)))
+
+    data_headers = (('Date Added', 'datetime'), ('Earliest Last Sync', 'datetime'),
+                    ('Latest Last Sync', 'datetime'), 'Entries', 'Media Store Name',
+                    'Media Store Identifier', 'Store Kind', 'Media Store ID', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
