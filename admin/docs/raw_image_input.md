@@ -309,10 +309,9 @@ for it, so no report field carries a zone the evidence never had.
   `xtrmp_item010`, `xtrmp_item012`, `xtrmp_item065` and `xtrmp_item066`), read as raw
   input and again from their acquisition folders, where the six Ford SYNC WinCE log
   line artifacts also read the partition image as bytes: 2,293 rows from raw input
-  against 2,349 from the folders. Of the 56 rows raw input did not give, 43 sat only in
-  the slack of a listed file and 13 inside a listed file's bytes; why those 13 were not
-  found in the files raw input offered is not established. No row came from raw input
-  alone. For those units the acquisition folder is the fuller input.
+  against 2,336 from the folders. All 43 rows raw input did not give sat only in the
+  slack of a listed file. No row came from raw input alone. For those units the
+  acquisition folder is the fuller input.
 - A sparse file is staged at its recorded size with its holes written as zeros, so
   the copy can occupy more than the file did in the image: an emulator disk recording
   6.4 GB and storing 108 MB stages as 6.4 GB. `qnxprobe.allocation(walker, node)` gives

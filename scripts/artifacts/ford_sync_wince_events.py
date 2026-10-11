@@ -26,6 +26,19 @@ each hit sits: which clusters the allocation bitmap has clear, and what the file
 directory tree lists contain. For a FAT partition image it is asked which clusters the
 allocation table has free and where the cluster chain of each listed file lies, and a hit
 is placed by its offset.
+
+Two things follow from reading an image in the order its clusters lie on the disk, which
+need not be the order of the log. A line that starts on a cluster boundary with no line
+break before it can be the tail of a line whose tick began in another cluster, so it is
+not reported. And a stretch of log starts where a cluster does, so an odometer line of the
+image can be one an extracted file held and left out as a repeat of the reading before it.
+Any image odometer line whose text an extracted file left out that way is left out of the
+image's reading too.
+
+A line can also run from one cluster into the next one on the disk. For a FAT image the
+chain of a listed file shows whether the two follow each other. Where nothing shows it,
+Where Found adds 'crosses a cluster boundary', because a number that crosses it can be
+the digits of two lines.
 """
 
 import bisect
@@ -47,7 +60,7 @@ __artifacts_v2__ = {
                        "tick count, a clock derived from the nearest line that states a "
                        "date and time, and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.6",
+        "version": "0.7",
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -56,12 +69,14 @@ __artifacts_v2__ = {
                  "the raw partition an acquisition carries, which is read as bytes with no "
                  "file system followed. Tested on ten units from their acquisition folders: "
                  "eight SYNC Gen1 (Ford Escape 2010 to 2014, Edge 2013, Fusion 2019) and two "
-                 "SYNC Gen2 (2014 Ford Edge SEL, 2011 Ford Explorer XLT). They gave 2,401 rows "
-                 "in all, 2,226 of them on the two Gen2 units; one Gen2 unit had no log file "
+                 "SYNC Gen2 (2014 Ford Edge SEL, 2011 Ford Explorer XLT). They gave 2,389 rows "
+                 "in all, 2,225 of them on the two Gen2 units; one Gen2 unit had no log file "
                  "in its extracted set and gave 886 rows from its partition image alone. The "
                  "image holds log text that is in no log file, so it gives more than the "
-                 "files: on the two Gen2 units in free clusters and in allocated clusters whose "
-                 "text no listed file holds, and on the Gen1 units in the slack of listed files. "
+                 "files: on the two Gen2 units in free clusters and in allocated clusters "
+                 "whose "
+                 "text no listed file holds, and on the Gen1 units in the slack of listed "
+                 "files. "
                  "The log text saved beside a crash dump, "
                  "Windows/DumpFiles/<dump>/<dump>.RTL, is read too; on three tested units it "
                  "held 40 distinct event lines, none of them in a log file and all of them "
@@ -91,13 +106,15 @@ __artifacts_v2__ = {
                  "line and the event stand in one unbroken stretch of log text with ticks that "
                  "never go down. Nearest Clock Line, Clock Line Kind and Seconds From Clock "
                  "Line show what it was derived from; the further apart, the more a clock "
-                 "change in between can put it off. 1,519 of the 2,401 rows have a derived "
-                 "clock. Derived Clock From Clock Line Before and Derived Clock From Clock "
+                 "change in between can put it off. 1,516 of the 2,389 rows have a "
+                 "derived clock. Derived Clock From Clock Line Before and Derived Clock From "
+                 "Clock "
                  "Line After are worked out the same way from the last clock line written "
                  "before the event and the first written after it in that stretch, and each "
                  "is empty when the stretch has no clock line on that side. Derived Clock "
-                 "equalled one of the two on every tested row. 719 rows have the first, 1,209 "
-                 "the second and 409 both. On 123 of the 409 the two differ, and on 44, all "
+                 "equalled one of the two on every tested row. 719 rows have the first, "
+                 "1,206 the second and 409 both. On 123 of the 409 the two differ, and on 44, "
+                 "all "
                  "on the two Gen2 units, by more than two seconds, from 8 seconds to "
                  "95,048,841 seconds. Why the two clock lines disagree there is not "
                  "established, and nothing here says which is right. "
@@ -123,7 +140,24 @@ __artifacts_v2__ = {
                  "status 0 was labelled off 32 times and status 1 on 28 times and off 4 times; "
                  "the value is left as stored. The Gen1 odometer line carries two numbers, "
                  "shown as Value and Second Value; the Gen2 line carries one. The log repeats "
-                 "the odometer reading, so it is reported when it changes within a stretch. "
+                 "the odometer reading, so it is reported when it changes "
+                 "within a stretch. "
+                 "A stretch of the image starts where a cluster does, so an odometer line of the "
+                 "image can be one an extracted file held and left out as a repeat of the "
+                 "reading before it. Any image odometer line whose text an extracted file left "
+                 "out that way is left out of the image's reading too, which was 11 lines on "
+                 "five Gen1 units. A line of the image that starts on a cluster boundary with no "
+                 "line break as the byte before it is not reported either: the cluster before "
+                 "it on the disk need not be the one before it in the log, and the digits read "
+                 "can then be the tail of the tick. One such line was left out, on the 2014 "
+                 "Edge, and the run log counts them. "
+                 "A line of the image can also run from one cluster into the next one on the "
+                 "disk. A FAT image shows whether the two follow each other in a listed file, "
+                 "and they did for every such line on the Gen1 units. "
+                 "On an exFAT image nothing shows it, so Where Found adds 'crosses a cluster "
+                 "boundary' to every such line, also when an extracted or listed file holds the "
+                 "same text: a number that crosses the boundary, the tick included, can be the "
+                 "digits of two lines. 20 rows on the two Gen2 units carry it. "
                  "For phone lines Detail is the device name and Value is the address on the "
                  "line. Where Found says where the lines of a row sit, and lists every place "
                  "when a row was found more than once. A row from a log file of the extracted "
@@ -133,7 +167,8 @@ __artifacts_v2__ = {
                  "cluster whose line text a listed file also holds, and 'allocated cluster, in "
                  "no listed file' an allocated cluster whose line text no listed file holds. "
                  "The last two are decided by comparing text, not by following each file's "
-                 "clusters. On the 2014 Edge 933 rows sat only in free clusters, 355 only in "
+                 "clusters. On the 2014 Edge 932 rows sat only in free "
+                 "clusters, 355 only in "
                  "allocated clusters in no listed file and 52 in a listed file; on the 2011 "
                  "Explorer 513 and 373, with no listed file holding any. Why those clusters "
                  "are allocated is not established. The eight Gen1 partition images are FAT "
@@ -143,9 +178,10 @@ __artifacts_v2__ = {
                  "inside a file's bytes, 'slack of a listed file' is in a cluster of a listed "
                  "file's chain past the file's recorded size, and 'allocated cluster, in no "
                  "listed file' is any other byte the table does not have free. On the Gen1 "
-                 "units 16 of the 175 rows sat only in the slack of a listed file and 11 only "
-                 "in a listed file of the image; none sat in a free cluster or outside every "
-                 "listed file's chain. An image the reader does not read as exFAT or FAT, or "
+                 "units 16 of the 164 rows sat only in the slack of a listed file, and none "
+                 "sat "
+                 "in a free cluster or outside every listed file's chain. An image the reader "
+                 "does not read as exFAT or FAT, or "
                  "cannot read, reads 'file system not read'; no tested image did. A row "
                  "records that the module logged that line. It "
                  "does not establish who opened a door or drove the vehicle.",
@@ -157,14 +193,14 @@ __artifacts_v2__ = {
         "sample_data": {
             "xtrmp_item002": "2013 Ford Edge, SYNC Gen1v2, acquisition folder | 0 rows, no "
                              "event line in the log files or the partition image",
-            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, acquisition folder | 6 rows",
-            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 8 rows",
-            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 11 rows",
-            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 21 rows",
+            "xtrmp_item003": "2012 Ford Escape, SYNC Gen1v2, acquisition folder | 4 rows",
+            "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 4 rows",
+            "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 9 rows",
+            "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 19 rows",
             "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 40 rows",
-            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 1340 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 1339 rows",
             "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 886 rows",
-            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 53 rows",
+            "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 52 rows",
             "xtrmp_item066": "2011 Ford Escape, SYNC Gen1v2, acquisition folder | 36 rows",
         },
         "output_types": "standard",
@@ -178,7 +214,7 @@ __artifacts_v2__ = {
                        "count, a clock derived from the nearest line that states a date and "
                        "time, and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.3",
+        "version": "0.4",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -221,8 +257,10 @@ __artifacts_v2__ = {
                  "clock and the image's has one, which did not occur on the tested units. "
                  "Where Found is as in the Log Events artifact: on the two Gen2 units "
                  "184 rows sat only in free clusters, 56 only in allocated clusters in no "
-                 "listed file and 18 in a listed file, and on the Gen1 units 2 of the 167 rows "
-                 "sat only in the slack of a listed file. The image holds log text that no "
+                 "listed file and 18 in a listed file, and on the Gen1 units 2 of the 167 "
+                 "rows sat only in the slack of a listed file. "
+                 "5 rows on the Gen2 units also read 'crosses a cluster boundary'. The image "
+                 "holds log text that no "
                  "log file holds now, so the rows are what survived, not a full history. "
                  "Other lines of the same connection code, such as the timeout line, are not "
                  "reported. A row records that the module logged the line. It does not "
@@ -257,7 +295,7 @@ __artifacts_v2__ = {
                        "and primary values and pair order on the line, how many times its line "
                        "was found across the sources and where in the image.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.3",
+        "version": "0.4",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -290,8 +328,10 @@ __artifacts_v2__ = {
                  "row's lines, worked out as in the Log Events artifact, whose notes give the "
                  "checks behind it; 26 of the 39 rows have one, in 2003 on the Gen1 units, "
                  "which is the unit's own clock and not a calendar date to rely on, and in "
-                 "2020 on 2 rows of the Explorer. Where Found is as in the Log Events artifact "
-                 "and lists every place the row's lines sat. Source File is the first matched "
+                 "2020 on 2 rows of the Explorer. Where Found is as in the Log Events "
+                 "artifact and lists every place the row's lines sat. "
+                 "One row of the 2011 Explorer also reads 'crosses a cluster boundary'. "
+                 "Source File is the first matched "
                  "file that held the row, extracted files before the partition image and "
                  "each in path order; on the tested units that is an extracted file for the "
                  "30 rows of the Gen1 units and the partition image for the 9 rows of the "
@@ -328,7 +368,7 @@ __artifacts_v2__ = {
                        "each with its tick count, a derived clock and where in the image it "
                        "was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.3",
+        "version": "0.4",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -372,7 +412,9 @@ __artifacts_v2__ = {
                  "units. Where Found is as in the Log Events artifact: on the two Gen2 "
                  "units 385 rows sat only in free clusters, 121 only in allocated clusters "
                  "in no listed file and 35 in a listed file, and on the Gen1 units 4 of the "
-                 "296 rows sat only in the slack of a listed file. The image holds log text "
+                 "296 rows sat only in the slack of a listed file. "
+                 "7 rows on the Gen2 units also read 'crosses a cluster boundary'. The image "
+                 "holds log text "
                  "that no log file holds now, so the rows are what survived, not a "
                  "full history. A row records that the module logged the line. It does not "
                  "establish who carried the device.",
@@ -408,7 +450,7 @@ __artifacts_v2__ = {
                        "files and the raw partition image, each with its tick count, a derived "
                        "clock and where in the image it was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.3",
+        "version": "0.4",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -427,15 +469,16 @@ __artifacts_v2__ = {
                  "write the line. A change is one row when the event, the change and the tick "
                  "are the same. On the tested unit no change was written by both machines at "
                  "the same tick. Tested on ten units from their acquisition folders, eight "
-                 "SYNC Gen1 and two SYNC Gen2, which gave 2,282 rows: 1,073 power state starts "
-                 "on all ten units and 1,209 system state changes, all on the Gen1 version 5 "
-                 "unit (2019 Ford Fusion). Of those 1,209, 894 change only DrvDstr between 0 "
-                 "and 1, 162 change only HmiSt, and 153 change IgnSt, PwrMode or sysRunSt, "
+                 "SYNC Gen1 and two SYNC Gen2, which gave 2,279 rows: 1,071 power state starts "
+                 "on all ten units and 1,208 system state changes, all on the Gen1 version 5 "
+                 "unit (2019 Ford Fusion). Of those 1,208, 893 change only DrvDstr "
+                 "between 0 and 1, 162 change only HmiSt, and 153 change IgnSt, PwrMode or "
+                 "sysRunSt, "
                  "such as IgnSt:Run->Off with PwrMode:Run->Access. What DrvDstr stands for is "
                  "not established here. No reported line carries a date. Derived Clock, "
                  "Nearest Clock Line, Clock Line Kind, Seconds From Clock Line and Clock Bias "
                  "are worked out as in the Log Events artifact, whose notes give the checks "
-                 "behind them; 1,424 of the 2,282 rows have a derived clock, in 2003 on the "
+                 "behind them; 1,424 of the 2,279 rows have a derived clock, in 2003 on the "
                  "Gen1 units, which is the unit's own clock and not a calendar date to rely "
                  "on. Derived Clock From Clock Line Before and Derived Clock From Clock Line "
                  "After are as in that artifact too: 207 rows have both, and on 158 the two "
@@ -451,8 +494,15 @@ __artifacts_v2__ = {
                  "stands between two log save lines of the log file whose clocks disagree, "
                  "and the image's stretch held only the earlier one. The row shows the log "
                  "file's reading, with both clocks in the before and after columns. Where "
-                 "Found is as in the Log Events artifact; on the Gen1 units 7 of the 1,558 "
-                 "rows sat only in the slack of a listed file. The image holds "
+                 "Found is as in the Log Events artifact; on the Gen1 units 7 "
+                 "of the 1,556 rows sat only in the slack of a listed file. As in that "
+                 "artifact, "
+                 "a line of the image that starts on a cluster boundary with no line break "
+                 "before it is not reported, because its tick can be cut: 3 such lines were "
+                 "left out, 2 on the 2019 Fusion, where a log file holds both lines with a "
+                 "longer tick, and 1 on the 2014 Edge. "
+                 "9 rows on the Gen2 units also read 'crosses a cluster boundary'. The image "
+                 "holds "
                  "log text that no log file holds now, so the rows are what "
                  "survived, not a full history. A row records that the module logged the line. "
                  "It does not establish who was in the vehicle.",
@@ -467,8 +517,8 @@ __artifacts_v2__ = {
             "xtrmp_item004": "2010 Ford Escape, SYNC Gen1v2, acquisition folder | 27 rows",
             "xtrmp_item008": "2011 Ford Escape, SYNC Gen1v4, acquisition folder | 32 rows",
             "xtrmp_item010": "2013 Ford Escape, SYNC Gen1v3, acquisition folder | 33 rows",
-            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 1352 rows",
-            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 404 rows",
+            "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, acquisition folder | 1350 rows",
+            "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, acquisition folder | 403 rows",
             "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, acquisition folder | 320 "
                              "rows",
             "xtrmp_item065": "2014 Ford Escape SE, SYNC Gen1v3, acquisition folder | 21 rows",
@@ -484,7 +534,7 @@ __artifacts_v2__ = {
                        "the log files and the raw partition image, with the tick count and where"
                        " in the image the line was found.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.4",
+        "version": "0.5",
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
@@ -522,7 +572,9 @@ __artifacts_v2__ = {
                  "Times Found, and Offset and Source File are the extracted file's when one "
                  "holds the line. Where Found is as in the Log Events artifact. On the Gen1 "
                  "units 14 of the 123 rows came from the partition image alone, and all 14 "
-                 "sat in the slack of a listed file. The Log Save Clock Readings artifact "
+                 "sat in the slack of a listed file. "
+                 "17 rows on the Gen2 units also read 'crosses a cluster boundary'. The Log "
+                 "Save Clock Readings artifact "
                  "lists the "
                  "save lines of the log files with their line numbers; this one adds the "
                  "partition image and the clock service line. A row records what the module's "
@@ -626,8 +678,10 @@ __artifacts_v2__ = {
                  "cluster, in no listed file' an allocated cluster whose document text no "
                  "listed file holds. The last two are decided by comparing text, not by "
                  "following each file's clusters. Run on two SYNC Gen2 units from their "
-                 "acquisition folders. On the 2011 Ford Explorer XLT no listed file held a call "
-                 "list document, and it gave 85 entries from 2 documents, 18 in free clusters and "
+                 "acquisition folders. On the 2011 Ford Explorer XLT no listed file held a "
+                 "call "
+                 "list document, and it gave 85 entries from 2 documents, 18 in free clusters "
+                 "and "
                  "67 in allocated clusters in no listed file. Why those clusters are allocated "
                  "is not established. The 2014 Ford Edge SEL gave 75 entries from 3 documents: "
                  "68 also in a listed file, 61 of those in a free cluster as well, and 7 only "
@@ -770,7 +824,8 @@ _SLACK = 'slack of a listed file'
 _UNLISTED = 'allocated cluster, in no listed file'
 _FREE = 'free cluster'
 _NOT_READ = 'file system not read'
-_PLACE_ORDER = (_EXTRACTED_FILE, _IN_FILE, _SLACK, _UNLISTED, _FREE, _NOT_READ)
+_CROSSES = 'crosses a cluster boundary'
+_PLACE_ORDER = (_EXTRACTED_FILE, _IN_FILE, _SLACK, _UNLISTED, _FREE, _NOT_READ, _CROSSES)
 _FAT_KINDS = ('fat32', 'fat16', 'fat12')
 _READ_ERRORS = (OSError, ValueError, IndexError, KeyError, struct.error)
 _REGULAR_FILE = 0o100000
@@ -805,6 +860,8 @@ class _VolumeImage:
         self._ends = []
         self._runs = None
         self._run_starts = []
+        self._clusters = None
+        self._next = None
         try:
             self._handle = open(path, 'rb')  # pylint: disable=consider-using-with
         except OSError:
@@ -814,6 +871,7 @@ class _VolumeImage:
             kind = qnxprobe.identify_fat(self._handle, 0)
             if kind is not None and kind[0] == 'exfat':
                 walker = qnxprobe.ExfatWalker(self._handle, 0)
+                self._clusters = (walker.heap_start, walker.cluster_bytes)
                 free = sorted(walker.free_extents())
                 if free:
                     self._walker = walker
@@ -823,6 +881,7 @@ class _VolumeImage:
                     self.exfat = True
             elif kind is not None and kind[0] in _FAT_KINDS:
                 walker = qnxprobe.walker_for(kind[0], self._handle, 0)
+                self._clusters = (walker.data_start, walker.cluster_bytes)
                 free = sorted(walker.free_extents())
                 runs = self._file_runs(walker)
                 self._walker = walker
@@ -843,14 +902,19 @@ class _VolumeImage:
         """
         unit = walker.cluster_bytes
         runs = []
+        self._next = {}
         for entry in qnxprobe.walk_all(walker):
             node, mode, size = entry[1], entry[2], entry[3]
             if mode & _FILE_TYPE_MASK != _REGULAR_FILE or not size:
                 continue
             left = size
+            earlier = None
             try:
                 # The reader has no public call for where a file's clusters lie.
                 for cluster in walker._chain(node[0]):  # pylint: disable=protected-access
+                    if earlier is not None:
+                        self._next[earlier] = cluster
+                    earlier = cluster
                     start = walker._cluster_off(cluster)  # pylint: disable=protected-access
                     held = min(left, unit)
                     for first, last, place in ((start, start + held, _IN_FILE),
@@ -871,6 +935,42 @@ class _VolumeImage:
         if self._handle is not None:
             self._handle.close()
             self._handle = None
+
+    def tick_may_be_cut(self, data, offset):
+        """True when a line starts on a cluster boundary with no line break before it.
+
+        A line's tick is its first digits. When the cluster before this one on the disk
+        is not the one before it in the log, the digits that ended the earlier cluster
+        are not here, and what is read is the tail of the tick. A line break as the last
+        byte of the cluster before says the line starts here; anything else does not.
+        """
+        if self._clusters is None:
+            return False
+        start, unit = self._clusters
+        if not unit or offset < start or (offset - start) % unit:
+            return False
+        return data[offset - 1:offset] not in (b'\n', b'\r')
+
+    def crosses_clusters(self, offset, length):
+        """True when a line runs from one cluster into the next one on the disk and
+        nothing shows that the two follow each other in a file.
+
+        A FAT image shows it for the clusters of a listed file's chain. An exFAT image
+        does not here, and neither does free space on either, so a number that crosses
+        the boundary can there be the digits of two lines.
+        """
+        if self._clusters is None or length <= 0:
+            return False
+        start, unit = self._clusters
+        if not unit or offset < start:
+            return False
+        first = (offset - start) // unit
+        last = (offset + length - 1 - start) // unit
+        if first == last:
+            return False
+        if self._next is None:
+            return True
+        return any(self._next.get(index + 2) != index + 3 for index in range(first, last))
 
     def is_free(self, offset):
         """True when the byte at offset is in a cluster the allocation bitmap has clear."""
@@ -1020,17 +1120,42 @@ def _clock_line(match):
     return None
 
 
-def _sessions(data, pattern=_EVENT):
+class _Reading:
+    """What a pass over one source knows beside its bytes.
+
+    ``image`` is the partition image being read as bytes, or None for an extracted file.
+    ``repeats`` is shared by the sources of one artifact run: the odometer lines an
+    extracted file held and did not report, because they repeat the reading before them.
+    Only an extracted file adds to it.
+    """
+
+    def __init__(self, image, repeats):
+        self.image = image
+        self.repeats = repeats
+        self.cut = 0
+        self.repeated = 0
+
+    def tick_may_be_cut(self, data, match):
+        if self.image is None or not self.image.tick_may_be_cut(data, match.start()):
+            return False
+        self.cut += 1
+        return True
+
+
+def _sessions(data, pattern=_EVENT, reading=None):
     """Runs of matched lines that share one stretch of log and one boot.
 
     Two matched lines belong together only when every byte between them is log text and
     the tick count has not gone down, which is what a restart or an unrelated block
-    looks like. Each run is a list of regex matches in written order.
+    looks like. Each run is a list of regex matches in written order. A line of an image
+    whose tick may be cut at a cluster boundary is left out.
     """
     run = []
     previous_end = None
     previous_tick = None
     for match in pattern.finditer(data):
+        if reading is not None and reading.tick_may_be_cut(data, match):
+            continue
         tick = int(match.group('tick'))
         joined = previous_end is not None and tick >= previous_tick and \
             _NOT_LOG_TEXT.search(data, previous_end, match.start()) is None
@@ -1058,10 +1183,10 @@ def _clock_from(anchor, tick):
     return (anchor[1] + timedelta(milliseconds=tick - anchor[0])).strftime('%Y-%m-%d %H:%M:%S')
 
 
-def _events(data, pattern=_EVENT, describe=_describe):
+def _events(data, pattern=_EVENT, describe=_describe, reading=None):
     """Event rows of one source, each with the clock derived from the nearest clock line,
     from the clock line before it and from the clock line after it in the same stretch."""
-    for run in _sessions(data, pattern):
+    for run in _sessions(data, pattern, reading):
         anchors = []
         positions = []
         biases = []
@@ -1079,10 +1204,20 @@ def _events(data, pattern=_EVENT, describe=_describe):
                 continue
             tick = int(match.group('tick'))
             if described[0] == 'Odometer':
-                # The log repeats the reading; keep it when it changes.
+                # The log repeats the reading; keep it when it changes. A stretch of an
+                # image starts where a cluster does, so its first odometer line can be
+                # one an extracted file held and left out as a repeat. Leave it out here
+                # too.
+                line = bytes(match.group(0))
                 if described[2:] == last_odometer:
+                    if reading is not None and reading.image is None:
+                        reading.repeats.add(line)
                     continue
                 last_odometer = described[2:]
+                if reading is not None and reading.image is not None \
+                        and line in reading.repeats:
+                    reading.repeated += 1
+                    continue
             derived = before = after = anchor_clock = kind = ''
             seconds = bias = ''
             if anchors:
@@ -1112,11 +1247,13 @@ def _listed_event_lines(image, pattern=_EVENT, describe=_describe):
     return lines
 
 
-def _clock_rows(data):
+def _clock_rows(data, reading=None):
     """((clock, kind, tick), offset, line) for each line that states a date and time."""
     for match in _CLOCK.finditer(data):
         stated = _clock_line(match)
         if stated is None:
+            continue
+        if reading is not None and reading.tick_may_be_cut(data, match):
             continue
         yield ((stated[0].strftime('%Y-%m-%d %H:%M:%S'), stated[1],
                 int(match.group('tick'))), match.start(), bytes(match.group(0)))
@@ -1126,22 +1263,35 @@ def _collect(context, label, find, listed_lines):
     """Rows of every source, folded: {row: [times found, offset, path, places]}."""
     rows = {}
     source_paths = []
+    repeats = set()
     for file_found, data in _sources(context):
-        hits = list(find(data))
         image = _VolumeImage(file_found) if _is_partition_image(file_found) else None
+        reading = _Reading(image, repeats)
+        hits = list(find(data, reading))
         listed = listed_lines(image) if image is not None and image.readable and hits \
             else set()
         for row, offset, line in hits:
             place = _EXTRACTED_FILE if image is None else image.place(offset, line in listed)
+            places = {place}
+            if image is not None and image.crosses_clusters(offset, len(line)):
+                places.add(_CROSSES)
             if row in rows:
                 rows[row][0] += 1
-                rows[row][3].add(place)
+                rows[row][3] |= places
             else:
-                rows[row] = [1, offset, file_found, {place}]
+                rows[row] = [1, offset, file_found, places]
                 if file_found not in source_paths:
                     source_paths.append(file_found)
         logfunc(f'Ford SYNC WinCE {label}: {len(hits)} lines in '
                 f'{os.path.basename(file_found)}')
+        if reading.cut:
+            logfunc(f'Ford SYNC WinCE {label}: {reading.cut} lines of '
+                    f'{os.path.basename(file_found)} start on a cluster boundary with no '
+                    'line break before them; their tick may be cut, not reported')
+        if reading.repeated:
+            logfunc(f'Ford SYNC WinCE {label}: {reading.repeated} odometer lines of '
+                    f'{os.path.basename(file_found)} are lines an extracted file held and '
+                    'left out as repeats of the reading before them, not reported')
         if image is not None:
             if image.unread_files:
                 logfunc(f'Ford SYNC WinCE {label}: {image.unread_files} listed files of '
@@ -1179,7 +1329,7 @@ def _one_row_a_line(context, rows):
 def ford_sync_wince_log_device_activity_lines(context):
     rows, source_paths = _collect(
         context, 'log device activity lines',
-        lambda data: _events(data, _ACTIVITY, _describe_activity),
+        lambda data, reading: _events(data, _ACTIVITY, _describe_activity, reading),
         lambda image: _listed_event_lines(image, _ACTIVITY, _describe_activity))
     data_list = [row[:4] + row[5:] for row in _one_row_a_line(context, rows)]
 
@@ -1197,7 +1347,7 @@ def ford_sync_wince_log_device_activity_lines(context):
 def ford_sync_wince_log_power_lines(context):
     rows, source_paths = _collect(
         context, 'log power lines',
-        lambda data: _events(data, _POWER, _describe_power),
+        lambda data, reading: _events(data, _POWER, _describe_power, reading),
         lambda image: _listed_event_lines(image, _POWER, _describe_power))
     data_list = [row[:5] + row[7:] for row in _one_row_a_line(context, rows)]
 
@@ -1214,7 +1364,8 @@ def ford_sync_wince_log_power_lines(context):
 @artifact_processor
 def ford_sync_wince_log_phone_lines(context):
     rows, source_paths = _collect(
-        context, 'log phone lines', lambda data: _events(data, _PHONE, _describe_phone),
+        context, 'log phone lines',
+        lambda data, reading: _events(data, _PHONE, _describe_phone, reading),
         lambda image: _listed_event_lines(image, _PHONE, _describe_phone))
     data_list = _one_row_a_line(context, rows)
 
@@ -1232,7 +1383,7 @@ def ford_sync_wince_log_phone_lines(context):
 def ford_sync_wince_log_paired_device_lines(context):
     rows, source_paths = _collect(
         context, 'log paired device lines',
-        lambda data: _events(data, _PAIRED, _describe_paired),
+        lambda data, reading: _events(data, _PAIRED, _describe_paired, reading),
         lambda image: _listed_event_lines(image, _PAIRED, _describe_paired))
     # The log writes the device list again and again. One row a distinct entry, with how
     # many lines held it and the earliest and latest clock derived for them.
@@ -1280,7 +1431,9 @@ def ford_sync_wince_log_clock_lines(context):
 
 @artifact_processor
 def ford_sync_wince_log_events(context):
-    rows, source_paths = _collect(context, 'log events', _events, _listed_event_lines)
+    rows, source_paths = _collect(
+        context, 'log events', lambda data, reading: _events(data, reading=reading),
+        _listed_event_lines)
     data_list = _one_row_a_line(context, rows)
 
     data_headers = (('Derived Clock', 'datetime'),
