@@ -301,6 +301,18 @@ for it, so no report field carries a zone the evidence never had.
   says `Not staged` with the size recorded, the clusters the chain holds and the
   clusters that size needs. Before qnxprobe 1.59 the log said only that the reader
   returned fewer bytes than the size. The file is not staged in either case.
+- It does not offer file slack, the bytes a file's cluster chain holds past the file's
+  recorded size. An artifact sees each file at its size, so text that survives only in
+  slack is not reached, and neither is anything an artifact finds only by reading a
+  partition image as bytes. Measured on the eight Ford SYNC Gen1 partition images
+  (keys `xtrmp_item002`, `xtrmp_item003`, `xtrmp_item004`, `xtrmp_item008`,
+  `xtrmp_item010`, `xtrmp_item012`, `xtrmp_item065` and `xtrmp_item066`), read as raw
+  input and again from their acquisition folders, where the six Ford SYNC WinCE log
+  line artifacts also read the partition image as bytes: 2,293 rows from raw input
+  against 2,349 from the folders. Of the 56 rows raw input did not give, 43 sat only in
+  the slack of a listed file and 13 inside a listed file's bytes; why those 13 were not
+  found in the files raw input offered is not established. No row came from raw input
+  alone. For those units the acquisition folder is the fuller input.
 - A sparse file is staged at its recorded size with its holes written as zeros, so
   the copy can occupy more than the file did in the image: an emulator disk recording
   6.4 GB and storing 108 MB stages as 6.4 GB. `qnxprobe.allocation(walker, node)` gives
