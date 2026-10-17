@@ -26,7 +26,7 @@ import tempfile
 import zlib
 from datetime import datetime, timezone
 
-from scripts.ilapfuncs import artifact_processor, logfunc
+from scripts.ilapfuncs import artifact_processor, get_sqlite_db_path, logfunc
 
 __artifacts_v2__ = {
     "gm_ga130_phonebook": {
@@ -360,7 +360,7 @@ def _databases(context, wanted):
             with os.fdopen(handle, 'wb') as temp:
                 temp.write(data)
             try:
-                db = sqlite3.connect(f'file:{temp_path}?mode=ro', uri=True)
+                db = sqlite3.connect(f'file:{get_sqlite_db_path(temp_path)}?mode=ro', uri=True)
                 # The media engine database names a collation this build does not have.
                 db.create_collation('cldr', lambda x, y: (x > y) - (x < y))
             except sqlite3.Error:
