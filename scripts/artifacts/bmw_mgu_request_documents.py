@@ -46,10 +46,12 @@ __artifacts_v2__ = {
                  "File Modified Time is filled only when the input records a modified time "
                  "this tool reads, which the tested zip does not, so it was empty on all 150 "
                  "rows. Staged File Time is the time the tool gave its staged copy of the "
-                 "file, shown as text because its zone depends on the input: for a zip it is "
-                 "the zip entry's time exactly as the zip's writer stored it, and on the "
+                 "file, shown as text because its zone depends on the input: for a zip entry "
+                 "with no NTFS or extended timestamp field it is the zip entry's date and time "
+                 "read back in this computer's zone, and on the "
                  "tested zip it equalled the entry time on all 150 rows, from 2023-12-06 to "
-                 "2026-02-25. The tested zip was written by qnxprobe --extract, which stores "
+                 "2026-02-25. For a zip entry that carries one of those fields it is that "
+                 "field's UTC time shown in this computer's zone. The tested zip was written by qnxprobe --extract, which stores "
                  "each file's own modified time as UTC (its _zip_time function), so there the "
                  "column is the file's modified time in UTC; for a zip from another tool, or a "
                  "folder input, the zone is that tool's or this computer's and has to be "
@@ -130,8 +132,9 @@ def _documents(context):
             stamp = datetime.fromtimestamp(modified, timezone.utc).strftime(
                 '%Y-%m-%d %H:%M:%S')
         try:
-            # The time the tool gave the staged copy. For a zip input that is the zip
-            # entry's own time, read back as the wall clock the zip stored.
+            # The time the tool gave the staged copy. For a zip entry with no NTFS or
+            # extended timestamp field that is the entry's own time, read back as the
+            # wall clock the zip stored; with one, it is that field's UTC time.
             staged = datetime.fromtimestamp(os.path.getmtime(file_found)).strftime(
                 '%Y-%m-%d %H:%M:%S')
         except (OSError, OverflowError, ValueError):
