@@ -41,7 +41,7 @@ sudo ln -s /Applications/VLEAPP.app/Contents/MacOS/vleapp /usr/local/bin/vleapp
 
 ## Requirements
 
-**Python 3.10 or above**
+**Python 3.11 or above**
 
 ### Dependencies
 
