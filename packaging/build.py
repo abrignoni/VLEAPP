@@ -98,6 +98,7 @@ DATA_EXCLUDED_NAMES = {".DS_Store"}
 FIXED_HIDDEN_IMPORTS = (
     "bz2",
     "gzip",
+    "msgpack",  # imported by the zip seeker only when it opens a CLBX zip
     "tarfile",
     "xml.etree.ElementTree",
 )
