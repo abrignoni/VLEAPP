@@ -1,0 +1,52 @@
+{
+  "caseBmwNbtSynthetic": {
+    "description": "Synthetic BMW NBT nav/ store, no evidence: made-up rows and coordinates written in the Trails/Trips schema of a tested 2017 BMW 540i NBT unit by make_bmw_nbt_fixture.py. Three trails (8 positions with a time tick after each; 4 positions with two after the last tick and a repeated position; 1 position then an unknown tag, so Path Decoded reports where it stopped), two trips, and a trails.sqlite.bak decoy the glob admits and the module ignores.",
+    "maker": "@CyberMike81, Claude, OpenAI Codex",
+    "make_data": {
+      "input_data_path": "bmw_nbt_fixture.zip",
+      "os": "macOS-27.2-arm64-arm-64bit",
+      "timestamp": "2026-10-29T13:42:08.460019",
+      "last_commit": {
+        "hash": "Uncommitted",
+        "author_name": "N/A",
+        "author_email": "N/A",
+        "date": "2026-10-29T13:42:08.451157",
+        "message": "File not yet committed to git"
+      }
+    },
+    "artifacts": {
+      "bmw_nbt_trail_points": {
+        "search_patterns": [
+          "*/nav/trails.sqlite*"
+        ],
+        "file_count": 2,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "bmw_nbt_trails": {
+        "search_patterns": [
+          "*/nav/trails.sqlite*"
+        ],
+        "file_count": 2,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "bmw_nbt_trips": {
+        "search_patterns": [
+          "*/nav/trips.sqlite*"
+        ],
+        "file_count": 1,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      }
+    },
+    "os_name": "BMW NBT",
+    "os_version": "NBT schema; synthetic records"
+  }
+}

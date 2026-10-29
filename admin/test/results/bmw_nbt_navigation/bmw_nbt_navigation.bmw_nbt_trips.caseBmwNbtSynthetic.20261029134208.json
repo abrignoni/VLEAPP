@@ -1,0 +1,77 @@
+{
+  "metadata": {
+    "module_name": "bmw_nbt_navigation",
+    "artifact_name": "BMW NBT - Navigation Trips",
+    "function_name": "bmw_nbt_trips",
+    "case_number": "caseBmwNbtSynthetic",
+    "number_of_columns": 15,
+    "number_of_rows": 2,
+    "total_data_size_bytes": 309,
+    "media_checkins": 0,
+    "media_embedded_checkins": 0,
+    "input_zip_path": "admin/test/cases/data/bmw_nbt_navigation/testdata.bmw_nbt_navigation.bmw_nbt_trips.caseBmwNbtSynthetic.zip",
+    "start_time": "2026-10-29T13:42:08.578974+00:00",
+    "end_time": "2026-10-29T13:42:08.596836+00:00",
+    "run_time_seconds": 0.0006151199340820312,
+    "last_commit": {
+      "hash": "Uncommitted",
+      "author_name": "N/A",
+      "author_email": "N/A",
+      "date": "2026-10-29T13:42:08.593707",
+      "message": "File not yet committed to git"
+    }
+  },
+  "headers": [
+    "Departure Time",
+    "Arrival Time",
+    "Departure Local Time",
+    "Arrival Local Time",
+    "Trip ID",
+    "Driver IDs (as stored)",
+    "Length (as stored)",
+    "Duration (as stored)",
+    "Position Records",
+    "First Latitude",
+    "First Longitude",
+    "Last Latitude",
+    "Last Longitude",
+    "Path Decoded",
+    "Source File"
+  ],
+  "data": [
+    [
+      1700000000,
+      1700000026,
+      "2023-11-14 21:13:20.000",
+      "2023-11-14 21:13:46.000",
+      11,
+      "5",
+      17800,
+      26000,
+      8,
+      48.17699997,
+      11.55599998,
+      48.17698999,
+      11.55609998,
+      "Yes",
+      "NBT-HDD/p2/nav/trips.sqlite"
+    ],
+    [
+      1700000600,
+      1700000603,
+      "2023-11-14 21:23:20.000",
+      "2023-11-14 21:23:23.000",
+      12,
+      "5, 0",
+      1600,
+      3100,
+      4,
+      48.17698999,
+      11.55609998,
+      48.17709996,
+      11.55569999,
+      "Yes",
+      "NBT-HDD/p2/nav/trips.sqlite"
+    ]
+  ]
+}
