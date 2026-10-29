@@ -87,7 +87,7 @@ def build_unit(root, offset_ids=0):
     begin = 1700000000 + offset_ids * 86400       # 2023-11-14 22:13:20 UTC
     local = begin - 3600                          # a made-up one-hour offset
     t1, d1 = trail_one()
-    # trail 2: position after the last tick (takes the last tick), both tags, repeated position
+    # trail 2: positions after the last tick (remain untimed), both tags, repeated position
     t2 = [pos(0x1e, 0, 48.17699, 11.55610), tick(0, 0), pos(0x1d, 900, 48.17705, 11.55590),
           tick(900, 2500), pos(0x1e, 1500, 48.17710, 11.55570), pos(0x1e, 1500, 48.17710, 11.55570)]
     # trail 3: Path that stops at an unknown tag after one position

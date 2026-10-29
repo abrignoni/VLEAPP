@@ -10,15 +10,15 @@
     "media_checkins": 0,
     "media_embedded_checkins": 0,
     "input_zip_path": "admin/test/cases/data/bmw_nbt_navigation/testdata.bmw_nbt_navigation.bmw_nbt_trips.caseBmwNbtSynthetic.zip",
-    "start_time": "2026-10-29T13:42:08.578974+00:00",
-    "end_time": "2026-10-29T13:42:08.596836+00:00",
-    "run_time_seconds": 0.0006151199340820312,
+    "start_time": "2026-10-29T20:08:18.749814+00:00",
+    "end_time": "2026-10-29T20:08:18.763578+00:00",
+    "run_time_seconds": 0.0004992485046386719,
     "last_commit": {
-      "hash": "Uncommitted",
-      "author_name": "N/A",
-      "author_email": "N/A",
-      "date": "2026-10-29T13:42:08.593707",
-      "message": "File not yet committed to git"
+      "hash": "3e42741367b11d4763098510fed235c5b67a58c9",
+      "author_name": "Michael Littrell",
+      "author_email": "268296708+CyberMike81@users.noreply.github.com",
+      "date": "2026-10-29T09:52:09-04:00",
+      "message": "Add BMW NBT navigation trails and trips"
     }
   },
   "headers": [
@@ -27,7 +27,7 @@
     "Departure Local Time",
     "Arrival Local Time",
     "Trip ID",
-    "Driver IDs (as stored)",
+    "Driver IDs",
     "Length (as stored)",
     "Duration (as stored)",
     "Position Records",

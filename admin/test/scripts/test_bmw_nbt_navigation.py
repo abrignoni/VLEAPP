@@ -58,10 +58,15 @@ class PathTests(unittest.TestCase):
         self.assertEqual(status, 'Yes')
         self.assertEqual([point[5] for point in points], [2500, 2500])
 
-    def test_trailing_positions_use_final_tick_only_on_complete_frame(self):
+    def test_trailing_positions_remain_untimed_on_complete_frame(self):
         points, status = nbt._decode_path(framed(clock(2500) + position() * 2))
         self.assertEqual(status, 'Yes')
-        self.assertEqual([point[5] for point in points], [2500, 2500])
+        self.assertEqual([point[5] for point in points], [None, None])
+
+    def test_following_clock_times_only_positions_that_precede_it(self):
+        points, status = nbt._decode_path(framed(position() + clock(2500) + position()))
+        self.assertEqual(status, 'Yes')
+        self.assertEqual([point[5] for point in points], [2500, None])
 
     def test_missing_tick_preserves_position_without_inventing_time(self):
         points, status = nbt._decode_path(framed(position()))
@@ -194,6 +199,14 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0][:4], ('', '', 45.0, 22.5))
         self.assertEqual(rows[0][8:10], (0x20000000, 0x10000000))
+
+    def test_trailing_rows_keep_coordinates_with_blank_utc_and_local_times(self):
+        source = str(self.nav / 'trails.sqlite')
+        _, rows, _ = self.run_artifact('bmw_nbt_trail_points', [source])
+        trailing = [row for row in rows if row[4] == 102 and row[5] in (9, 10)]
+        self.assertEqual(len(trailing), 2)
+        self.assertTrue(all(row[0] == '' and row[1] == '' for row in trailing))
+        self.assertTrue(all(row[2] != '' and row[3] != '' for row in trailing))
 
     def test_reader_preserves_database_bytes(self):
         sources = [self.nav / 'trails.sqlite', self.nav / 'trips.sqlite']

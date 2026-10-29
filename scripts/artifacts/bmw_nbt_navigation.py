@@ -10,11 +10,12 @@ zero bytes, then tagged records, and the same length again in its last four byte
 
     tag (1 byte) | uint32 little-endian, rising along the trail | payload
 
-The payload size is fixed per tag. Tags 0x1d and 0x1e carry a position, longitude then
-latitude, each a signed 32-bit integer of 360 / 2**32 degree. Tag 0x02 carries a time, a
-uint32 count of milliseconds after the row's own begin (or departure) time. Neither the
-framing nor the tag meanings come from published documentation; they were worked out on
-one unit and are checked here by the record grammar consuming every blob to its last byte.
+The supported framing and tag interpretations were inferred on one 2017 BMW 540i NBT
+unit, not from published documentation. Tags 0x1d and 0x1e are interpreted as longitude
+then latitude, each a signed 32-bit integer scaled by 360 / 2**32 degree. Tag 0x02 is
+interpreted as a uint32 millisecond offset from the row's begin (or departure) time.
+Only a following time record supplies a position's offset. Positions after the final
+time record remain untimed even when the record grammar consumes the whole blob.
 """
 
 import os
@@ -27,32 +28,24 @@ from scripts.ilapfuncs import artifact_processor, logfunc, open_sqlite_db_readon
 __artifacts_v2__ = {
     "bmw_nbt_trail_points": {
         "name": "BMW NBT - Navigation Trail Points",
-        "description": "Position records from the Path blob of each row in the navigation "
-                       "store's Trails table, with the time each record is placed at, its "
-                       "latitude and longitude, and the trail it belongs to.",
+        "description": "Position records from the navigation store's Trails.Path blobs, with "
+                       "coordinates, trail identifiers and inferred times where a following "
+                       "time record is available.",
         "author": "@CyberMike81, Claude, OpenAI Codex",
         "creation_date": "2026-10-28",
         "last_update_date": "2026-10-29",
         "requirements": "none",
         "category": "BMW NBT",
-        "notes": "Reads Trails.Path in nav/trails.sqlite. The record grammar was reverse engineered and tested "
-                 "on one 2017 BMW 540i NBT unit; other units and software versions remain unverified. "
-                 "Coordinates are signed 32-bit values times 360 / 2**32 degree. The stored integers are "
-                 "retained because iVe uses a different divisor, 11,930,466. Timestamp is "
-                 "BeginCoordinatedUniversalTime plus the first following time record's milliseconds. A position "
-                 "after the final time record takes that time only when the blob is fully decoded. Missing time "
-                 "records, undecodable pending times and zero or invalid base dates leave the time blank. Local "
-                 "Time (as recorded) applies the same offset to BeginLocalTime without assigning a timezone. "
-                 "Invalid latitude is blank while its stored integer is retained. Repeated positions are "
-                 "retained. Record Tag (as stored) and Distance Along Trail (as stored) have no established "
-                 "meaning or unit beyond their framing. No speed is reported. Other tags are framed but not "
-                 "interpreted. Trip positions repeat trail positions in the tested unit and are summarized "
-                 "separately. A position does not identify an occupant or driver.",
+        "notes": "The format was worked out on one 2017 BMW 540i NBT unit. Coordinate scaling is inferred as "
+                 "signed 32-bit values times 360 / 2**32 degree; stored integers remain available for comparison "
+                 "with other tools. BeginCoordinatedUniversalTime is inferred as Unix seconds UTC, and time "
+                 "records as millisecond offsets. Timestamp uses the first following time record; positions "
+                 "after the final time record remain untimed. Local Time (no zone) derives from BeginLocalTime "
+                 "and the same offset, without an assigned timezone. Zero/invalid dates and unestablished times "
+                 "are blank. Rising Value (as stored) is the uint32 before the payload; its meaning and unit are "
+                 "unestablished. Repeated positions remain; invalid latitude is blank. Other tags are framed but "
+                 "not interpreted. No speed or occupant/driver identity is inferred.",
         "paths": ('*/nav/trails.sqlite*',),
-        "sample_data": {
-            "bmw_nbt_2017_540i_ive_logical": "2017 BMW 540i, NBT head unit, iVe logical file set "
-                                        "| 265031 rows",
-        },
         "output_types": "all",
         "artifact_icon": "navigation",
     },
@@ -67,20 +60,16 @@ __artifacts_v2__ = {
         "last_update_date": "2026-10-29",
         "requirements": "none",
         "category": "BMW NBT",
-        "notes": "One row per Trails record in nav/trails.sqlite. Begin Time and End Time are the stored UTC "
-                 "Unix seconds; zero and invalid dates are blank. The local-time columns are the stored local "
-                 "clock values without an assigned timezone. Driver ID (as stored) identifies a number, not a "
-                 "person or a verified key. Length (as stored) and Duration (as stored) have no documented "
-                 "units. Position Records counts decoded positions, including repeated positions. Path Decoded "
-                 "reports framing failures and the offset/tag where parsing stopped; earlier positions are "
-                 "retained, with unestablished times blank. Path Decoded was uniformly Yes in the tested real "
-                 "unit. Valid and RoadNetworkRelation were uniform and are omitted; Bounding is not decoded. "
-                 "Tested on one 2017 BMW 540i NBT unit. A trail does not identify an occupant or driver.",
+        "notes": "The format and coordinate scaling (signed 32-bit values times 360 / 2**32 degree) were "
+                 "inferred on one 2017 BMW 540i NBT unit. Begin Time and End Time interpret "
+                 "BeginCoordinatedUniversalTime and EndCoordinatedUniversalTime as Unix seconds UTC; that "
+                 "interpretation is inferred. Local-time columns have no assigned timezone. Zero/invalid dates "
+                 "are blank. Driver ID (as stored) is an identifier, not a verified key or person. Length (as "
+                 "stored) and Duration (as stored) have no established units. Position Records counts decoded "
+                 "positions, including repeats. Path Decoded reports framing or missing-time-record problems; "
+                 "decoded positions are retained. Valid, RoadNetworkRelation and Bounding are not interpreted or "
+                 "reported.",
         "paths": ('*/nav/trails.sqlite*',),
-        "sample_data": {
-            "bmw_nbt_2017_540i_ive_logical": "2017 BMW 540i, NBT head unit, iVe logical file set "
-                                        "| 3772 rows",
-        },
         "output_types": "standard",
         "artifact_icon": "map",
     },
@@ -95,22 +84,17 @@ __artifacts_v2__ = {
         "last_update_date": "2026-10-29",
         "requirements": "none",
         "category": "BMW NBT",
-        "notes": "Reads Trips in nav/trips.sqlite. Departure Time and Arrival Time are stored UTC Unix seconds; "
-                 "zero and invalid dates are blank. Local-time columns have no assigned timezone. Driver IDs (as "
-                 "stored) decodes the count-prefixed integer list, falling back to hex for an unrecognized blob; "
-                 "the numbers do not identify a person or verified key. Length (as stored) and Duration (as "
-                 "stored) have no documented units. Path Decoded was uniformly Yes in the tested real unit; "
-                 "failures name the stopping offset/tag. Trip positions duplicate trail positions in that unit, "
-                 "so only their count and first/last positions appear here. Source, Mode, RoadNetworkRelation "
-                 "and Valid were uniform and are omitted. BackwardReferences, Locations, Parameters, Bounding, "
-                 "CountryCodes, BmwAdasStreetTypes and RoadClasses are not interpreted. The sibling Trails table "
-                 "has no times or positions; LinkToTripIndexTiles was empty. Tested on one 2017 BMW 540i NBT "
-                 "unit. A trip does not identify an occupant or driver.",
+        "notes": "The format and coordinate scaling (signed 32-bit values times 360 / 2**32 degree) were "
+                 "inferred on one 2017 BMW 540i NBT unit. Departure Time and Arrival Time interpret "
+                 "DepartureCoordinatedUniversalTime and ArrivalCoordinatedUniversalTime as Unix seconds UTC; "
+                 "that interpretation is inferred. Local-time columns have no assigned timezone. Zero/invalid "
+                 "dates are blank. Driver IDs uses an inferred count-prefixed uint32 list; unrecognized blobs "
+                 "are shown as hex. The IDs do not identify a verified key or person. Length (as stored) and "
+                 "Duration (as stored) have no established units. Trip paths supply the position count and "
+                 "first/last coordinates; individual trip positions are not reported. Path Decoded reports "
+                 "framing or missing-time-record problems. Other trip fields and auxiliary tables are not "
+                 "interpreted.",
         "paths": ('*/nav/trips.sqlite*',),
-        "sample_data": {
-            "bmw_nbt_2017_540i_ive_logical": "2017 BMW 540i, NBT head unit, iVe logical file set "
-                                        "| 650 rows",
-        },
         "output_types": "standard",
         "artifact_icon": "truck",
     },
@@ -145,13 +129,13 @@ def _utc(seconds, milliseconds=0):
 
 
 def _as_recorded(seconds, milliseconds=0):
-    """A stored epoch value written out as text, with no zone applied."""
+    """Render inferred seconds plus an offset as clock text with no assigned zone."""
     stamp = _utc(seconds, milliseconds)
     return stamp.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3] if stamp else ''
 
 
 def _decode_path(blob):
-    """Positions in a Path blob, each timed by the next time record.
+    """Positions in a Path blob, timed only when a following time record is decoded.
 
     Returns ([(record index, tag, rising value, longitude, latitude, milliseconds)],
     'Yes' or a note saying where the grammar stopped).
@@ -189,8 +173,6 @@ def _decode_path(blob):
         status = f'No: records overran the blob at offset {offset}'
     if status == 'Yes' and struct.unpack_from('<I', blob, end)[0] != len(blob) - 6:
         status = 'No: trailing length does not match the blob size'
-    for position in pending:
-        position[5] = last_time if status == 'Yes' else None
     positions.extend(pending)
     if status == 'Yes' and positions and last_time is None:
         status = 'No: positions have no time record'
@@ -249,9 +231,9 @@ def bmw_nbt_trail_points(context):
                               _latitude(latitude), _degrees(longitude), trail_id, index,
                               f'0x{tag:02x}', rising, latitude, longitude, relative))
 
-    data_headers = (('Timestamp', 'datetime'), 'Local Time (as recorded)', 'Latitude',
+    data_headers = (('Timestamp', 'datetime'), 'Local Time (no zone)', 'Latitude',
                     'Longitude', 'Trail ID', 'Record Index', 'Record Tag (as stored)',
-                    'Distance Along Trail (as stored)', 'Latitude (as stored)',
+                    'Rising Value (as stored)', 'Latitude (as stored)',
                     'Longitude (as stored)', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
@@ -280,7 +262,7 @@ def bmw_nbt_trails(context):
 
 
 def _driver_ids(blob):
-    """The DriverIds blob as a uint32 count and that many uint32 values, or as stored."""
+    """Interpret an inferred count-prefixed ID list, keeping unrecognized blobs as hex."""
     if not isinstance(blob, bytes):
         return ''
     if len(blob) >= 4:
@@ -327,7 +309,7 @@ def bmw_nbt_trips(context):
 
     data_headers = (('Departure Time', 'datetime'), ('Arrival Time', 'datetime'),
                     'Departure Local Time', 'Arrival Local Time', 'Trip ID',
-                    'Driver IDs (as stored)', 'Length (as stored)', 'Duration (as stored)',
+                    'Driver IDs', 'Length (as stored)', 'Duration (as stored)',
                     'Position Records', 'First Latitude', 'First Longitude', 'Last Latitude',
                     'Last Longitude', 'Path Decoded', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)

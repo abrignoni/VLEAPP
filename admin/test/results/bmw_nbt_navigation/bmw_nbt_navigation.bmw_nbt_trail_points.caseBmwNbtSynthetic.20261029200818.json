@@ -6,30 +6,30 @@
     "case_number": "caseBmwNbtSynthetic",
     "number_of_columns": 11,
     "number_of_rows": 13,
-    "total_data_size_bytes": 1467,
+    "total_data_size_bytes": 1401,
     "media_checkins": 0,
     "media_embedded_checkins": 0,
     "input_zip_path": "admin/test/cases/data/bmw_nbt_navigation/testdata.bmw_nbt_navigation.bmw_nbt_trail_points.caseBmwNbtSynthetic.zip",
-    "start_time": "2026-10-29T13:42:08.597232+00:00",
-    "end_time": "2026-10-29T13:42:08.613411+00:00",
-    "run_time_seconds": 0.0006518363952636719,
+    "start_time": "2026-10-29T20:08:18.729076+00:00",
+    "end_time": "2026-10-29T20:08:18.749483+00:00",
+    "run_time_seconds": 0.000804901123046875,
     "last_commit": {
-      "hash": "Uncommitted",
-      "author_name": "N/A",
-      "author_email": "N/A",
-      "date": "2026-10-29T13:42:08.610892",
-      "message": "File not yet committed to git"
+      "hash": "3e42741367b11d4763098510fed235c5b67a58c9",
+      "author_name": "Michael Littrell",
+      "author_email": "268296708+CyberMike81@users.noreply.github.com",
+      "date": "2026-10-29T09:52:09-04:00",
+      "message": "Add BMW NBT navigation trails and trips"
     }
   },
   "headers": [
     "Timestamp",
-    "Local Time (as recorded)",
+    "Local Time (no zone)",
     "Latitude",
     "Longitude",
     "Trail ID",
     "Record Index",
     "Record Tag (as stored)",
-    "Distance Along Trail (as stored)",
+    "Rising Value (as stored)",
     "Latitude (as stored)",
     "Longitude (as stored)",
     "Source File"
@@ -166,8 +166,8 @@
       "NBT-HDD/p2/nav/trails.sqlite"
     ],
     [
-      1700000602,
-      "2023-11-14 21:23:22.500",
+      "",
+      "",
       48.17709996,
       11.55569999,
       102,
@@ -179,8 +179,8 @@
       "NBT-HDD/p2/nav/trails.sqlite"
     ],
     [
-      1700000602,
-      "2023-11-14 21:23:22.500",
+      "",
+      "",
       48.17709996,
       11.55569999,
       102,
