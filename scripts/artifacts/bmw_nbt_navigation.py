@@ -40,11 +40,13 @@ __artifacts_v2__ = {
                  "signed 32-bit values times 360 / 2**32 degree; stored integers remain available for comparison "
                  "with other tools. BeginCoordinatedUniversalTime is inferred as Unix seconds UTC, and time "
                  "records as millisecond offsets. Timestamp uses the first following time record; positions "
-                 "after the final time record remain untimed. Local Time (no zone) derives from BeginLocalTime "
-                 "and the same offset, without an assigned timezone. Zero/invalid dates and unestablished times "
+                 "after the final time record remain untimed. Local Time (no zone) reads BeginLocalTime as seconds "
+                 "on the same epoch, adds the same offset and assigns no timezone; that reading is inferred. "
+                 "Zero/invalid dates and unestablished times "
                  "are blank. Rising Value (as stored) is the uint32 before the payload; its meaning and unit are "
-                 "unestablished. Repeated positions remain; invalid latitude is blank. Other tags are framed but "
-                 "not interpreted. No speed or occupant/driver identity is inferred.",
+                 "unestablished. Repeated positions remain; invalid latitude is blank. Tags other than the position "
+                 "and time tags are skipped by their inferred payload size and not interpreted. A tag the module "
+                 "does not list stops the decode at that record. No speed or occupant/driver identity is inferred.",
         "paths": ('*/nav/trails.sqlite*',),
         "output_types": "all",
         "artifact_icon": "navigation",
@@ -53,8 +55,8 @@ __artifacts_v2__ = {
         "name": "BMW NBT - Navigation Trails",
         "description": "One row per row of the navigation store's Trails table: its begin and "
                        "end times, the DriverId, Length and DurationTime values the unit "
-                       "stored, the number of position records in its Path blob, and its first "
-                       "and last position.",
+                       "stored, the number of position records decoded from its Path blob, and "
+                       "the first and last decoded position.",
         "author": "@CyberMike81, Claude, OpenAI Codex",
         "creation_date": "2026-10-28",
         "last_update_date": "2026-10-29",
@@ -63,7 +65,9 @@ __artifacts_v2__ = {
         "notes": "The format and coordinate scaling (signed 32-bit values times 360 / 2**32 degree) were "
                  "inferred on one 2017 BMW 540i NBT unit. Begin Time and End Time interpret "
                  "BeginCoordinatedUniversalTime and EndCoordinatedUniversalTime as Unix seconds UTC; that "
-                 "interpretation is inferred. Local-time columns have no assigned timezone. Zero/invalid dates "
+                 "interpretation is inferred. Begin Local Time and End Local Time read BeginLocalTime and "
+                 "EndLocalTime as seconds on the same epoch and assign no timezone; that reading is inferred. "
+                 "Zero/invalid dates "
                  "are blank. Driver ID (as stored) is an identifier, not a verified key or person. Length (as "
                  "stored) and Duration (as stored) have no established units. Position Records counts decoded "
                  "positions, including repeats. Path Decoded reports framing or missing-time-record problems; "
@@ -76,9 +80,10 @@ __artifacts_v2__ = {
     "bmw_nbt_trips": {
         "name": "BMW NBT - Navigation Trips",
         "description": "One row per row of the navigation store's Trips table: its departure "
-                       "and arrival times, the DriverIds, Length and DurationTime values the "
-                       "unit stored, the number of position records in its Path blob, and its "
-                       "first and last position.",
+                       "and arrival times, the DriverIds list decoded from an inferred "
+                       "count-prefixed layout, the Length and DurationTime values the unit "
+                       "stored, the number of position records decoded from its Path blob, and "
+                       "the first and last decoded position.",
         "author": "@CyberMike81, Claude, OpenAI Codex",
         "creation_date": "2026-10-28",
         "last_update_date": "2026-10-29",
@@ -87,7 +92,9 @@ __artifacts_v2__ = {
         "notes": "The format and coordinate scaling (signed 32-bit values times 360 / 2**32 degree) were "
                  "inferred on one 2017 BMW 540i NBT unit. Departure Time and Arrival Time interpret "
                  "DepartureCoordinatedUniversalTime and ArrivalCoordinatedUniversalTime as Unix seconds UTC; "
-                 "that interpretation is inferred. Local-time columns have no assigned timezone. Zero/invalid "
+                 "that interpretation is inferred. Departure Local Time and Arrival Local Time read "
+                 "DepartureLocalTime and ArrivalLocalTime as seconds on the same epoch and assign no timezone; "
+                 "that reading is inferred. Zero/invalid "
                  "dates are blank. Driver IDs uses an inferred count-prefixed uint32 list; unrecognized blobs "
                  "are shown as hex. The IDs do not identify a verified key or person. Length (as stored) and "
                  "Duration (as stored) have no established units. Trip paths supply the position count and "
