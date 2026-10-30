@@ -53,7 +53,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -93,7 +93,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 21 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 27 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 27 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 27 rows",
         },
         "output_types": "standard",
         "artifact_icon": "map-pin",
@@ -120,7 +121,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -143,9 +144,8 @@ __artifacts_v2__ = {
                  "across two runs that were not neighbours on the disk (without the map the "
                  "file is read as one stretch and the run log says so), and in an image an "
                  "unfinished line is cut where the next one starts. A line cut that way is "
-                 "reported as far as it reads, so a handful of rows can differ between inputs: "
-                 "on the tested unit the image and the other two inputs together differed by "
-                 "zero to two rows per artifact. A row records that the navigation application "
+                 "reported as far as it reads, so rows can differ between inputs; sample_data "
+                 "records each input's count on the tested unit. A row records that the navigation application "
                  "logged a search. It does not establish what was searched for or who "
                  "searched.",
         "paths": (
@@ -156,7 +156,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 30 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 98 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 98 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 97 rows",
         },
         "output_types": "standard",
         "artifact_icon": "search",
@@ -183,7 +184,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -218,7 +219,7 @@ __artifacts_v2__ = {
                  "rows on the tested unit's image. A Raw GPS line ends with its longitude, so "
                  "a cut Raw GPS line is not reported. A handful of rows can differ between "
                  "inputs: on the tested unit the image and the other two inputs together "
-                 "differed by two rows. A row records that the module logged that position at "
+                 "differed by one row. A row records that the module logged that position at "
                  "that time. It does not establish who was driving.",
         "paths": (
             '*/rwdata/logs/*fdplog*.txt*',
@@ -228,7 +229,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 214 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 4283 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 4283 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 4282 rows",
         },
         "output_types": "all",
         "artifact_icon": "map-pin",
@@ -256,7 +258,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -290,7 +292,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 2 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 164 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 164 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 163 rows",
         },
         "output_types": "standard",
         "artifact_icon": "wifi",
@@ -318,7 +321,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -372,7 +375,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 27 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 817 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 817 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 817 rows",
         },
         "output_types": "standard",
         "artifact_icon": "activity",
@@ -400,7 +404,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -434,7 +438,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 158 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 1359 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 1359 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 1360 rows",
         },
         "output_types": "standard",
         "artifact_icon": "power",
@@ -460,7 +465,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -488,7 +493,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 133 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 2148 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 2148 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 2147 rows",
         },
         "output_types": "standard",
         "artifact_icon": "battery",
@@ -516,7 +522,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -549,7 +555,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 59 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 221 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 221 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 221 rows",
         },
         "output_types": "standard",
         "artifact_icon": "smartphone",
@@ -576,7 +583,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -610,7 +617,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 0 rows: not in the live log files",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 1070 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 1070 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 1046 rows",
         },
         "output_types": "standard",
         "artifact_icon": "radio",
@@ -637,7 +645,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -666,7 +674,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 55 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 127 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 127 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 127 rows",
         },
         "output_types": "standard",
         "artifact_icon": "globe",
@@ -694,7 +703,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -732,7 +741,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 0 rows: not in the live log files",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 20 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 20 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 20 rows",
         },
         "output_types": "standard",
         "artifact_icon": "download",
@@ -759,7 +769,7 @@ __artifacts_v2__ = {
                  "carved by file type and no file system is followed: a line is found by its "
                  "own shape, a date and time ending in Z, a host, a process, a component and a "
                  "sequence id. The tested log files hold lines from 524 components. Only the "
-                 "lines named below are read. Tested on one Ford SYNC 4 unit. Its logical zip "
+                 "lines named below are read. Tested on one Ford SYNC 4 unit. The raw image figures below are from a run over its acquisition folder (ford_syncg4_folder), where the image is read as bytes; a -t raw run on the image itself (ford_syncg4) reads the files and free space the seeker stages, and its counts, recorded in sample_data, differ on six of these artifacts, by one row on five of them and by 24 on SiriusXM channel. Its logical zip "
                  "holds log lines dated on three days, 2024-03-27 to 2024-03-29, and 2,034 "
                  "lines dated 1970-01-01; its raw image holds 718,195 log lines against about "
                  "107,000 in the files, and 85 percent of them sit in blocks the volume marks "
@@ -792,7 +802,8 @@ __artifacts_v2__ = {
         ),
         "sample_data": {
             "ford_syncg4_logical": "Ford Sync 4, logical zip | 3 rows",
-            "ford_syncg4": "Ford Sync 4, acquisition folder with the raw image | 3 rows",
+            "ford_syncg4_folder": "Ford Sync 4, acquisition folder with the raw image | 3 rows",
+            "ford_syncg4": "Ford Sync 4, raw image | 3 rows",
         },
         "output_types": "standard",
         "artifact_icon": "user",
