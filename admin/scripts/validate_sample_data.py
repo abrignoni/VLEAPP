@@ -245,6 +245,10 @@ def check_registry(artifacts, registry, registry_path, verify_hashes, report):
             report.warn(f"registry entry '{name}' has no match.zip")
             continue
         target = base / relative
+        if target.is_dir() and entry.get("input_type") == "fs":
+            # an acquisition folder run as -t fs has no single file to hash
+            report.note(f"'{name}' is a folder entry; it carries no sha256")
+            continue
         if not target.is_file():
             report.error(f"registry entry '{name}' points at a missing file: {target}")
             continue
@@ -444,7 +448,8 @@ def run_corpus(registry, registry_path, corpus, report, keep=False):
         report.error(f"--run '{corpus}' has no match.zip to parse")
         return
     source = (Path(registry_path).resolve().parent / relative)
-    if not source.is_file():
+    is_folder = source.is_dir() and entry.get("input_type") == "fs"
+    if not (source.is_file() or is_folder):
         report.error(f"--run '{corpus}' points at a missing file: {source}")
         return
 
