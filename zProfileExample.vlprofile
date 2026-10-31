@@ -1,1 +1,1 @@
-{"leapp": "vleapp", "format_version": 1, "plugins": ["Bluetooth", "Contacts", "Vehicle Info"]}
+{"leapp": "vleapp", "format_version": 1, "plugins": ["ford_sync_bt_paired_devices", "contactsInfo", "vehicleInfo"]}
