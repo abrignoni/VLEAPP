@@ -14,7 +14,7 @@ import re
 import sqlite3
 from datetime import datetime
 
-from scripts.ilapfuncs import artifact_processor, logfunc, open_sqlite_db_readonly
+from scripts.ilapfuncs import artifact_processor, is_sqlite_sidecar, logfunc, open_sqlite_db_readonly
 
 __artifacts_v2__ = {
     "ford_sync_wince_gen2_text_messages": {
@@ -129,7 +129,7 @@ def _databases(context, wanted):
         if os.path.isdir(file_found):
             continue
         base = os.path.basename(file_found)
-        if not wanted(base) or base.endswith(('-journal', '-wal', '-shm')):
+        if not wanted(base) or is_sqlite_sidecar(base):
             continue
         try:
             with open(file_found, 'rb') as handle:
