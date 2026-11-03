@@ -7,6 +7,12 @@ files the two generations share are read by that module.
     UserData/SMS_<address>.db     table SMSstore, one database per handset
     UserData/WiFiList.db          table WiFiNetworkList
     UserData/Profiles/Vehicle.db  table UserProfile, compared with DefaultUser.db beside it
+
+Read with -t raw from the partition image that holds these files, on the tested images the
+path has no UserData folder (lba0/SMS_<address>.db), so each artifact also globs the bare
+file name. Those
+patterns can match files of the same name elsewhere; a file is read only when it is SQLite
+and holds the artifact's table.
 """
 
 import os
@@ -23,9 +29,9 @@ __artifacts_v2__ = {
                        "the message time, the address, name and body stored in each row and "
                        "the read status as stored.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-11-03",
         "requirements": "none",
         "category": "Ford SYNC WinCE",
         "notes": "From the SMSstore table of UserData/SMS_<address>.db, one database per "
@@ -44,8 +50,11 @@ __artifacts_v2__ = {
                  "named with twelve zeros was present and empty on both units. The SMS_CANNED "
                  "databases beside these hold the same 15 stock replies in every file on both "
                  "units and are not read. A row establishes that the module stored this text "
-                 "for the handset. It does not establish who read or wrote it.",
-        "paths": ('*/UserData/SMS_*.db*',),
+                 "for the handset. It does not establish who read or wrote it. The second "
+                 "pattern finds these files at the root of the partition image that holds "
+                 "them, read with -t raw, where the path has no UserData folder; the Edge's "
+                 "partition3.img gave the same 49 rows as its extracted file set.",
+        "paths": ('*/UserData/SMS_*.db*', '*/SMS_*.db*'),
         "sample_data": {
             "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, extracted file set | 49 rows",
             "xtrmp_item016": "2011 Ford Explorer XLT, SYNC Gen2, extracted file set | 0 rows, "
@@ -60,9 +69,9 @@ __artifacts_v2__ = {
                        "point address, stored location text, signal strength and priority of "
                        "each network.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-11-03",
         "requirements": "none",
         "category": "Ford SYNC WinCE",
         "notes": "From the WiFiNetworkList table of UserData/WiFiList.db. Both tested SYNC "
@@ -71,8 +80,10 @@ __artifacts_v2__ = {
                  "names and has not been exercised on real rows. Columns are reported as "
                  "stored. The key material and key length columns are not surfaced. A row "
                  "would record that the module stored the network. It would not establish that "
-                 "the vehicle was at the stored location.",
-        "paths": ('*/UserData/WiFiList.db*',),
+                 "the vehicle was at the stored location. The second pattern finds the file at "
+                 "the root of the partition image that holds it, read with -t raw; on both "
+                 "units' partition3.img the table again held no rows.",
+        "paths": ('*/UserData/WiFiList.db*', '*/WiFiList.db*'),
         "sample_data": {
             "xtrmp_item014": "2014 Ford Edge SEL, SYNC Gen2, extracted file set | 0 rows, "
                              "WiFiNetworkList was empty",
@@ -88,9 +99,9 @@ __artifacts_v2__ = {
                        "and stored value beside the value the DefaultUser.db in the same "
                        "folder holds for that feature.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.1",
+        "version": "0.2",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-11-03",
         "requirements": "none",
         "category": "Ford SYNC WinCE",
         "notes": "From the UserProfile table of the databases in UserData/Profiles other than "
@@ -107,8 +118,11 @@ __artifacts_v2__ = {
                  "reading of its name, not something established here, and a value equal to it "
                  "is not evidence the setting was never changed. Nothing available here "
                  "documents what a number stands for, so no value is labelled. MyKey Limited "
-                 "and Personalization Type are the text the row stores.",
-        "paths": ('*/UserData/Profiles/*.db*',),
+                 "and Personalization Type are the text the row stores. The second pattern finds "
+                 "the databases in the Profiles folder at the root of the partition image "
+                 "that holds them, read with -t raw, where the path has no UserData folder; each unit's "
+                 "partition3.img gave the same 255 rows as its extracted file set.",
+        "paths": ('*/UserData/Profiles/*.db*', '*/Profiles/*.db*'),
         "sample_data": {
             "xtrmp_item012": "2019 Ford Fusion, SYNC Gen1v5, extracted file set | 0 rows, no "
                              "UserData/Profiles folder",
