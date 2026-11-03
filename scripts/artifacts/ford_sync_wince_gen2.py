@@ -8,8 +8,9 @@ files the two generations share are read by that module.
     UserData/WiFiList.db          table WiFiNetworkList
     UserData/Profiles/Vehicle.db  table UserProfile, compared with DefaultUser.db beside it
 
-Read with -t raw from the partition image that holds these files, the path has no UserData
-folder (lba0/SMS_<address>.db), so each artifact also globs the bare file name. Those
+Read with -t raw from the partition image that holds these files, on the tested images the
+path has no UserData folder (lba0/SMS_<address>.db), so each artifact also globs the bare
+file name. Those
 patterns can match files of the same name elsewhere; a file is read only when it is SQLite
 and holds the artifact's table.
 """
@@ -118,8 +119,8 @@ __artifacts_v2__ = {
                  "is not evidence the setting was never changed. Nothing available here "
                  "documents what a number stands for, so no value is labelled. MyKey Limited "
                  "and Personalization Type are the text the row stores. The second pattern finds "
-                 "the Profiles folder at the root of the partition image that holds it, read "
-                 "with -t raw, where the path has no UserData folder; each unit's "
+                 "the databases in the Profiles folder at the root of the partition image "
+                 "that holds them, read with -t raw, where the path has no UserData folder; each unit's "
                  "partition3.img gave the same 255 rows as its extracted file set.",
         "paths": ('*/UserData/Profiles/*.db*', '*/Profiles/*.db*'),
         "sample_data": {
