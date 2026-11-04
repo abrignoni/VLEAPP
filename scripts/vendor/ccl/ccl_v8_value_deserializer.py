@@ -20,10 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-# Vendored from CCL Forensics. Only the package-relative imports are changed,
-# to match this repo's flat scripts/ccl layout.
-# pylint: skip-file
-
 import sys
 import struct
 import datetime

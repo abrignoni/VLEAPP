@@ -52,7 +52,7 @@ __artifacts_v2__ = {
 import os
 import struct
 
-from scripts.ccl import ccl_leveldb
+from scripts.vendor.ccl import ccl_leveldb
 from scripts.ilapfuncs import artifact_processor, convert_unix_ts_to_utc
 
 _META_PREFIX = b'META:'

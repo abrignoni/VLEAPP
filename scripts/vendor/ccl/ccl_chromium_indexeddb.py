@@ -20,10 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-# Vendored from CCL Forensics. Only the package-relative imports are changed,
-# to match this repo's flat scripts/ccl layout.
-# pylint: skip-file
-
 import sys
 import struct
 import os
@@ -35,11 +31,11 @@ import dataclasses
 import types
 import typing
 
-from scripts.ccl import ccl_simplesnappy
+from . import ccl_simplesnappy
 
-from scripts.ccl.ccl_structures import ArtifactLocation
-from scripts.ccl import ccl_leveldb
-from scripts.ccl import ccl_blink_value_deserializer, ccl_v8_value_deserializer
+from .structures import ArtifactLocation
+from . import ccl_leveldb
+from . import ccl_blink_value_deserializer, ccl_v8_value_deserializer
 
 __version__ = "0.21"
 __description__ = "Module for reading Chromium IndexedDB LevelDB databases."
