@@ -20,7 +20,7 @@ import struct
 from datetime import datetime
 
 from scripts.ilapfuncs import (artifact_processor, check_in_embedded_media, device_info,
-                               logfunc, open_sqlite_db_readonly)
+                               is_sqlite_sidecar, logfunc, open_sqlite_db_readonly)
 
 __artifacts_v2__ = {
     "gm_bosch_hmi_bt_devices": {
@@ -531,7 +531,7 @@ def _files(context, *names):
         base = os.path.basename(file_found)
         if any(base.startswith(name) for name in names):
             # A journal beside a database is not the database.
-            if base.endswith(('-journal', '-wal', '-shm')) or '-mj' in base:
+            if is_sqlite_sidecar(base) or '-mj' in base:
                 continue
             found.append(file_found)
     return sorted(set(found))
@@ -1297,7 +1297,7 @@ def gm_bosch_hmi_unit_info(context):
                     add(match.group(1), match.group(2), file_found)
         elif base.startswith(('bluetooth.db', 'fc_bluetooth.db', 'MyMedia.db',
                               'IAdatabase.db')):
-            if base.endswith(('-journal', '-wal', '-shm')) or '-mj' in base:
+            if is_sqlite_sidecar(base) or '-mj' in base:
                 continue
             db = _open(file_found)
             if db is None:

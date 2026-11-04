@@ -1,7 +1,8 @@
 # Vendored third-party readers
 
-Code copied in from another repository, unmodified, so the tool can read disk
-images and acquisitions without asking the examiner to install anything.
+Code copied in from another repository so the tool can read disk images and
+acquisitions without asking the examiner to install anything. Every file is
+unmodified except three in ccl/, whose section says what differs.
 
 ## qnxprobe.py
 
@@ -58,3 +59,41 @@ fails when either differs. It runs in CI, so a local edit or a stale copy after 
 upstream release is caught rather than noticed later. Pass `--upstream <path>`
 (or `--upstream qnxprobe=<path>`) to compare against a checkout instead of
 fetching, and `--offline` to check the hashes alone.
+
+## ccl/ (CCL Forensics LevelDB and IndexedDB readers)
+
+| | |
+| --- | --- |
+| upstream | https://github.com/cclgroupltd/ccl_chromium_reader and https://github.com/cclgroupltd/ccl_simplesnappy |
+| licence | MIT, kept beside them as LICENSE-ccl_chromium_reader and LICENSE-ccl_simplesnappy |
+
+The Ford HMI Local Storage and IndexedDB artifacts import these from `scripts.vendor.ccl`. Upstream
+keeps them in a package (`ccl_chromium_reader`, with `storage_formats` and `serialization_formats`
+subfolders) whose `__init__` imports modules VLEAPP does not use and a `zstd` package it does not
+depend on, so they are kept here as one flat folder with an `__init__.py` of this repository's. The
+files are the same as DLEAPP's `scripts/vendor/ccl` copies.
+
+Verbatim, recorded in vendored.json:
+
+- `ccl_v8_value_deserializer.py`: ccl_chromium_reader 3be9221 (2024-06-12), unchanged upstream since.
+- `ccl_blink_value_deserializer.py`, `common.py` and `profile_folder_protocols.py`:
+  ccl_chromium_reader ad37443 (2026-10-28).
+- `ccl_simplesnappy.py`: ccl_simplesnappy 2161c40 (2024-07-29). That commit carried no LICENSE
+  file; the MIT text kept here is the repository's later one, and the file's own header holds the
+  same licence.
+
+With local changes, not in vendored.json:
+
+- `ccl_chromium_indexeddb.py` and `structures.py`: ccl_chromium_reader ad37443, with only their
+  imports changed for the flat folder.
+- `ccl_leveldb.py`: ccl_chromium_reader ad37443 with `import ccl_simplesnappy` changed to
+  `from . import ccl_simplesnappy`, and the file handle bounding from VLEAPP b27c977 merged in: a
+  reader closes each .log and .ldb file after checking it and reopens it for each pass, and what
+  a pass skips as damage is copied back to the file's reader. That change is offered upstream as
+  https://github.com/cclgroupltd/ccl_chromium_reader/pull/56; once upstream has it, re-vendor and
+  record the file in vendored.json.
+
+Before 2026-11-03 these readers sat in `scripts/ccl`, with a `ccl_structures.py` that defined the
+location protocol inline. That LevelDB reader was older (closest to upstream 210b5c6, 2021); the
+newer code skips and reports a damaged or zero-filled .log block where the older one stopped
+reading (ccl_chromium_reader a321210 and 6e5dbe5).

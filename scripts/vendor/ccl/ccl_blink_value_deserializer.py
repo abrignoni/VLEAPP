@@ -20,16 +20,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-# Vendored from CCL Forensics. Only the package-relative imports are changed,
-# to match this repo's flat scripts/ccl layout.
-# pylint: skip-file
-
 import sys
 import enum
 import typing
 from dataclasses import dataclass
 
-from scripts.ccl import ccl_v8_value_deserializer
+from . import ccl_v8_value_deserializer
 
 # See: https://chromium.googlesource.com/chromium/src/third_party/+/master/blink/renderer/bindings/core/v8/serialization
 #      https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/bindings/modules/v8/serialization/v8_script_value_serializer_for_modules.cc
