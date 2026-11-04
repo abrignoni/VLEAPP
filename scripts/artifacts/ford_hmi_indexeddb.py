@@ -79,7 +79,7 @@ import json
 import os
 import pathlib
 
-from scripts.ccl import ccl_chromium_indexeddb
+from scripts.vendor.ccl import ccl_chromium_indexeddb
 from scripts.ilapfuncs import artifact_processor
 
 # Styling only, and its records can reference blobs an extraction may not carry.

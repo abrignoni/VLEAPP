@@ -39,6 +39,71 @@
       "licence_file": "",
       "banner": true,
       "note": "Copied verbatim below its banner. Fix upstream and re-vendor; edits here are reverted by the next sync."
+    },
+    {
+      "path": "scripts/vendor/ccl/ccl_v8_value_deserializer.py",
+      "name": "ccl_chromium_reader",
+      "version": "0.1.1",
+      "upstream": "https://github.com/cclgroupltd/ccl_chromium_reader",
+      "upstream_file": "ccl_chromium_reader/serialization_formats/ccl_v8_value_deserializer.py",
+      "commit": "3be9221ebc058aea731acf799bfea03ca5793063",
+      "commit_date": "2024-06-12T17:52:00+01:00",
+      "sha256": "73f6c91c6573a8ab355f4770d04c288cd9a88797754c72353a22b382efb02d66",
+      "licence": "MIT",
+      "licence_file": "scripts/vendor/LICENSE-ccl_chromium_reader",
+      "note": "Copied verbatim. Fix upstream and re-vendor; edits here are reverted by the next sync."
+    },
+    {
+      "path": "scripts/vendor/ccl/ccl_blink_value_deserializer.py",
+      "name": "ccl_chromium_reader",
+      "version": "0.3",
+      "upstream": "https://github.com/cclgroupltd/ccl_chromium_reader",
+      "upstream_file": "ccl_chromium_reader/serialization_formats/ccl_blink_value_deserializer.py",
+      "commit": "ad37443541dd91dac3ac1fb2eecaeb8693f36815",
+      "commit_date": "2026-10-28T15:39:57Z",
+      "sha256": "8ea1dff48e1fc176a6d43312e6255c6d7fc6fa6f9341c682fc2c21c8dca54093",
+      "licence": "MIT",
+      "licence_file": "scripts/vendor/LICENSE-ccl_chromium_reader",
+      "note": "Copied verbatim. Fix upstream and re-vendor; edits here are reverted by the next sync."
+    },
+    {
+      "path": "scripts/vendor/ccl/common.py",
+      "name": "ccl_chromium_reader",
+      "version": "unversioned",
+      "upstream": "https://github.com/cclgroupltd/ccl_chromium_reader",
+      "upstream_file": "ccl_chromium_reader/common.py",
+      "commit": "ad37443541dd91dac3ac1fb2eecaeb8693f36815",
+      "commit_date": "2026-10-28T15:39:57Z",
+      "sha256": "40f1a29e9d67867b27e6b43fcb7fafef99c48fc7b47b7eef85ff92fdfd9c3407",
+      "licence": "MIT",
+      "licence_file": "scripts/vendor/LICENSE-ccl_chromium_reader",
+      "note": "Copied verbatim. Fix upstream and re-vendor; edits here are reverted by the next sync."
+    },
+    {
+      "path": "scripts/vendor/ccl/profile_folder_protocols.py",
+      "name": "ccl_chromium_reader",
+      "version": "unversioned",
+      "upstream": "https://github.com/cclgroupltd/ccl_chromium_reader",
+      "upstream_file": "ccl_chromium_reader/profile_folder_protocols.py",
+      "commit": "ad37443541dd91dac3ac1fb2eecaeb8693f36815",
+      "commit_date": "2026-10-28T15:39:57Z",
+      "sha256": "db53a14e618f033369aff3122f76063097e24cfa7ae69e67f42d833e2054df21",
+      "licence": "MIT",
+      "licence_file": "scripts/vendor/LICENSE-ccl_chromium_reader",
+      "note": "Copied verbatim. Fix upstream and re-vendor; edits here are reverted by the next sync."
+    },
+    {
+      "path": "scripts/vendor/ccl/ccl_simplesnappy.py",
+      "name": "ccl_simplesnappy",
+      "version": "0.4",
+      "upstream": "https://github.com/cclgroupltd/ccl_simplesnappy",
+      "upstream_file": "ccl_simplesnappy/ccl_simplesnappy.py",
+      "commit": "2161c402f009bae3659b05d4471ac6fc854303a7",
+      "commit_date": "2024-07-29T16:43:33+01:00",
+      "sha256": "74bbf5c1e8ebdaf09ad9bfd98a7a335d57dc4ac648cc9aede59932c40ddc4170",
+      "licence": "MIT",
+      "licence_file": "scripts/vendor/LICENSE-ccl_simplesnappy",
+      "note": "Copied verbatim. Fix upstream and re-vendor; edits here are reverted by the next sync."
     }
   ]
 }
