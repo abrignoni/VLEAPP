@@ -18,8 +18,27 @@ Download a pre-built release, no Python installation required, from
 | macOS (Intel) | `VLEAPP-*-macos-x64.dmg` |
 | Linux (Intel/AMD) | `VLEAPP-*-linux-x64.AppImage` |
 | Linux (ARM) | `VLEAPP-*-linux-arm64.AppImage` |
+| Debian/Ubuntu (Intel/AMD) | `vleapp_*_amd64.deb` |
+| Debian/Ubuntu (ARM) | `vleapp_*_arm64.deb` |
+| Fedora/RHEL (Intel/AMD) | `vleapp-*.x86_64.rpm` |
+| Fedora/RHEL (ARM) | `vleapp-*.aarch64.rpm` |
+| Arch | `vleapp-git` from the AUR |
 
 Each download holds one program, `vleapp`. `SHA256SUMS.txt` in each release lets you check a download.
+
+The one-line installer picks the right file for the machine it runs on, checks it
+against `SHA256SUMS.txt`, and installs it (a `.deb` on Debian/Ubuntu, an `.rpm`
+on Fedora/RHEL, `vleapp-git` from the AUR on Arch when a helper exists, the
+AppImage elsewhere, the app on macOS, the portable zip on Windows):
+
+```
+curl -fsSL https://raw.githubusercontent.com/abrignoni/VLEAPP/main/packaging/install.sh | bash
+```
+
+On Arch, `vleapp-git` follows the main branch, so it is always the latest
+version; `yay -Syu --devel` keeps it there. The `.deb` and the `.rpm` install
+`vleapp` onto `PATH` (`/usr/bin/vleapp`) with a launcher in the applications
+menu.
 
 **GUI**: open VLEAPP the usual way: by double-clicking `vleapp.exe` from the zip on
 Windows, VLEAPP in Applications on macOS, or the AppImage on Linux. Started without
@@ -130,6 +149,8 @@ same virtual environment.
 python packaging/build.py exe          # dist/VLEAPP/, and dist/VLEAPP.app on macOS
 python packaging/build.py smoke        # run what it built, without opening a window
 python packaging/build.py installer    # Windows: Inno Setup installer; macOS: .dmg; Linux: AppImage
+python packaging/build.py deb          # Linux: .deb around dist/VLEAPP/
+python packaging/build.py rpm          # Linux: .rpm around dist/VLEAPP/
 ```
 
 `exe --onefile` makes `dist/vleapp` (`dist\vleapp.exe` on Windows) as a single file

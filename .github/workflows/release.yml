@@ -4,6 +4,10 @@ name: Release
 # results to a GitHub Release. Pushing a tag like v2026.5.0 is the trigger; the release is
 # created as a DRAFT, so the assets can be checked before anyone can download them.
 #
+# Linux ships three downloads around the same one-folder build: the AppImage, a .deb for
+# Debian/Ubuntu (`python packaging/build.py deb`) and an .rpm for Fedora/RHEL
+# (`python packaging/build.py rpm`).
+#
 # The build and smoke steps are the ones test_builds.yml runs weekly on main, in the same
 # order. Keep the two in step: this workflow only runs when a tag is pushed, so it is the
 # weekly job that keeps the recipe honest between releases. workflow_dispatch builds every
@@ -314,6 +318,18 @@ jobs:
         shell: bash
         run: python packaging/build.py installer
 
+      # The same one-folder build the AppImage wraps, as system packages. Both
+      # install /opt/vleapp with /usr/bin/vleapp on PATH, a .desktop entry and
+      # the icon; the AppImage stays for distributions neither covers.
+      - name: Phase 2, the .deb and the .rpm (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q rpm
+          python packaging/build.py deb
+          python packaging/build.py rpm
+
       # Notarising the .dmg covers the signed .app inside it, and the stapled ticket lets
       # Gatekeeper accept it offline. A rejection prints Apple's log, which names the file.
       - name: macOS, sign, notarise and staple the disk image
@@ -350,9 +366,12 @@ jobs:
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
           rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/cert.p12"
 
-      # Release assets are single files: a disk image on macOS, the AppImage on Linux, and
-      # on Windows a portable zip holding the single-file vleapp.exe, under the name the
-      # docs and the tools that run it use. The names carry the platform and the
+      # Release assets are single files: a disk image on macOS, and on Windows a
+      # portable zip holding the single-file vleapp.exe, under the name the
+      # docs and the tools that run it use. Linux ships the AppImage plus the
+      # .deb and the .rpm under their own conventional names, which already
+      # carry the version and the architecture. The names carry the platform
+      # and the
       # architecture, because a reader cannot tell from "VLEAPP-2026.5.0.dmg" whether it
       # runs on their Mac. They are gathered
       # in release-assets/, not assets/ as in GLEAPP: VLEAPP's assets/ holds the window's
@@ -373,6 +392,7 @@ jobs:
               ;;
             Linux)
               mv "dist/VLEAPP-$VERSION.AppImage" "release-assets/$STEM.AppImage"
+              mv dist/vleapp_*.deb dist/vleapp-*.rpm release-assets/
               ;;
           esac
           ls -l release-assets/

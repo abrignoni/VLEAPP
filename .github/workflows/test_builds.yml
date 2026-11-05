@@ -2,7 +2,8 @@ name: Test builds
 
 # Builds VLEAPP with packaging/build.py on every platform and architecture it ships for,
 # runs what came out, builds what each platform ships (an installer on macOS and Linux,
-# the single-file executable on Windows), and uploads the lot. Nothing here
+# the single-file executable on Windows; Linux also wraps the folder build as a .deb
+# and an .rpm and installs the .deb once), and uploads the lot. Nothing here
 # is a release; release.yml runs the same steps when a version tag is pushed. It exists so
 # every platform's build is produced and actually executed, without anyone owning the
 # hardware.
@@ -120,6 +121,22 @@ jobs:
           python packaging/build.py installer
           ls -l dist/VLEAPP-*.AppImage
 
+      # The same folder build as system packages, and the .deb is installed once:
+      # that runs the installed /usr/bin/vleapp, which is what an examiner runs.
+      - name: Phase 2, the .deb and the .rpm (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q rpm
+          python packaging/build.py deb
+          python packaging/build.py rpm
+          dpkg-deb --info dist/vleapp_*.deb
+          sudo dpkg -i dist/vleapp_*.deb
+          vleapp --version
+          rpm -qip dist/vleapp-*.rpm
+          rpm -qlp dist/vleapp-*.rpm
+
       # The one-folder build, with Windows' single-file executable and Linux's AppImage.
       - name: Upload the build (Windows, Linux)
         if: runner.os != 'macOS'
@@ -130,6 +147,8 @@ jobs:
             dist/VLEAPP/
             dist/vleapp.exe
             dist/VLEAPP-*.AppImage
+            dist/vleapp_*.deb
+            dist/vleapp-*.rpm
           retention-days: 14
           if-no-files-found: error
 
