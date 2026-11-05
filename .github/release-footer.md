@@ -11,6 +11,17 @@
 | macOS, Intel | `-macos-x64.dmg` |
 | Linux, 64-bit Intel or AMD | `-linux-x64.AppImage` |
 | Linux on ARM | `-linux-arm64.AppImage` |
+| Debian/Ubuntu, 64-bit Intel or AMD | `vleapp_*_amd64.deb` |
+| Debian/Ubuntu on ARM | `vleapp_*_arm64.deb` |
+| Fedora/RHEL, 64-bit Intel or AMD | `vleapp-*.x86_64.rpm` |
+| Fedora/RHEL on ARM | `vleapp-*.aarch64.rpm` |
+| Arch | `vleapp-git` from the AUR (see below) |
+
+Or skip choosing and let the installer pick the file for this machine:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/abrignoni/VLEAPP/main/packaging/install.sh | bash
+```
 
 Every download holds one program, `vleapp`. Started without arguments, from the
 Applications folder or a double-click, it opens the window. Given arguments in a terminal,
@@ -25,7 +36,8 @@ are those of earlier releases, but there is no `vleappGUI` any more, since `vlea
 without arguments opens the window. On Windows the zip holds the whole program as one
 file, `vleapp.exe`, which can be put wherever the tool expects it; there is no installer.
 The executable inside the macOS app needs the folder it came in; on Linux the AppImage is
-the whole program.
+the whole program, while the .deb and the .rpm install `vleapp` onto `PATH`
+(`/usr/bin/vleapp`).
 
 **`vleapp.exe` on Windows** unpacks itself to a temporary folder each time it starts, so it
 takes a few seconds to start, and it does not run where a policy (AppLocker, WDAC) forbids
@@ -66,6 +78,16 @@ and compare it with the line in `SHA256SUMS.txt`, which is lower case.
 
 The build is made on Ubuntu 22.04, so it needs glibc 2.35 or newer and will not start on
 an older distribution.
+
+On Debian/Ubuntu, install the .deb (`sudo dpkg -i vleapp_*_amd64.deb`); on
+Fedora/RHEL, the .rpm (`sudo dnf install vleapp-*.x86_64.rpm`). Either puts `vleapp` on
+`PATH` with a launcher in the applications menu. On Arch, `vleapp-git` in the AUR builds
+the latest main branch, so it is always current:
+
+```bash
+yay -S vleapp-git
+yay -Syu --devel   # keep -git packages on the latest upstream commits
+```
 
 ## Code signing policy
 

@@ -10,6 +10,8 @@
     python packaging/build.py installer           phase 2: Windows -> dist/VLEAPP-Setup-<version>.exe (Inno Setup);
                                                   macOS -> dist/VLEAPP-<version>.dmg around dist/VLEAPP.app (dmgbuild);
                                                   Linux -> dist/VLEAPP-<version>.AppImage (appimagetool)
+    python packaging/build.py deb                 Linux: a .deb around the one-folder build in dist/VLEAPP/
+    python packaging/build.py rpm                 Linux: an .rpm around the one-folder build in dist/VLEAPP/
     python packaging/build.py installer --sign-tool NAME
                                                   phase 2, with Inno Setup signing the installer and the
                                                   uninstaller using the Sign Tool configured under NAME
@@ -70,6 +72,22 @@ DIST = ROOT / "dist"
 BUILD = ROOT / "build"
 APP = "VLEAPP"
 EXE = "vleapp"
+# The distributor shown in the Linux packages. A personal address would go stale with
+# the maintainer; the repository is where a user reports a packaging problem.
+MAINTAINER = "VLEAPP contributors <https://github.com/abrignoni/VLEAPP>"
+HOMEPAGE = "https://github.com/abrignoni/VLEAPP"
+SHORT_DESCRIPTION = "Vehicle Logs, Events, And Protobuf Parser"
+LONG_DESCRIPTION = (
+    "VLEAPP parses vehicle infotainment and telematics extractions and writes "
+    "an HTML and LAVA report. These packages ship the PyInstaller build, so no "
+    "Python installation is required."
+)
+LINUX_DESKTOP = PACKAGING / "linux" / "vleapp.desktop"
+# Debian and RPM architectures for this machine. The release assets name the
+# architecture the runner reports (x64, arm64); packages name what the package
+# manager expects (amd64/arm64, x86_64/aarch64).
+DEB_ARCHES = {"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "arm64"}
+RPM_ARCHES = {"x86_64": "x86_64", "amd64": "x86_64", "aarch64": "aarch64", "arm64": "aarch64"}
 # PyInstaller's default, named so the smoke test and the spec agree on where the
 # one-folder build keeps everything but the executable.
 CONTENTS = "_internal"
@@ -473,6 +491,176 @@ def _build_appimage() -> Path:
     return out
 
 
+# -- Linux system packages (.deb and .rpm) -------------------------------------------
+
+def linux_pkg_version(version: str) -> str:
+    """The upstream part of the .deb/.rpm version.
+
+    '-' separates the Debian revision and the RPM release from the version, so a
+    suffix such as -dev is written '~dev', which sorts before the release itself.
+    """
+    return version.replace("-", "~")
+
+
+def deb_arch(machine: str | None = None) -> str:
+    """The Debian architecture name for this machine."""
+    machine = (machine or platform.machine()).lower()
+    try:
+        return DEB_ARCHES[machine]
+    except KeyError:
+        sys.exit(f"build: no Debian architecture name for {machine}")
+
+
+def rpm_arch(machine: str | None = None) -> str:
+    """The RPM architecture name for this machine."""
+    machine = (machine or platform.machine()).lower()
+    try:
+        return RPM_ARCHES[machine]
+    except KeyError:
+        sys.exit(f"build: no RPM architecture name for {machine}")
+
+
+def stage_linux_payload(staging: Path) -> Path:
+    """Lay the one-folder build out as a Linux filesystem tree under staging/.
+
+    /opt/vleapp holds the build whole, /usr/bin/vleapp links to it, and the
+    window's .desktop file, icon and a copyright note go where the desktop and
+    the package managers expect them. Shared by the .deb and the .rpm so the
+    two install the same files.
+    """
+    folder = DIST / APP
+    if not (folder / EXE).is_file():
+        sys.exit(f"build: {folder / EXE} not found; run 'exe' first, the one-folder build "
+                 f"rather than --onefile, because the Linux packages wrap {folder}")
+    if not LINUX_DESKTOP.is_file():
+        sys.exit(f"build: {LINUX_DESKTOP} not found")
+    if staging.exists():
+        shutil.rmtree(staging)
+    opt = staging / "opt" / "vleapp"
+    shutil.copytree(folder, opt, symlinks=True)
+    (staging / "usr" / "bin").mkdir(parents=True)
+    (staging / "usr" / "bin" / EXE).symlink_to("/opt/vleapp/vleapp")
+    applications = staging / "usr" / "share" / "applications"
+    applications.mkdir(parents=True)
+    shutil.copyfile(LINUX_DESKTOP, applications / "vleapp.desktop")
+    icon_dir = staging / "usr" / "share" / "icons" / "hicolor" / "256x256" / "apps"
+    icon_dir.mkdir(parents=True)
+    shutil.copyfile(ICON_PNG, icon_dir / "vleapp.png")
+    doc = staging / "usr" / "share" / "doc" / "vleapp"
+    doc.mkdir(parents=True)
+    (doc / "copyright").write_text(
+        f"{APP} - {SHORT_DESCRIPTION}\n{HOMEPAGE}\n\n"
+        "MIT License, Copyright (c) 2020 Alexis Brignoni. See LICENSE in the\n"
+        "source distribution for the full text.\n",
+        encoding="utf-8",
+    )
+    return staging
+
+
+def _staging_size_kb(staging: Path) -> int:
+    total = 0
+    for path in (staging / "opt" / "vleapp").rglob("*"):
+        try:
+            if path.is_symlink() or path.is_file():
+                total += path.lstat().st_size
+        except OSError:
+            continue
+    return total // 1024 + 1
+
+
+def _build_deb() -> Path:
+    """A .deb around the one-folder build, made with dpkg-deb (Debian, Ubuntu)."""
+    if shutil.which("dpkg-deb") is None:
+        sys.exit("build: dpkg-deb not found; on Debian/Ubuntu it comes with the system")
+    staging = stage_linux_payload(BUILD / "deb-pkg")
+    version = linux_pkg_version(read_version())
+    arch = deb_arch()
+    debian = staging / "DEBIAN"
+    debian.mkdir()
+    description_lines = "\n".join(f" {line}" for line in LONG_DESCRIPTION.splitlines())
+    (debian / "control").write_text(
+        "\n".join((
+            "Package: vleapp",
+            f"Version: {version}",
+            f"Architecture: {arch}",
+            f"Maintainer: {MAINTAINER}",
+            "Section: utils",
+            "Priority: optional",
+            "Depends: libc6 (>= 2.35)",
+            f"Installed-Size: {_staging_size_kb(staging)}",
+            f"Homepage: {HOMEPAGE}",
+            f"Description: {SHORT_DESCRIPTION}",
+            description_lines,
+            "",
+        )),
+        encoding="utf-8",
+    )
+    out = DIST / f"vleapp_{version}_{arch}.deb"
+    if out.exists():
+        out.unlink()
+    run(["dpkg-deb", "--build", "--root-owner-group", str(staging), str(out)])
+    assert_artifact(out, "Debian package")
+    return out
+
+
+def _build_rpm() -> Path:
+    """An .rpm around the one-folder build, made with rpmbuild.
+
+    Needs rpmbuild: `sudo apt-get install rpm` on Debian/Ubuntu,
+    `sudo dnf install rpm-build` on Fedora/RHEL.
+    """
+    if shutil.which("rpmbuild") is None:
+        sys.exit("build: rpmbuild not found; install it with 'sudo apt-get install rpm' "
+                 "on Debian/Ubuntu or 'sudo dnf install rpm-build' on Fedora/RHEL")
+    staging = stage_linux_payload(BUILD / "rpm-pkg")
+    version = linux_pkg_version(read_version())
+    arch = rpm_arch()
+    topdir = BUILD / "rpm"
+    for sub in ("BUILD", "BUILDROOT", "RPMS", "SOURCES", "SPECS", "SRPMS"):
+        (topdir / sub).mkdir(parents=True, exist_ok=True)
+    spec = topdir / "SPECS" / "vleapp.spec"
+    spec.write_text(
+        "\n".join((
+            "Name: vleapp",
+            f"Version: {version}",
+            "Release: 1%{?dist}",
+            f"Summary: {SHORT_DESCRIPTION}",
+            "License: MIT",
+            f"URL: {HOMEPAGE}",
+            f"BuildArch: {arch}",
+            "Requires: glibc >= 2.35",
+            "# A self-contained PyInstaller bundle: nothing is compiled here and there",
+            "# is no -debuginfo to carve out of /opt.",
+            "%define debug_package %{nil}",
+            "AutoReqProv: no",
+            "",
+            "%description",
+            LONG_DESCRIPTION.replace("\n", " "),
+            "",
+            "%install",
+            "cp -a '@STAGING@'/opt '%{buildroot}/'",
+            "cp -a '@STAGING@'/usr '%{buildroot}/'",
+            "",
+            "%files",
+            "/opt/vleapp",
+            "/usr/bin/vleapp",
+            "/usr/share/applications/vleapp.desktop",
+            "/usr/share/icons/hicolor/256x256/apps/vleapp.png",
+            "/usr/share/doc/vleapp/copyright",
+            "",
+        )).replace("@STAGING@", str(staging)),
+        encoding="utf-8",
+    )
+    run(["rpmbuild", "-bb", "--define", f"_topdir {topdir}", str(spec)])
+    built = sorted((topdir / "RPMS").rglob(f"vleapp-{version}-1*.{arch}.rpm"))
+    if not built:
+        sys.exit("build: rpmbuild produced no .rpm")
+    out = DIST / built[0].name
+    shutil.copyfile(built[0], out)
+    assert_artifact(out, "RPM package")
+    return out
+
+
 # -- verify ------------------------------------------------------------------------------
 
 def _signature(path: Path) -> tuple[bool, str, bool, str]:
@@ -643,6 +831,8 @@ def main(argv: list[str] | None = None) -> int:
                                          "or AppImage (Linux)")
     p.add_argument("--sign-tool", metavar="NAME",
                    help="Inno Setup Sign Tool name; signs the installer and the uninstaller")
+    p = sub.add_parser("deb", help="Linux: wrap the one-folder build as a .deb")
+    p = sub.add_parser("rpm", help="Linux: wrap the one-folder build as an .rpm")
     p = sub.add_parser("all", help="both phases, unsigned")
     p.add_argument("--onefile", action="store_true", help=argparse.SUPPRESS)
     p.add_argument("--sign-tool", metavar="NAME", help=argparse.SUPPRESS)
@@ -666,6 +856,10 @@ def main(argv: list[str] | None = None) -> int:
         return smoke(args.onefile)
     elif args.cmd == "installer":
         build_installer(args.sign_tool)
+    elif args.cmd == "deb":
+        _build_deb()
+    elif args.cmd == "rpm":
+        _build_rpm()
     elif args.cmd == "all":
         build_exe(False, args.clean)
         build_installer(None)

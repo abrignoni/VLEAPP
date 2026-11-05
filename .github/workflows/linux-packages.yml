@@ -1,0 +1,103 @@
+name: Linux packages
+
+# Guards the Linux distribution packaging without building VLEAPP itself: the
+# one-line installer, the AUR package, and the .deb/.rpm driver code, which is
+# exercised against a fake folder build, so this finishes in seconds.
+#
+# The .deb, the .rpm and the AppImage are built for real, from the PyInstaller
+# folder build, in test_builds.yml (every PR touching packaging) and attached
+# to the release in release.yml.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'packaging/build.py'
+      - 'packaging/install.sh'
+      - 'packaging/linux/**'
+      - 'packaging/aur/**'
+      - 'admin/test/scripts/test_packaging_build.py'
+      - '.github/workflows/linux-packages.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - name: Shell syntax of the installer and the PKGBUILD
+        shell: bash
+        run: |
+          bash -n packaging/install.sh
+          bash -n packaging/aur/vleapp-git/PKGBUILD
+          bash packaging/install.sh --help > /dev/null
+          if bash packaging/install.sh --bogus-flag 2>/dev/null; then
+            echo "::error::install.sh accepts an unknown flag"
+            exit 1
+          fi
+
+      - name: The .desktop entry is valid
+        shell: bash
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q desktop-file-utils rpm
+          desktop-file-validate packaging/linux/vleapp.desktop
+
+      - name: Driver and packaging tests compile
+        shell: bash
+        run: |
+          python -m py_compile packaging/build.py admin/test/scripts/test_packaging_build.py
+
+      # Fake folder build, real dpkg-deb and rpmbuild: what is checked is the
+      # driver's staging, naming and metadata, not PyInstaller.
+      - name: The .deb and .rpm driver tests
+        shell: bash
+        run: python -m unittest admin.test.scripts.test_packaging_build.TestLinuxPackages -v
+
+      # .SRCINFO is generated, never edited: it must carry the same fields as
+      # the PKGBUILD. Regenerate it with `makepkg --printsrcinfo` in
+      # packaging/aur/vleapp-git/ (see packaging/aur/README.md).
+      - name: The committed .SRCINFO matches the PKGBUILD
+        shell: bash
+        run: |
+          python - <<'EOF'
+          import pathlib
+          import re
+          import sys
+
+          base = pathlib.Path('packaging/aur/vleapp-git')
+          pkg = (base / 'PKGBUILD').read_text(encoding='utf-8')
+          src = (base / '.SRCINFO').read_text(encoding='utf-8')
+          failures = []
+
+          def scalar(field):
+              m = re.search(rf'^{field}=(.+)$', pkg, re.M)
+              n = re.search(rf'^\s*{field} = (.+)$', src, re.M)
+              if not m or not n or n.group(1).strip() != m.group(1).strip().strip('\'"'):
+                  failures.append(field)
+
+          def array(field):
+              m = re.search(rf'^{field}=\((.*?)\)$', pkg, re.M | re.S)
+              want = sorted(re.findall(r"'([^']+)'", m.group(1))) if m else []
+              got = [line.strip() for line in re.findall(rf'^\s*{field} = (.+)$', src, re.M)]
+              if want != sorted(got):
+                  failures.append(f'{field}: PKGBUILD {want} != .SRCINFO {got}')
+
+          for field in ('pkgname', 'pkgver', 'pkgrel', 'pkgdesc', 'url'):
+              scalar(field)
+          for field in ('arch', 'license', 'depends', 'makedepends', 'optdepends',
+                        'provides', 'conflicts', 'source', 'sha256sums'):
+              array(field)
+
+          if failures:
+              print(f'::error::.SRCINFO is out of sync with the PKGBUILD: {failures}')
+              sys.exit(1)
+          print('.SRCINFO matches the PKGBUILD')
+          EOF

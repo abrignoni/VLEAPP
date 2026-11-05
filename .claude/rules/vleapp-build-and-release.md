@@ -146,13 +146,30 @@ upscaling the 1x brings the blur back.
 Linux (x64 and ARM64): the folder build and an AppImage, made by appimagetool 1.9.1 with the
 type2 runtime 20251108, both pinned by digest in `build.py` and run with
 `APPIMAGE_EXTRACT_AND_RUN` so the build machine needs no FUSE. The finished AppImage is run
-once and has to report the version. Linux builds are made on Ubuntu 22.04 for its glibc
-2.35. `test_builds.yml` builds and smoke-tests all six legs weekly, on dispatch, and on pull
-requests that touch packaging.
+once and has to report the version. `python packaging/build.py deb` and `python
+packaging/build.py rpm` wrap the same folder build as system packages: `/opt/vleapp`
+holding the build whole, `/usr/bin/vleapp` linking to it, the window's `.desktop` file
+from `packaging/linux/vleapp.desktop`, the icon and a copyright note. A `-dev` suffix is
+written `~dev`, which sorts before the release, since `-` separates the Debian revision
+and the RPM release. Linux builds are made on Ubuntu 22.04 for its glibc
+2.35, which the packages require. `test_builds.yml` builds and smoke-tests all six legs weekly, on dispatch, and on pull
+requests that touch packaging; on Linux it also builds both packages, installs the .deb
+once and runs the installed `vleapp --version`, and lists the .rpm's files.
+`packaging/aur/vleapp-git/` is the AUR package. It is a `-git` package on purpose: it
+builds the main branch, and `pkgver()` recomputes the version from
+`scripts/version_info.py` plus the commit at build time, so it is always the latest with
+nothing to bump on release. Never edit its `.SRCINFO` by hand; it is
+`makepkg --printsrcinfo` output, and `linux-packages.yml` checks the two agree.
+`packaging/install.sh` is the one-line installer: it resolves the latest release (or
+`--ref`), picks the asset for the machine, checks it against `SHA256SUMS.txt` and
+installs it. The footer and the README point at it.
 
 `release.yml` runs the same steps when a `v*` tag is pushed, refuses a tag that is not
 `v` + `vleapp_version`, names the assets `VLEAPP-<version>-<platform>-<arch>`
-(portable.zip on Windows, .dmg on macOS, .AppImage on Linux; no Linux .tar.gz), stages
+(portable.zip on Windows, .dmg on macOS, .AppImage on Linux; the .deb and the .rpm keep
+their own conventional names, `vleapp_<version>_<arch>.deb` and
+`vleapp-<version>-1.<arch>.rpm`, which already carry the version and the architecture;
+no Linux .tar.gz), stages
 them in `release-assets/` (never `assets/`, which holds the window's images), adds
 `SHA256SUMS.txt`, and creates a **draft** release; publishing is a click. Dispatched by
 hand, it builds the assets without creating a release. `.github/release-footer.md` is

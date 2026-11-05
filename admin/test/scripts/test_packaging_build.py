@@ -23,6 +23,7 @@ import importlib.util
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -235,7 +236,8 @@ class TestDriver(unittest.TestCase):
     def test_every_installer_needs_the_folder_build_from_phase_one(self):
         with tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.object(self.driver, 'DIST', pathlib.Path(tmp) / 'dist'):
-            for build in ('_build_inno', '_build_dmg', '_build_appimage'):
+            for build in ('_build_inno', '_build_dmg', '_build_appimage', '_build_deb',
+                          '_build_rpm'):
                 with self.subTest(installer=build), self.assertRaises(SystemExit) as caught:
                     getattr(self.driver, build)(*([None] if build == '_build_inno' else []))
                 self.assertIn("run 'exe' first", str(caught.exception))
@@ -519,6 +521,97 @@ class TestAppImage(unittest.TestCase):
             self.assertTrue((appdir / 'vleapp.desktop').is_file())
             self.assertTrue((appdir / 'vleapp.png').is_file())
             self.assertEqual((appdir / '.DirIcon').resolve(), (appdir / 'vleapp.png').resolve())
+
+
+class TestLinuxPackages(unittest.TestCase):
+    """The .deb and the .rpm wrap the same one-folder build the AppImage does."""
+
+    def setUp(self):
+        self.driver = _load_driver()
+
+    def test_a_dev_suffix_sorts_before_the_release_in_both_package_managers(self):
+        """'-' separates the Debian revision and the RPM release, so it cannot be
+        part of the version; '~' sorts before the release itself."""
+        self.assertEqual(self.driver.linux_pkg_version('2026.4.6-dev'), '2026.4.6~dev')
+        self.assertEqual(self.driver.linux_pkg_version('2026.4.6'), '2026.4.6')
+
+    def test_the_architecture_names_are_the_package_managers(self):
+        for machine, deb, rpm in (('x86_64', 'amd64', 'x86_64'),
+                                  ('AMD64', 'amd64', 'x86_64'),
+                                  ('aarch64', 'arm64', 'aarch64'),
+                                  ('arm64', 'arm64', 'aarch64')):
+            with self.subTest(machine=machine):
+                self.assertEqual(self.driver.deb_arch(machine), deb)
+                self.assertEqual(self.driver.rpm_arch(machine), rpm)
+        with self.assertRaises(SystemExit):
+            self.driver.deb_arch('riscv64')
+        with self.assertRaises(SystemExit):
+            self.driver.rpm_arch('riscv64')
+
+    def _fake_folder_build(self, dist):
+        folder = dist / 'VLEAPP'
+        (folder / '_internal').mkdir(parents=True)
+        (folder / 'vleapp').write_text('the executable')
+        (folder / '_internal' / 'lib').write_text('its libraries')
+        return folder
+
+    @unittest.skipIf(sys.platform == 'win32', 'the payload carries symlinks')
+    def test_both_packages_install_the_same_tree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = pathlib.Path(tmp)
+            with mock.patch.object(self.driver, 'DIST', tmp_path / 'dist'):
+                self._fake_folder_build(tmp_path / 'dist')
+                staging = self.driver.stage_linux_payload(tmp_path / 'staging')
+            self.assertTrue((staging / 'opt' / 'vleapp' / 'vleapp').is_file())
+            self.assertTrue((staging / 'opt' / 'vleapp' / '_internal' / 'lib').is_file())
+            link = staging / 'usr' / 'bin' / 'vleapp'
+            self.assertTrue(link.is_symlink())
+            self.assertEqual(os.readlink(link), '/opt/vleapp/vleapp')
+            desktop = (staging / 'usr' / 'share' / 'applications' / 'vleapp.desktop')
+            self.assertIn('Exec=vleapp', desktop.read_text(encoding='utf-8').splitlines())
+            self.assertTrue((staging / 'usr' / 'share' / 'icons' / 'hicolor' / '256x256'
+                             / 'apps' / 'vleapp.png').is_file())
+            self.assertTrue((staging / 'usr' / 'share' / 'doc' / 'vleapp'
+                             / 'copyright').is_file())
+
+    @unittest.skipIf(shutil.which('dpkg-deb') is None, 'dpkg-deb makes the .deb')
+    @unittest.skipIf(sys.platform == 'win32', 'the payload carries symlinks')
+    def test_the_deb_names_the_package_version_and_architecture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = pathlib.Path(tmp)
+            with mock.patch.object(self.driver, 'DIST', tmp_path / 'dist'), \
+                    mock.patch.object(self.driver, 'BUILD', tmp_path / 'build'):
+                self._fake_folder_build(tmp_path / 'dist')
+                out = self.driver._build_deb()
+            fields = subprocess.run(['dpkg-deb', '-f', str(out), 'Package', 'Version',
+                                     'Architecture'], capture_output=True, text=True,
+                                    check=True).stdout.splitlines()
+            values = [line.split(': ', 1)[1] for line in fields]
+            version = self.driver.linux_pkg_version(self.driver.read_version())
+            self.assertEqual(values, ['vleapp', version, self.driver.deb_arch()])
+            contents = subprocess.run(['dpkg-deb', '-c', str(out)], capture_output=True,
+                                      text=True, check=True).stdout
+            for path in ('./opt/vleapp/vleapp', './usr/bin/vleapp',
+                         './usr/share/applications/vleapp.desktop'):
+                self.assertIn(path, contents)
+
+    @unittest.skipIf(shutil.which('rpmbuild') is None, 'rpmbuild makes the .rpm')
+    @unittest.skipIf(sys.platform == 'win32', 'the payload carries symlinks')
+    def test_the_rpm_lists_the_same_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = pathlib.Path(tmp)
+            with mock.patch.object(self.driver, 'DIST', tmp_path / 'dist'), \
+                    mock.patch.object(self.driver, 'BUILD', tmp_path / 'build'):
+                self._fake_folder_build(tmp_path / 'dist')
+                out = self.driver._build_rpm()
+            self.assertTrue(out.name.startswith('vleapp-'))
+            self.assertTrue(out.name.endswith(f'.{self.driver.rpm_arch()}.rpm'))
+            listed = subprocess.run(['rpm', '-qlp', str(out)], capture_output=True,
+                                    text=True, check=False).stdout.splitlines()
+            for path in ('/opt/vleapp/vleapp', '/usr/bin/vleapp',
+                         '/usr/share/applications/vleapp.desktop',
+                         '/usr/share/icons/hicolor/256x256/apps/vleapp.png'):
+                self.assertIn(path, listed)
 
 
 if __name__ == '__main__':
