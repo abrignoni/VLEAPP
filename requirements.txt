@@ -5,6 +5,7 @@ msgpack==1.2.3
 openpyxl
 packaging>=24.0
 pillow
+pillow-heif==1.8.1
 PyCryptodome
 PyPDF2
 pytz
