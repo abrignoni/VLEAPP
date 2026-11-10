@@ -18,6 +18,7 @@ embedded phone artifact names, and binary vifdata.dat and occ.dat files, which a
 structures with no framing this module can check and are not read.
 """
 
+import bisect
 import os
 import re
 import sqlite3
@@ -138,52 +139,77 @@ __artifacts_v2__ = {
                        "and longitude of each report and the elevation, speed, course, "
                        "dilution of precision and satellite count stored with it.",
         "author": "@AlexisBrignoni, Claude",
-        "version": "0.3",
+        "version": "0.4",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-11-10",
         "requirements": "none",
         "category": "GM OnStar LG",
-        "notes": "From the GPSRegularReport sections of the state files under var/sysinfo and "
-                 "of the module's raw flash image, DiskImages/NORimage.bin, when the "
-                 "extraction carries it. Tested on two generation 10 units: a 2016 Chevrolet "
-                 "Cruze and a 2017 Buick Encore. A state file is text of [section] and "
-                 "key=value lines that opens with a [*] section and ends at an end-of-file "
-                 "byte. The extraction also holds 65,535-byte copies of these files in which "
-                 "several such documents, of that file or of another, follow one another; "
-                 "every document in every .dat file is read, each from its [*] line to its end "
-                 "byte. A row found in more than one document is reported once, with Times "
-                 "Found, and Source File and Document Offset say where it was first read. The "
-                 "current gps.dat holds ten reports. Reading the embedded documents in the "
-                 "files gave 111 distinct reports on the Cruze and 64 on the Encore, and "
-                 "reading the flash image as well gave 1,139 and 541. The image holds the same "
-                 "documents with no file system around them, including ones the file system "
-                 "has released. Timestamp is built from the report's utc_year to utc_sec keys, "
-                 "with the fraction of a second dropped, and is UTC: on 1,679 of the 1,680 "
-                 "tested reports the report's own GPS week and time of week, converted to a "
-                 "date, was between 18 and 19 seconds ahead of that reading, and 18 seconds is "
-                 "the GPS to UTC offset in force since 2017. Latitude and Longitude are the "
-                 "stored eight-byte values divided by 10,000,000. That scale is derived by "
-                 "comparison: on the Encore an independent parse of the same unit listed 541 "
-                 "points, the same 541 timestamps read here, and every position agreed to "
-                 "within 0.000001 degree. Elevation, Speed Over Ground and Course Over Ground "
-                 "are shown as stored because their units are not established here. Reports "
-                 "whose latitude and longitude are both zero are left out. The other keys of "
-                 "each report (variances, velocity vectors, fix flags) are not surfaced. Rows "
-                 "are sorted newest first. A report records where the module's receiver placed "
-                 "itself at that time. It does not establish who was in the vehicle. "
-                 "Generation 9 units have no gps.dat; their positions are in the GPS Track "
-                 "artifact. The flash image itself can be the input, as a raw image: the files "
-                 "are then read from the image's EFS partitions, where a partition can sit "
-                 "without the var or obn folder in front of its paths, and from the deleted "
-                 "files the reader recovers, matched under $Deleted. Source File then starts "
-                 "with the volume and names the $Deleted folder for a deleted file. A row "
-                 "found in both a live and a deleted file is listed once, under the file read "
-                 "first, which can be the deleted one. The image is then not scanned as a "
-                 "whole, only its live and deleted files are read. Rows from the flash image "
-                 "against rows from the extracted file set: xtrmp_item081 1,126 rows (1,120 "
-                 "with a deleted file as Source File) against 1,139, 1 not in the file set and "
-                 "14 of the file set not among them; xtrmp_item115 541 rows (538 with a "
-                 "deleted file as Source File) against 541.",
+        "notes": "From the GPSRegularReport sections of the state files under var/sysinfo and of "
+                 "the module's raw flash image, DiskImages/NORimage.bin, when the extraction "
+                 "carries it. Tested on two generation 10 units: a 2016 Chevrolet Cruze and a "
+                 "2017 Buick Encore. A state file is text of [section] and key=value lines that "
+                 "opens with a [*] section. The text ends at a 0x1A byte, and four more bytes "
+                 "follow it in the live files read here. The extraction also holds 65,535-byte "
+                 "copies of these files in which several such documents, of that file or of "
+                 "another, follow one another; every document in every .dat file is read, each "
+                 "from its [*] line to its end byte. A report found more than once is reported "
+                 "once, with Times Found, and Source File, Section and Offset say where it was "
+                 "first read: for a document, Section is its GPSRegularReport header and Offset "
+                 "the byte offset of its [*] line. The live gps.dat read from the flash image "
+                 "held ten reports on both units. Reading the embedded documents in the files "
+                 "gave 111 distinct reports on the Cruze and 64 on the Encore, and reading the "
+                 "flash image as well, fragments included, gave 1,141 and 541. The image holds "
+                 "the same documents with no file system around them, including ones the file "
+                 "system has released. Reports are also read from fragments: a run of key=value "
+                 "lines outside every document that holds lat, lon and gps_tow, where no [*] "
+                 "opening comes before it in the same run of text, and sometimes no "
+                 "GPSRegularReport header either. Why the opening is missing is not established "
+                 "here. Read From says Document or Fragment. For a fragment, Section is the "
+                 "header on the line before it when that line is a GPSRegularReport header and "
+                 "is blank otherwise, and Offset is the byte offset of its first key line. A "
+                 "fragment holds only the keys found in its run, so a column can be blank on its "
+                 "row. One document report on the Cruze is also short of keys and has a blank "
+                 "Timestamp, Speed Over Ground and Satellites Used. A fragment with the same "
+                 "time, position, GPS week and time of week as a report already listed adds to "
+                 "that row's Times Found and adds no row. On the Cruze, 6 fragments in the flash "
+                 "image and 6 in the files gave 2 reports found in no document, one with its "
+                 "header and one without. An independent parse of the Cruze listed 1,140 "
+                 "distinct point times (1,194 point lines), the same 1,140 timestamps read here "
+                 "(one further row here has a blank Timestamp), and the 2 fragment reports are "
+                 "among them at positions within 0.00001 degree of that parse's. Without "
+                 "fragments 2 of its times were missing here. No fragment was found on the "
+                 "Encore, so there Read From held Document on all 541 rows. Timestamp is built "
+                 "from the report's utc_year to utc_sec keys, with the fraction of a second "
+                 "dropped, and is UTC: on all 1,681 reports that have a Timestamp, the report's "
+                 "own GPS week and time of week, converted to a date, was between 18 and 19 "
+                 "seconds ahead of that reading, and 18 seconds is the GPS to UTC offset in "
+                 "force since 2017. The one report with a blank Timestamp could not be compared. "
+                 "Latitude and Longitude are the stored eight-byte values divided by 10,000,000. "
+                 "That scale is derived by comparison: on the Encore an independent parse of the "
+                 "same unit listed 541 points, the same 541 timestamps read here, and every "
+                 "position agreed to within 0.000001 degree. Elevation is the stored text. Speed "
+                 "Over Ground, Course Over Ground and HDOP are the stored four bytes read as a "
+                 "little-endian float. No unit or scale is applied because none is established "
+                 "here. Reports whose latitude and longitude are both zero are left out. The "
+                 "other keys of each report (variances, velocity vectors, fix flags) are not "
+                 "surfaced. Rows are sorted newest first. A report records where the module's "
+                 "receiver placed itself at that time. It does not establish who was in the "
+                 "vehicle. Generation 9 units have no gps.dat; their positions are in the GPS "
+                 "Track artifact. The flash image itself can be the input, as a raw image: the "
+                 "files are then read from the image's EFS partitions (a partition can sit "
+                 "without the var or obn folder in front of its paths, which was not seen on "
+                 "these two units), and from the deleted files the reader recovers, matched "
+                 "under $Deleted. Source File then starts with the volume and names the $Deleted "
+                 "folder for a deleted file. A row found in both a live and a deleted file is "
+                 "listed once, under the file read first, which can be the deleted one. The "
+                 "image is then not scanned as a whole, only its live and deleted files are "
+                 "read. Rows from the flash image against rows from the extracted file set: "
+                 "xtrmp_item081 1,126 rows (1,120 with a deleted file as Source File) against "
+                 "1,141, 1 not in the file set and 16 of the file set not among them, the 5 "
+                 "fragments in its deleted files all matching reports already listed; "
+                 "xtrmp_item115 541 rows (538 with a deleted file as Source File) against 541. "
+                 "In both raw image runs each report was first read from a document at the start "
+                 "of its own file, so there Offset held 0 on all rows.",
         "paths": ('*/sysinfo/*.dat*', '*/DiskImages/NORimage.bin',
                   '*/$Deleted/*/*.dat.deleted-*'),
         "sample_data": {
@@ -196,7 +222,7 @@ __artifacts_v2__ = {
             "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, extracted file set | 0 rows, no "
                              "gps.dat on generation 9",
             "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, acquisition folder with "
-                             "flash image | 1139 rows",
+                             "flash image | 1141 rows",
             "xtrmp_item115": "2017 Buick Encore, OnStar Gen10 | 541 rows",
         },
         "output_types": "all",
@@ -1088,56 +1114,134 @@ def _number(text, fmt):
     return struct.unpack(fmt, raw)[0]
 
 
-def _sectioned_documents(context):
-    """(file, offset, sections) for every document in every distinct .dat file."""
+def _sectioned_files(context):
+    """(file, data) for every distinct .dat file and flash image."""
     files = [f for f in _regular_files(context)
              if _base_name(f).endswith('.dat') or _base_name(f) == 'NORimage.bin']
     for file_found, data, _copies in _distinct(files):
+        yield file_found, data
+
+
+def _sectioned_documents(context):
+    """(file, offset, sections) for every document in every distinct .dat file."""
+    for file_found, data in _sectioned_files(context):
         for offset, sections in _documents(data):
             yield file_found, offset, sections
+
+
+def _document_spans(data):
+    """(start, end) of each document _documents reads: its [*] line to its end byte."""
+    starts = [match.start() for match in re.finditer(rb'\[\*\]\r\n', data)]
+    spans = []
+    for index, start in enumerate(starts):
+        end = starts[index + 1] if index + 1 < len(starts) else len(data)
+        stop = data.find(b'\x1a', start, end)
+        spans.append((start, stop if stop != -1 else end))
+    return spans
+
+
+# A run of key=value lines that starts a line. A [section] line has no '=' and ends a run.
+_KEY_RUN = re.compile(rb'(?:(?<=\n)|^)(?:[A-Za-z_][A-Za-z0-9_]*=[^\r\n\x1a]*(?:\r\n|$))+')
+_GPS_HEADER = re.compile(rb'\[(GPSRegularReport\d+)\]\r\n$')
+
+
+def _gps_fragments(data):
+    """GPS report key runs outside every document, as (offset, section, {key: value}).
+
+    These are reports whose document opening was overwritten, so _documents never sees
+    them. A run counts as a report only when it holds lat, lon and gps_tow. Section is the
+    GPSRegularReport header on the line before the run when that line survives, else ''.
+    """
+    spans = _document_spans(data)
+    starts = [start for start, _end in spans]
+    fragments = []
+    for match in _KEY_RUN.finditer(data):
+        offset = match.start()
+        index = bisect.bisect_right(starts, offset) - 1
+        if index >= 0 and offset < spans[index][1]:
+            continue
+        values = {}
+        for line in match.group(0).decode('latin-1').split('\r\n'):
+            if '=' in line:
+                key, value = line.split('=', 1)
+                values[key] = value
+        if not {'lat', 'lon', 'gps_tow'} <= values.keys():
+            continue
+        header = _GPS_HEADER.search(data[max(0, offset - 64):offset])
+        section = header.group(1).decode('ascii') if header else ''
+        fragments.append((offset, section, values))
+    return fragments
+
+
+def _gps_row(values):
+    """The report's row values, or None when it holds no position."""
+    latitude = _number(values.get('lat'), '<d')
+    longitude = _number(values.get('lon'), '<d')
+    if latitude is None or longitude is None or not (latitude or longitude):
+        return None
+    seconds = _number(values.get('utc_sec'), '<f')
+    try:
+        stamp = datetime(int(values['utc_year']), int(values['utc_month']),
+                         int(values['utc_day']), int(values['utc_hour']),
+                         int(values['utc_min']),
+                         int(seconds or 0)).strftime('%Y-%m-%d %H:%M:%S')
+    except (KeyError, ValueError, OverflowError):
+        stamp = ''
+    return (stamp, round(latitude / 1e7, 7), round(longitude / 1e7, 7),
+            values.get('elevation', ''), _number(values.get('sog'), '<f'),
+            _number(values.get('cog'), '<f'), _number(values.get('hdop'), '<f'),
+            values.get('sv_used_cnt', ''), values.get('gps_week', ''),
+            values.get('gps_tow', ''))
+
+
+def _report_identity(row):
+    """Time, position, GPS week and time of week: what a fragment shares with its report."""
+    return row[0], row[1], row[2], row[8], row[9]
 
 
 @artifact_processor
 def gm_onstar_lg_gps_reports(context):
     rows = {}
+    identities = {}
     source_paths = []
+
+    def add(row, file_found, read_from, section, offset):
+        # A document row merges only with an identical row, as before. A fragment can be
+        # missing keys a full copy holds, so it merges with any report of the same identity.
+        if read_from == 'Document':
+            key = row if row in rows else None
+        else:
+            key = identities.get(_report_identity(row))
+        if key is not None:
+            rows[key][0] += 1
+            return
+        rows[row] = [1, read_from, section, offset, file_found]
+        identities.setdefault(_report_identity(row), row)
+        if file_found not in source_paths:
+            source_paths.append(file_found)
+
     for file_found, offset, sections in _sectioned_documents(context):
         for section, values in sections.items():
-            index = re.fullmatch(r'GPSRegularReport(\d+)', section)
-            if not index:
+            if not re.fullmatch(r'GPSRegularReport\d+', section):
                 continue
-            latitude = _number(values.get('lat'), '<d')
-            longitude = _number(values.get('lon'), '<d')
-            if latitude is None or longitude is None or not (latitude or longitude):
-                continue
-            seconds = _number(values.get('utc_sec'), '<f')
-            try:
-                stamp = datetime(int(values['utc_year']), int(values['utc_month']),
-                                 int(values['utc_day']), int(values['utc_hour']),
-                                 int(values['utc_min']),
-                                 int(seconds or 0)).strftime('%Y-%m-%d %H:%M:%S')
-            except (KeyError, ValueError, OverflowError):
-                stamp = ''
-            row = (stamp, round(latitude / 1e7, 7), round(longitude / 1e7, 7),
-                   values.get('elevation', ''), _number(values.get('sog'), '<f'),
-                   _number(values.get('cog'), '<f'), _number(values.get('hdop'), '<f'),
-                   values.get('sv_used_cnt', ''), values.get('gps_week', ''),
-                   values.get('gps_tow', ''))
-            if row in rows:
-                rows[row][0] += 1
-            else:
-                rows[row] = [1, file_found, offset]
-                if file_found not in source_paths:
-                    source_paths.append(file_found)
-    data_list = [row + (found[0], found[2], context.get_relative_path(found[1]))
+            row = _gps_row(values)
+            if row is not None:
+                add(row, file_found, 'Document', section, offset)
+    for file_found, data in _sectioned_files(context):
+        for offset, section, values in _gps_fragments(data):
+            row = _gps_row(values)
+            if row is not None:
+                add(row, file_found, 'Fragment', section, offset)
+
+    data_list = [row + tuple(found[:4]) + (context.get_relative_path(found[4]),)
                  for row, found in rows.items()]
     data_list.sort(key=lambda row: row[0], reverse=True)
 
     data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude',
                     'Elevation (as stored)', 'Speed Over Ground (as stored)',
-                    'Course Over Ground (as stored)', 'HDOP', 'Satellites Used',
+                    'Course Over Ground (as stored)', 'HDOP (as stored)', 'Satellites Used',
                     'GPS Week', 'GPS Time Of Week (as stored)', 'Times Found',
-                    'Document Offset', 'Source File')
+                    'Read From', 'Section', 'Offset', 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
