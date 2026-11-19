@@ -435,7 +435,8 @@ __artifacts_v2__ = {
         "notes": "From var/sysinfo/gps.dat on generation 9, a binary file of 831 bytes: an "
                  "8-byte header, ten 80-byte slots and the tag <SysInfo1.00> at offset 816. A "
                  "file without that size and tag is logged and not read. Tested on one "
-                 "generation 9 unit, read from its chip-off flash image as raw input and from "
+                 "generation 9 unit, from a 2015 Chevrolet Traverse, read from its chip-off "
+                 "flash image as raw input and from "
                  "the file set qnxprobe extracted from the same image. In each slot, from its "
                  "start: the year as two bytes, then month, day, hour and minute, two bytes "
                  "not read, the seconds as a four-byte float, latitude and longitude as "
@@ -489,8 +490,8 @@ __artifacts_v2__ = {
                  "vehicle, and speeds are not stored: any speed is derived between fixes.",
         "paths": ('*/sysinfo/gps.dat*', '*/$Deleted/*/gps.dat.deleted-*'),
         "sample_data": {
-            "burgers_n_bytes_item001": "OnStar Gen9, chip-off flash image as raw input | "
-                                       "412 rows",
+            "burgers_n_bytes_item001": "2015 Chevrolet Traverse, OnStar Gen9, chip-off flash "
+                                       "image as raw input | 412 rows",
         },
         "output_types": "all",
         "artifact_icon": "map-pin",
