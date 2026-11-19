@@ -426,7 +426,7 @@ __artifacts_v2__ = {
                        "var/sysinfo/gps.dat, with the time from each fix's GPS week and time "
                        "of week, the date and time stored beside it, and the latitude and "
                        "longitude.",
-        "author": "@AlexisBrignoni, Claude",
+        "author": "@burgers-n-bytes, Claude",
         "version": "0.1",
         "creation_date": "2026-11-19",
         "last_update_date": "2026-11-19",
@@ -478,18 +478,19 @@ __artifacts_v2__ = {
                  "first. Slots that do not hold a real date, a GPS week from 1024 to 4095 and "
                  "a position within range and not zero are left out and counted in the log; "
                  "none were on the tested unit. Rows from the flash image against rows from "
-                 "the extracted file set: onstar_gen9_chipoff_01 412 rows (from 2 live and 98 "
+                 "the extracted file set: burgers_n_bytes_item001 412 rows (from 2 live and 98 "
                  "deleted copies) against 10, the 10 among them. The 412 equal the distinct "
                  "fixes an independent byte scan of the whole image found, with none missing "
                  "on either side. On the tested unit fixes were mostly 14 to 16 seconds apart "
-                 "while the position changed and further apart otherwise, and copies the reader does not recover are not "
-                 "read, so gaps between rows are expected. A fix records where the module's "
+                 "while the position changed and further apart otherwise, and copies the "
+                 "reader does not recover are not read, so gaps between rows are expected. A "
+                 "fix records where the module's "
                  "receiver placed itself at that time. It does not establish who was in the "
                  "vehicle, and speeds are not stored: any speed is derived between fixes.",
         "paths": ('*/sysinfo/gps.dat*', '*/$Deleted/*/gps.dat.deleted-*'),
         "sample_data": {
-            "onstar_gen9_chipoff_01": "OnStar Gen9, chip-off flash image as raw input | 412 "
-                                      "rows",
+            "burgers_n_bytes_item001": "OnStar Gen9, chip-off flash image as raw input | "
+                                       "412 rows",
         },
         "output_types": "all",
         "artifact_icon": "map-pin",
