@@ -6,6 +6,7 @@ generations keep different files under the same var/ tree:
 
     Generation 9   var/sysinfo/BT.dat         five fixed Bluetooth device slots
                    var/BTfeature/phoneNN.pb   one self-describing phonebook per slot
+                   var/sysinfo/gps.dat        ten binary GPS fix slots, rewritten in place
                    obn/storage/gps            20-byte position records, one per second
                    obn/storage/flight         the turn-by-turn navigation text log
                    obn/storage/ViamotoRoute.mem   a downloaded route: destination and maneuvers
@@ -19,11 +20,12 @@ structures with no framing this module can check and are not read.
 """
 
 import bisect
+import math
 import os
 import re
 import sqlite3
 import struct
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from scripts.ilapfuncs import (artifact_processor, device_info, logfunc,
                                open_sqlite_db_readonly)
@@ -194,8 +196,10 @@ __artifacts_v2__ = {
                  "other keys of each report (variances, velocity vectors, fix flags) are not "
                  "surfaced. Rows are sorted newest first. A report records where the module's "
                  "receiver placed itself at that time. It does not establish who was in the "
-                 "vehicle. Generation 9 units have no gps.dat; their positions are in the GPS "
-                 "Track artifact. The flash image itself can be the input, as a raw image: the "
+                 "vehicle. A generation 9 gps.dat, where present, is a binary file with no text "
+                 "documents in it and gives no rows here; the Gen9 GPS Fixes artifact reads it, "
+                 "and the GPS Track artifact reads obn/storage/gps. The flash image itself can "
+                 "be the input, as a raw image: the "
                  "files are then read from the image's EFS partitions (a partition can sit "
                  "without the var or obn folder in front of its paths, which was not seen on "
                  "these two units), and from the deleted files the reader recovers, matched "
@@ -415,6 +419,80 @@ __artifacts_v2__ = {
         },
         "output_types": "all",
         "artifact_icon": "navigation",
+    },
+    "gm_onstar_lg_gen9_gps_fixes": {
+        "name": "GM OnStar LG Gen9 - GPS Fixes",
+        "description": "GPS fixes held in the ten slots of the telematics module's binary "
+                       "var/sysinfo/gps.dat, with the time from each fix's GPS week and time "
+                       "of week, the date and time stored beside it, and the latitude and "
+                       "longitude.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-11-19",
+        "last_update_date": "2026-11-19",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From var/sysinfo/gps.dat on generation 9, a binary file of 831 bytes: an "
+                 "8-byte header, ten 80-byte slots and the tag <SysInfo1.00> at offset 816. A "
+                 "file without that size and tag is logged and not read. Tested on one "
+                 "generation 9 unit, read from its chip-off flash image as raw input and from "
+                 "the file set qnxprobe extracted from the same image. In each slot, from its "
+                 "start: the year as two bytes, then month, day, hour and minute, two bytes "
+                 "not read, the seconds as a four-byte float, latitude and longitude as "
+                 "eight-byte big-endian doubles, a byte at offset 56, the GPS week as two "
+                 "bytes at offset 60 and the GPS time of week in milliseconds as four bytes "
+                 "at offset 64. The other slot bytes are not decoded. Latitude and Longitude "
+                 "are the stored doubles divided by 10,000,000. That scale is derived, not "
+                 "documented: it is the one that gives degrees in range, and on the tested "
+                 "unit it agreed to within 16 metres with the last position the GPS "
+                 "receiver's own storage file held, a different file and encoding (ECEF "
+                 "metres), and fixes 15 seconds apart were never more than 560 metres "
+                 "apart. Timestamp is the GPS week and time of week converted to "
+                 "a date, less the GPS to UTC leap second count in force on that date (18 "
+                 "seconds since 2017-01-01, from IERS Bulletin C; earlier values are applied "
+                 "for earlier dates but no unit dated before 2017 has been tested). Stored "
+                 "Date and Time is the year to seconds fields as stored. GPS Time Minus Stored "
+                 "Time is the GPS time before the leap seconds are taken off, less Stored Date "
+                 "and Time, to the hundredth of a second. On the tested unit it held 18 on 261 "
+                 "of the 412 rows and 15 on 151, never another value. 18 is the leap second "
+                 "count in force; 15 is the one in force from 2009 to mid-2012. The 15-second "
+                 "rows fall in ten runs; nine end where the next fix reads 18 and the tenth "
+                 "runs to the last fix the unit held. That fits a receiver using an older "
+                 "built-in count until it reads the current one from the satellites, which is "
+                 "not established here, and it means Stored Date and Time can be 3 seconds "
+                 "late on those rows. Timestamp does not depend on that count. Byte 56 is "
+                 "shown as stored: it ranged from 0 to 11 on the tested unit, which fits a "
+                 "satellite count, but nothing here documents it. The four rows holding 0 "
+                 "were each within 13 metres of the fix before them. Slot is the fix's place "
+                 "in the file where it was first read; in all 100 copies on the tested unit "
+                 "the ten fixes ran newest first from slot 1. The module "
+                 "rewrites the file in place, so a live file holds only the last ten fixes. "
+                 "Earlier versions are read from the deleted files the reader recovers when "
+                 "the flash image is the raw input, matched under $Deleted. A fix found in "
+                 "more than one file (a fix stays in the file for ten rewrites, and the "
+                 "module keeps a backup copy of var) is listed once, with Times Found, under "
+                 "the file read first, which can be the deleted one; on the tested unit that "
+                 "was a deleted copy for all 412 rows. GPS Week held one value on all 412 "
+                 "rows of the tested unit, whose fixes span less than two days, and is kept "
+                 "because it is half of the GPS time. Rows are sorted oldest "
+                 "first. Slots that do not hold a real date, a GPS week from 1024 to 4095 and "
+                 "a position within range and not zero are left out and counted in the log; "
+                 "none were on the tested unit. Rows from the flash image against rows from "
+                 "the extracted file set: onstar_gen9_chipoff_01 412 rows (from 2 live and 98 "
+                 "deleted copies) against 10, the 10 among them. The 412 equal the distinct "
+                 "fixes an independent byte scan of the whole image found, with none missing "
+                 "on either side. On the tested unit fixes were mostly 14 to 16 seconds apart "
+                 "while the position changed and further apart otherwise, and copies the reader does not recover are not "
+                 "read, so gaps between rows are expected. A fix records where the module's "
+                 "receiver placed itself at that time. It does not establish who was in the "
+                 "vehicle, and speeds are not stored: any speed is derived between fixes.",
+        "paths": ('*/sysinfo/gps.dat*', '*/$Deleted/*/gps.dat.deleted-*'),
+        "sample_data": {
+            "onstar_gen9_chipoff_01": "OnStar Gen9, chip-off flash image as raw input | 412 "
+                                      "rows",
+        },
+        "output_types": "all",
+        "artifact_icon": "map-pin",
     },
     "gm_onstar_lg_nav_destinations": {
         "name": "GM OnStar LG Gen9 - Navigation Destinations",
@@ -1406,6 +1484,123 @@ def gm_onstar_lg_gps_track(context):
     data_headers = (('Timestamp', 'datetime'), 'Latitude', 'Longitude', 'Speed (km/h)',
                     'Heading (degrees)', 'Low Heading Bits (as stored)', 'Record Number',
                     'Identical Files', 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+# ---------------------------------------------------------------------------
+# Generation 9: the ten GPS fix slots of var/sysinfo/gps.dat
+# ---------------------------------------------------------------------------
+
+_FIX_FILE_SIZE = 831
+_FIX_TAG_OFFSET = 816
+_FIX_TAG = b'<SysInfo1.00>\x00'
+_FIX_FIRST_SLOT = 8
+_FIX_SLOTS = 10
+_FIX_SLOT_SIZE = 80
+# From slot offset 4: year, month, day, hour, minute, two bytes not read, seconds (float).
+_FIX_TIME = struct.Struct('>HBBBBHf')
+_FIX_POSITION = struct.Struct('>dd')
+_FIX_SCALE = 10000000.0
+_GPS_EPOCH = datetime(1980, 1, 6, tzinfo=timezone.utc)
+# GPS time minus UTC and the UTC date it took effect, newest first (IERS Bulletin C).
+_GPS_UTC_OFFSETS = ((datetime(2017, 1, 1, tzinfo=timezone.utc), 18),
+                    (datetime(2015, 7, 1, tzinfo=timezone.utc), 17),
+                    (datetime(2012, 7, 1, tzinfo=timezone.utc), 16),
+                    (datetime(2009, 1, 1, tzinfo=timezone.utc), 15),
+                    (datetime(2006, 1, 1, tzinfo=timezone.utc), 14),
+                    (datetime(1999, 1, 1, tzinfo=timezone.utc), 13))
+
+
+def _gps_to_utc(week, tow_ms):
+    """(UTC time, leap seconds applied) for a GPS week and time of week, or (None, None)."""
+    gps_time = _GPS_EPOCH + timedelta(weeks=week, milliseconds=tow_ms)
+    for start, offset in _GPS_UTC_OFFSETS:
+        if gps_time - timedelta(seconds=offset) >= start:
+            return gps_time - timedelta(seconds=offset), offset
+    return None, None
+
+
+def _gen9_fix_slot(data, slot):
+    """One slot of a generation 9 gps.dat as a tuple, or None when it does not hold a fix."""
+    base = _FIX_FIRST_SLOT + slot * _FIX_SLOT_SIZE
+    year, month, day, hour, minute, _unread, seconds = _FIX_TIME.unpack_from(data, base + 4)
+    latitude, longitude = _FIX_POSITION.unpack_from(data, base + 16)
+    week = struct.unpack_from('>H', data, base + 60)[0]
+    tow_ms = struct.unpack_from('>I', data, base + 64)[0]
+    if not (2000 <= year <= 2100 and math.isfinite(seconds) and 0 <= seconds < 61):
+        return None
+    try:
+        stored = (datetime(year, month, day, hour, minute, tzinfo=timezone.utc)
+                  + timedelta(milliseconds=round(seconds * 1000)))
+    except ValueError:
+        return None
+    if not (math.isfinite(latitude) and math.isfinite(longitude)):
+        return None
+    if abs(latitude) > 90 * _FIX_SCALE or abs(longitude) > 180 * _FIX_SCALE:
+        return None
+    if not (latitude or longitude) or not 1024 <= week <= 4095 or tow_ms >= 604800000:
+        return None
+    utc, offset = _gps_to_utc(week, tow_ms)
+    if utc is None:
+        return None
+    return (slot + 1, stored, utc, offset, round(latitude / _FIX_SCALE, 7),
+            round(longitude / _FIX_SCALE, 7), week, tow_ms, data[base + 56])
+
+
+def _gen9_fixes(data):
+    """(fixes, slots left out) of a generation 9 gps.dat, or None when it is not that layout."""
+    if len(data) != _FIX_FILE_SIZE:
+        return None
+    if data[_FIX_TAG_OFFSET:_FIX_TAG_OFFSET + len(_FIX_TAG)] != _FIX_TAG:
+        return None
+    fixes = []
+    for slot in range(_FIX_SLOTS):
+        fix = _gen9_fix_slot(data, slot)
+        if fix is not None:
+            fixes.append(fix)
+    return fixes, _FIX_SLOTS - len(fixes)
+
+
+@artifact_processor
+def gm_onstar_lg_gen9_gps_fixes(context):
+    found = {}
+    source_paths = []
+    files = [f for f in _regular_files(context) if _base_name(f) == 'gps.dat']
+    for file_found, data, copies in _distinct(files):
+        if data.startswith(b'[*]'):
+            continue  # a generation 10 text gps.dat, read by the GPS Reports artifact
+        parsed = _gen9_fixes(data)
+        if parsed is None:
+            if b'<SysInfo' in data[-32:]:
+                logfunc(f'GM OnStar LG: {os.path.basename(file_found)} ({len(data)} bytes) '
+                        'is not the generation 9 gps.dat layout this reader knows, not read')
+            continue
+        fixes, left_out = parsed
+        if left_out:
+            logfunc(f'GM OnStar LG: {os.path.basename(file_found)}: {left_out} of '
+                    f'{_FIX_SLOTS} slots did not hold a fix and were left out')
+        if fixes:
+            source_paths.append(file_found)
+        for fix in fixes:
+            key = (fix[6], fix[7], fix[4], fix[5])
+            if key in found:
+                found[key][1] += copies
+            else:
+                found[key] = [fix + (file_found,), copies]
+
+    data_list = []
+    for fix, times_found in sorted(found.values(), key=lambda item: item[0][2]):
+        (slot, stored, utc, offset, latitude, longitude, week, tow_ms, byte_56,
+         file_found) = fix
+        gps_minus_stored = round((utc + timedelta(seconds=offset) - stored).total_seconds(), 2)
+        data_list.append((utc, stored, gps_minus_stored, latitude, longitude, week, tow_ms,
+                          byte_56, slot, times_found, context.get_relative_path(file_found)))
+
+    data_headers = (('Timestamp', 'datetime'), ('Stored Date and Time', 'datetime'),
+                    ('GPS Time Minus Stored Time (s)', 'number'), ('Latitude', 'latitude'),
+                    ('Longitude', 'longitude'), ('GPS Week', 'number'),
+                    ('GPS Time of Week (ms)', 'number'), ('Byte 56 (as stored)', 'number'),
+                    ('Slot', 'number'), ('Times Found', 'number'), 'Source File')
     return data_headers, data_list, '\n'.join(source_paths)
 
 
