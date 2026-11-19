@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "module_name": "gm_onstar_lg",
+    "artifact_name": "GM OnStar LG Gen10 - GPS Reports",
+    "function_name": "gm_onstar_lg_gps_reports",
+    "case_number": "caseGmOnStarGen9GpsDatSanitized",
+    "number_of_columns": 15,
+    "number_of_rows": 0,
+    "total_data_size_bytes": 0,
+    "media_checkins": 0,
+    "media_embedded_checkins": 0,
+    "input_zip_path": "admin/test/cases/data/gm_onstar_lg/testdata.gm_onstar_lg.gm_onstar_lg_gps_reports.caseGmOnStarGen9GpsDatSanitized.zip",
+    "start_time": "2026-11-19T17:11:24.457141+00:00",
+    "end_time": "2026-11-19T17:11:24.491025+00:00",
+    "run_time_seconds": 0.0024979114532470703,
+    "last_commit": {
+      "hash": "0f194a8cd9b0b22582aaad23924d857c0398e31a",
+      "author_name": "burgers-n-bytes",
+      "author_email": "172434845+burgers-n-bytes@users.noreply.github.com",
+      "date": "2026-11-19T10:59:51-06:00",
+      "message": "chore(gm_onstar_lg): name the vehicle behind the Gen9 GPS Fixes sample"
+    }
+  },
+  "headers": [
+    "Timestamp",
+    "Latitude",
+    "Longitude",
+    "Elevation (as stored)",
+    "Speed Over Ground (as stored)",
+    "Course Over Ground (as stored)",
+    "HDOP (as stored)",
+    "Satellites Used",
+    "GPS Week",
+    "GPS Time Of Week (as stored)",
+    "Times Found",
+    "Read From",
+    "Section",
+    "Offset",
+    "Source File"
+  ],
+  "data": []
+}

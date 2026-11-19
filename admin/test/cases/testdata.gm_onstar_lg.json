@@ -1,0 +1,162 @@
+{
+  "caseGmOnStarGen9GpsDatSanitized": {
+    "description": "Sanitized from one OnStar generation 9 unit (2015 Chevrolet Traverse), read from its chip-off flash image: four real var/sysinfo/gps.dat copies, the live file, its identical copy on the backup var partition, the version before it (9 of its 10 fixes shared with the live file) and an older $NoFolder copy (7 shared). Every position was moved by one fixed offset to open water near 30N 40W and every date back by a whole number of weeks (stored date fields and GPS week together), so times of day, the gaps between fixes and the 15 and 18 second differences between the stored and GPS times are as recorded. All other bytes are as the module wrote them. The GPS Reports and Stored Values artifacts match the same files and give no rows: a generation 9 gps.dat is binary, not a text document.",
+    "maker": "@burgers-n-bytes, Claude",
+    "make_data": {
+      "input_data_path": "onstar_gen9_gpsdat_sanitized.zip",
+      "os": "Windows-11-10.0.26200-SP0",
+      "timestamp": "2026-11-19T11:10:21.451389",
+      "last_commit": {
+        "hash": "0f194a8cd9b0b22582aaad23924d857c0398e31a",
+        "author_name": "burgers-n-bytes",
+        "author_email": "172434845+burgers-n-bytes@users.noreply.github.com",
+        "date": "2026-11-19T10:59:51-06:00",
+        "message": "chore(gm_onstar_lg): name the vehicle behind the Gen9 GPS Fixes sample"
+      }
+    },
+    "artifacts": {
+      "gm_onstar_lg_bt_devices": {
+        "search_patterns": [
+          "*/sysinfo/BT.dat*",
+          "*/$Deleted/*/BT.dat.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_phonebook": {
+        "search_patterns": [
+          "*/var/BTfeature/phone*.pb*",
+          "*/BTpb/phone*.pb*",
+          "*/$Deleted/*/phone*.pb.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_gps_reports": {
+        "search_patterns": [
+          "*/sysinfo/*.dat*",
+          "*/DiskImages/NORimage.bin",
+          "*/$Deleted/*/*.dat.deleted-*"
+        ],
+        "file_count": 4,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "gm_onstar_lg_power_off_log": {
+        "search_patterns": [
+          "*/log/poweroff.log*",
+          "*/$Deleted/*/poweroff.log.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_stored_values": {
+        "search_patterns": [
+          "*/sysinfo/*.dat*",
+          "*/DiskImages/NORimage.bin",
+          "*/$Deleted/*/*.dat.deleted-*"
+        ],
+        "file_count": 4,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "gm_onstar_lg_gps_track": {
+        "search_patterns": [
+          "*/storage/gps*",
+          "*/$Deleted/*/gps.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_gen9_gps_fixes": {
+        "search_patterns": [
+          "*/sysinfo/gps.dat*",
+          "*/$Deleted/*/gps.dat.deleted-*"
+        ],
+        "file_count": 4,
+        "expected_output": {
+          "headers": [],
+          "data": []
+        }
+      },
+      "gm_onstar_lg_nav_destinations": {
+        "search_patterns": [
+          "*/storage/flight*",
+          "*/$Deleted/*/flight.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_nav_guidance": {
+        "search_patterns": [
+          "*/storage/flight*",
+          "*/$Deleted/*/flight.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_nav_clip_names": {
+        "search_patterns": [
+          "*/storage/flight*",
+          "*/$Deleted/*/flight.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_embedded_phone_numbers": {
+        "search_patterns": [
+          "*/sysinfo/phone.dat*",
+          "*/$Deleted/*/phone.dat.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_trouble_codes": {
+        "search_patterns": [
+          "*/dtc.dat*",
+          "*/DiskImages/NORimage.bin",
+          "*/$Deleted/*/dtc.dat.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_unit_info": {
+        "search_patterns": [
+          "*/var/ver.txt*",
+          "*/var/fac/ver_*.txt*",
+          "*/DevInfo/DevId*",
+          "*/DevInfo/Ext/VIN*",
+          "*/sysinfo/vifdata.dat*",
+          "*/sysinfo/tcuid.dat*",
+          "*/rr_db.dat*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_route_destinations": {
+        "search_patterns": [
+          "*/obn/storage/ViamotoRoute.mem*",
+          "*/route/ViamotoRoute.mem*",
+          "*/$Deleted/*/ViamotoRoute.mem.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      },
+      "gm_onstar_lg_route_maneuvers": {
+        "search_patterns": [
+          "*/obn/storage/ViamotoRoute.mem*",
+          "*/route/ViamotoRoute.mem*",
+          "*/$Deleted/*/ViamotoRoute.mem.deleted-*"
+        ],
+        "file_count": 0,
+        "note": "No responsive files found for this artifact"
+      }
+    },
+    "os_name": "GM OnStar LG Gen9",
+    "os_version": "var/sysinfo/gps.dat <SysInfo1.00>; sanitized records"
+  }
+}
