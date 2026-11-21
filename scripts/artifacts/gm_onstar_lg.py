@@ -936,6 +936,59 @@ __artifacts_v2__ = {
         "output_types": "standard",
         "artifact_icon": "navigation",
     },
+    "gm_onstar_lg_wifi_hotspot": {
+        "name": "GM OnStar LG Gen10 - Wi-Fi Hotspot Configuration",
+        "description": "The network name, passphrase and security settings in the "
+                       "telematics module's hostapd access point configuration file, "
+                       "var/hostapd.conf.",
+        "author": "@AlexisBrignoni, Claude",
+        "version": "0.1",
+        "creation_date": "2026-11-20",
+        "last_update_date": "2026-11-20",
+        "requirements": "none",
+        "category": "GM OnStar LG",
+        "notes": "From var/hostapd.conf, a text file of key=value lines. Its ten keys are "
+                 "hostapd settings, and a hostapd 0.6.10 program is in the same firmware image. "
+                 "The firmware step that passes this file to hostapd was not found. Run on two "
+                 "generation 10 units, a 2016 Chevrolet Cruze and a 2017 Buick Encore, each "
+                 "with its flash image as raw input: 1 row each, from a file of 195 and 188 "
+                 "bytes in an EFS partition. The Encore's image sits inside its extraction zip "
+                 "and is not read when the zip is the input. SSID, Passphrase, Channel, WPA, "
+                 "Key Management and Pairwise Ciphers are the values of ssid, wpa_passphrase, "
+                 "channel, wpa, wpa_key_mgmt and wpa_pairwise, as stored. When a key repeats, "
+                 "the last line is shown and the earlier ones go to Other Settings, which "
+                 "holds every other key=value line. Comment lines and lines without an equals "
+                 "sign are not shown. Neither tested file had a repeated key, a comment or "
+                 "such a line. A file with no ssid line, or holding NUL bytes, is logged and "
+                 "not read. That path is unexercised. The Cruze's file carries no time of its "
+                 "own and the flash reader lists its date as 1970-01-01, so this artifact "
+                 "gives no time for the configuration and adds nothing to the timeline. "
+                 "Whether the SSID and passphrase were set at the factory or by a user is not "
+                 "established. On the Cruze the same two values also occur in aldl_work.dat "
+                 "and aldl_backup.dat in the same image, which this module does not decode. "
+                 "The file records a configuration. It does not show that the hotspot was "
+                 "turned on or that any device joined it. The path is not specific to this "
+                 "module, so a var/hostapd.conf from another kind of unit would also be listed "
+                 "here. Identical copies are read once and Times Found gives how many there "
+                 "were. Deleted copies under $Deleted are matched but none was present on the "
+                 "Cruze, so that path is unexercised.",
+        "paths": ('*/var/hostapd.conf', '*/$Deleted/*/hostapd.conf.deleted-*'),
+        "sample_data": {
+            "xtrmp_item020": "2012 Chevrolet Cruze LT, OnStar Gen9, raw flash image | 0 rows, no "
+                             "hostapd.conf in the image's listing",
+            "xtrmp_item027": "2012 GMC Acadia, OnStar Gen9, raw flash image | 0 rows, no "
+                             "hostapd.conf in the image's listing",
+            "xtrmp_item030": "2014 GMC Sierra 1500 SLE, OnStar Gen9, raw flash image | 0 rows, no "
+                             "hostapd.conf in the image's listing",
+            "xtrmp_item031": "2011 Buick Enclave, OnStar Gen9, raw flash image | 0 rows, no "
+                             "hostapd.conf in the image's listing",
+            "xtrmp_item081": "2016 Chevrolet Cruze, OnStar Gen10, raw flash image | 1 row",
+            "xtrmp_item115": "2017 Buick Encore, OnStar Gen10, flash image inside the zip, run as "
+                             "raw input | 1 row. The zip as input gives 0 rows",
+        },
+        "output_types": ["html", "tsv", "lava"],
+        "artifact_icon": "wifi",
+    },
 }
 
 _BT_FILE_SIZE = 323
@@ -1603,6 +1656,45 @@ def gm_onstar_lg_gen9_gps_fixes(context):
                     ('Longitude', 'longitude'), ('GPS Week', 'number'),
                     ('GPS Time of Week (ms)', 'number'), ('Byte 56 (as stored)', 'number'),
                     ('Slot', 'number'), ('Times Found', 'number'), 'Source File')
+    return data_headers, data_list, '\n'.join(source_paths)
+
+
+_HOTSPOT_COLUMNS = ('ssid', 'wpa_passphrase', 'channel', 'wpa', 'wpa_key_mgmt', 'wpa_pairwise')
+
+
+def _hostapd_row(data):
+    """The shown settings plus every other line, or None when this is not a hostapd config."""
+    if b'\x00' in data:
+        return None
+    settings = []
+    for line in data.decode('utf-8', 'backslashreplace').split('\n'):
+        if line and not line.startswith('#') and '=' in line:
+            settings.append(tuple(line.split('=', 1)))
+    last = {key: index for index, (key, _) in enumerate(settings)}
+    if 'ssid' not in last:
+        return None
+    shown = tuple(settings[last[key]][1] if key in last else '' for key in _HOTSPOT_COLUMNS)
+    kept = {last[key] for key in _HOTSPOT_COLUMNS if key in last}
+    other = '; '.join(f'{key}={value}' for index, (key, value) in enumerate(settings)
+                      if index not in kept)
+    return shown + (other,)
+
+
+@artifact_processor
+def gm_onstar_lg_wifi_hotspot(context):
+    data_list = []
+    source_paths = []
+    for file_found, data, copies in _distinct(_regular_files(context)):
+        row = _hostapd_row(data)
+        if row is None:
+            logfunc(f'GM OnStar LG: {os.path.basename(file_found)} ({len(data)} bytes) is not a '
+                    'hostapd configuration with an ssid line, not read')
+            continue
+        data_list.append(row + (copies,))
+        source_paths.append(file_found)
+
+    data_headers = ('SSID', 'Passphrase', 'Channel', 'WPA', 'Key Management', 'Pairwise Ciphers',
+                    'Other Settings', ('Times Found', 'number'))
     return data_headers, data_list, '\n'.join(source_paths)
 
 
