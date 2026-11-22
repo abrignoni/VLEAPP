@@ -37,8 +37,27 @@ err() { printf 'install.sh: %s\n' "$*" >&2; }
 die() { err "$*"; exit 1; }
 
 usage() {
-    sed -n '2,/^set -u/p' "$0" | sed -e 's/^# \{0,1\}//' -e '$d'
     cat <<'EOF'
+One-line installer for VLEAPP releases.
+
+  curl -fsSL https://raw.githubusercontent.com/abrignoni/VLEAPP/main/packaging/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/abrignoni/VLEAPP/main/packaging/install.sh | bash -s -- --help
+
+What it does, in order: resolve the release (latest, or --ref), download
+SHA256SUMS.txt for it, pick the asset for this machine, check the download
+against the checksums, and install it:
+
+  Debian/Ubuntu  a .deb through dpkg (needs root: sudo or run as root)
+  Fedora/RHEL    an .rpm through dnf/yum/rpm (needs root)
+  Arch           vleapp-git from the AUR when an AUR helper exists,
+                 otherwise the AppImage below
+  other Linux    the AppImage, made executable, into ~/.local/bin
+                 (--system puts it in /usr/local/bin instead)
+  macOS          the .dmg, whose VLEAPP.app is copied to /Applications
+  Windows        the portable zip, unpacked where --to says
+
+Every download is verified and the install stops on the first failure. Pass
+--no-verify only on a machine with no SHA-256 tool and no way to get one.
 
 Options:
   --ref TAG     install this release tag instead of the latest (e.g. --ref v2026.5.0)
@@ -124,10 +143,11 @@ TAG="$(resolve_tag)"
 VERSION="${TAG#v}"
 BASE="https://github.com/$REPO/releases/download/$TAG"
 
-TMP="$(mktemp -d)"
+TMP="$(mktemp -d)" || die "could not create a temporary directory"
+[ -n "$TMP" ] && [ -d "$TMP" ] || die "could not create a temporary directory"
 trap 'rm -rf "$TMP"' EXIT
 
-log "release: $TAG"
+[ "$PRINT_ASSET" = "1" ] || log "release: $TAG"
 fetch "$BASE/SHA256SUMS.txt" "$TMP/SHA256SUMS.txt" \
     || die "could not download SHA256SUMS.txt for $TAG"
 
@@ -167,6 +187,10 @@ case "$OS" in
             if [ -n "${HELPER:-}" ]; then KIND="aur";
             else ASSET="$(pick "linux-${IMG_ARCH}\\.AppImage\$")" && KIND="appimage"; fi
         else
+            ASSET="$(pick "linux-${IMG_ARCH}\\.AppImage\$")" && KIND="appimage"
+        fi
+        # Releases predating native .deb/.rpm packages still ship an AppImage.
+        if [ -z "$KIND" ]; then
             ASSET="$(pick "linux-${IMG_ARCH}\\.AppImage\$")" && KIND="appimage"
         fi
         ;;
@@ -230,6 +254,7 @@ download_asset() {
 # --- install ------------------------------------------------------------------------
 
 install_deb() {
+    local ver
     need_cmd dpkg
     download_asset
     as_root dpkg -i "$TMP/$ASSET" || {
@@ -238,10 +263,12 @@ install_deb() {
         exit 1
     }
     command -v "$APP" >/dev/null 2>&1 || die "install finished but '$APP' is not on PATH"
-    log "installed: $("$APP" --version)"
+    ver="$("$APP" --version)" || die "'$APP --version' failed after install"
+    log "installed: $ver"
 }
 
 install_rpm() {
+    local ver
     download_asset
     if command -v dnf >/dev/null 2>&1; then
         as_root dnf install -y "$TMP/$ASSET" || die "'dnf install' failed"
@@ -252,7 +279,8 @@ install_rpm() {
         as_root rpm -Uvh "$TMP/$ASSET" || die "'rpm -Uvh' failed"
     fi
     command -v "$APP" >/dev/null 2>&1 || die "install finished but '$APP' is not on PATH"
-    log "installed: $("$APP" --version)"
+    ver="$("$APP" --version)" || die "'$APP --version' failed after install"
+    log "installed: $ver"
 }
 
 install_aur() {
@@ -285,14 +313,18 @@ install_appimage() {
         as_root cp "$TMP/$ASSET" "$DEST" || die "could not copy $ASSET to $DEST"
     fi
     chmod +x "$DEST" 2>/dev/null || as_root chmod +x "$DEST" || die "could not mark $DEST executable"
+    local ver
     log "installed: $DEST"
+    ver="$("$DEST" --version)" || die "'$DEST --version' failed after install"
+    log "$ver"
     case ":$PATH:" in
-        *":$TO:"*) "$DEST" --version ;;
-        *) log "$("$DEST" --version)"; err "$TO is not on PATH; run $DEST or add $TO to PATH" ;;
+        *":$TO:"*) ;;
+        *) err "$TO is not on PATH; run $DEST or add $TO to PATH" ;;
     esac
 }
 
 install_dmg() {
+    local stage backup
     need_cmd hdiutil
     download_asset
     MNT="$TMP/mnt"
@@ -304,7 +336,30 @@ install_dmg() {
         if [ "$SYSTEM" = "1" ] || [ -w "/Applications" ]; then TO="/Applications"; else TO="$HOME/Applications"; fi
     fi
     mkdir -p "$TO"
-    cp -a "$MNT/VLEAPP.app" "$TO/" || die "could not copy VLEAPP.app to $TO"
+    stage="$(mktemp -d "$TO/.VLEAPP.app.new.XXXXXX")" || die "could not stage VLEAPP.app in $TO"
+    if ! cp -a "$MNT/VLEAPP.app/." "$stage/"; then
+        rm -rf "$stage"
+        die "could not copy VLEAPP.app to $TO"
+    fi
+    if [ -e "$TO/VLEAPP.app" ]; then
+        backup="$TO/.VLEAPP.app.old.$$"
+        rm -rf "$backup"
+        if ! mv "$TO/VLEAPP.app" "$backup"; then
+            rm -rf "$stage"
+            die "could not move existing $TO/VLEAPP.app aside"
+        fi
+        if ! mv "$stage" "$TO/VLEAPP.app"; then
+            mv "$backup" "$TO/VLEAPP.app" 2>/dev/null || true
+            rm -rf "$stage"
+            die "could not replace $TO/VLEAPP.app"
+        fi
+        rm -rf "$backup"
+    else
+        if ! mv "$stage" "$TO/VLEAPP.app"; then
+            rm -rf "$stage"
+            die "could not move staged VLEAPP.app into $TO"
+        fi
+    fi
     hdiutil detach "$MNT" -quiet
     trap 'rm -rf "$TMP"' EXIT
     log "installed: $TO/VLEAPP.app"
