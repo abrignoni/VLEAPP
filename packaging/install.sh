@@ -10,6 +10,7 @@
 #
 #   Debian/Ubuntu  a .deb through dpkg (needs root: sudo or run as root)
 #   Fedora/RHEL    an .rpm through dnf/yum/rpm (needs root)
+#   openSUSE       the same .rpm through zypper, so dependencies resolve
 #   Arch           vleapp-git from the AUR when an AUR helper exists,
 #                  otherwise the AppImage below
 #   other Linux    the AppImage, made executable, into ~/.local/bin
@@ -49,6 +50,7 @@ against the checksums, and install it:
 
   Debian/Ubuntu  a .deb through dpkg (needs root: sudo or run as root)
   Fedora/RHEL    an .rpm through dnf/yum/rpm (needs root)
+  openSUSE       the same .rpm through zypper, so dependencies resolve
   Arch           vleapp-git from the AUR when an AUR helper exists,
                  otherwise the AppImage below
   other Linux    the AppImage, made executable, into ~/.local/bin
@@ -274,6 +276,12 @@ install_rpm() {
         as_root dnf install -y "$TMP/$ASSET" || die "'dnf install' failed"
     elif command -v yum >/dev/null 2>&1; then
         as_root yum install -y "$TMP/$ASSET" || die "'yum install' failed"
+    elif command -v zypper >/dev/null 2>&1; then
+        # zypper, not rpm: it pulls a newer glibc or dependency from the
+        # configured repositories, which rpm -Uvh cannot do. The package is
+        # unsigned (dpkg does not check signatures either), so allow that.
+        as_root zypper --non-interactive --allow-unsigned-rpm install "$TMP/$ASSET" \
+            || die "'zypper install' failed"
     else
         need_cmd rpm
         as_root rpm -Uvh "$TMP/$ASSET" || die "'rpm -Uvh' failed"
@@ -323,6 +331,23 @@ install_appimage() {
     esac
 }
 
+detach_image() {
+    # Unmount the disk image behind $MNT; true only once it is really gone.
+    hdiutil detach "$MNT" -quiet && return 0
+    hdiutil detach "$MNT" -quiet -force && return 0
+    return 1
+}
+
+cleanup_dmg() {
+    # EXIT trap while the image is mounted: a still-mounted $MNT must not have
+    # $TMP deleted under it, so remove the temporary directory only on success.
+    if detach_image; then
+        rm -rf "$TMP"
+    else
+        err "disk image still mounted at $MNT; unmount it with: hdiutil detach $MNT"
+    fi
+}
+
 install_dmg() {
     local stage backup
     need_cmd hdiutil
@@ -331,7 +356,7 @@ install_dmg() {
     mkdir -p "$MNT"
     hdiutil attach -nobrowse -mountpoint "$MNT" "$TMP/$ASSET" >/dev/null \
         || die "could not mount $ASSET"
-    trap 'hdiutil detach "$MNT" -quiet 2>/dev/null; rm -rf "$TMP"' EXIT
+    trap cleanup_dmg EXIT
     if [ -z "$TO" ]; then
         if [ "$SYSTEM" = "1" ] || [ -w "/Applications" ]; then TO="/Applications"; else TO="$HOME/Applications"; fi
     fi
@@ -360,7 +385,10 @@ install_dmg() {
             die "could not move staged VLEAPP.app into $TO"
         fi
     fi
-    hdiutil detach "$MNT" -quiet
+    # Fail closed: the trap keeps retrying the detach, and nothing is reported
+    # as installed while the image may still be mounted.
+    detach_image \
+        || die "could not detach $TMP/$ASSET from $MNT; unmount it with: hdiutil detach $MNT"
     trap 'rm -rf "$TMP"' EXIT
     log "installed: $TO/VLEAPP.app"
     log "Command line: $TO/VLEAPP.app/Contents/MacOS/vleapp --help"
