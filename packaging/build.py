@@ -616,8 +616,10 @@ def _build_rpm() -> Path:
     version = linux_pkg_version(read_version())
     arch = rpm_arch()
     topdir = BUILD / "rpm"
+    if topdir.exists():
+        shutil.rmtree(topdir)
     for sub in ("BUILD", "BUILDROOT", "RPMS", "SOURCES", "SPECS", "SRPMS"):
-        (topdir / sub).mkdir(parents=True, exist_ok=True)
+        (topdir / sub).mkdir(parents=True)
     spec = topdir / "SPECS" / "vleapp.spec"
     spec.write_text(
         "\n".join((

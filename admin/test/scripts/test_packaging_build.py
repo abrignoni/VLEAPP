@@ -235,7 +235,9 @@ class TestDriver(unittest.TestCase):
 
     def test_every_installer_needs_the_folder_build_from_phase_one(self):
         with tempfile.TemporaryDirectory() as tmp, \
-                mock.patch.object(self.driver, 'DIST', pathlib.Path(tmp) / 'dist'):
+                mock.patch.object(self.driver, 'DIST', pathlib.Path(tmp) / 'dist'), \
+                mock.patch.object(self.driver.shutil, 'which',
+                                  side_effect=lambda name: f'/usr/bin/{name}'):
             for build in ('_build_inno', '_build_dmg', '_build_appimage', '_build_deb',
                           '_build_rpm'):
                 with self.subTest(installer=build), self.assertRaises(SystemExit) as caught:

@@ -155,22 +155,26 @@ case "$OS" in
                 || [ "$DISTRO_ID" = "fedora" ] || [ "$DISTRO_ID" = "rhel" ] || [ "$DISTRO_ID" = "centos" ] \
                 || [ "$DISTRO_ID" = "opensuse"* ] || [[ " $DISTRO_LIKE " == *" rhel "* ]] \
                 || [[ " $DISTRO_LIKE " == *" fedora "* ]] || [[ " $DISTRO_LIKE " == *" suse "* ]]; }; then
-            ASSET="$(pick ".*\\.${RPM_ARCH}\\.rpm\$" ".*\\.rpm\$")" && KIND="rpm"
+            ASSET="$(pick ".*\\.${RPM_ARCH}\\.rpm\$")" && KIND="rpm"
         elif [ "$DISTRO_ID" = "arch" ] || [[ " $DISTRO_LIKE " == *" arch "* ]]; then
-            if command -v yay >/dev/null 2>&1; then HELPER="yay";
-            elif command -v paru >/dev/null 2>&1; then HELPER="paru";
-            else HELPER=""; fi
+            if [ -z "$REF" ] && [ "$REPO" = "$REPO_DEFAULT" ]; then
+                if command -v yay >/dev/null 2>&1; then HELPER="yay";
+                elif command -v paru >/dev/null 2>&1; then HELPER="paru";
+                else HELPER=""; fi
+            else
+                HELPER=""
+            fi
             if [ -n "${HELPER:-}" ]; then KIND="aur";
-            else ASSET="$(pick "linux-${IMG_ARCH}\\.AppImage\$" ".*\\.AppImage\$")" && KIND="appimage"; fi
+            else ASSET="$(pick "linux-${IMG_ARCH}\\.AppImage\$")" && KIND="appimage"; fi
         else
-            ASSET="$(pick "linux-${IMG_ARCH}\\.AppImage\$" ".*\\.AppImage\$")" && KIND="appimage"
+            ASSET="$(pick "linux-${IMG_ARCH}\\.AppImage\$")" && KIND="appimage"
         fi
         ;;
     Darwin)
-        ASSET="$(pick "macos-${DMG_ARCH}\\.dmg\$" ".*\\.dmg\$")" && KIND="dmg"
+        ASSET="$(pick "macos-${DMG_ARCH}\\.dmg\$")" && KIND="dmg"
         ;;
     MINGW*|MSYS*|CYGWIN*)
-        ASSET="$(pick "windows-${ZIP_ARCH}-portable\\.zip\$" ".*\\.zip\$")" && KIND="zip"
+        ASSET="$(pick "windows-${ZIP_ARCH}-portable\\.zip\$")" && KIND="zip"
         ;;
     *) die "unsupported system: $OS" ;;
 esac
@@ -194,8 +198,12 @@ as_root() {
 confirm() {
     # confirm "question"; true when --yes or the user answers yes.
     [ "$YES" = "1" ] && return 0
+    if [ ! -r /dev/tty ]; then
+        err "no controlling terminal available for confirmation; re-run with --yes"
+        return 1
+    fi
     printf '%s [y/N] ' "$1" >&2
-    read -r answer || return 1
+    read -r answer </dev/tty || return 1
     [[ "$answer" == [yY] || "$answer" == [yY][eE][sS] ]]
 }
 
@@ -236,12 +244,12 @@ install_deb() {
 install_rpm() {
     download_asset
     if command -v dnf >/dev/null 2>&1; then
-        as_root dnf install -y "$TMP/$ASSET"
+        as_root dnf install -y "$TMP/$ASSET" || die "'dnf install' failed"
     elif command -v yum >/dev/null 2>&1; then
-        as_root yum install -y "$TMP/$ASSET"
+        as_root yum install -y "$TMP/$ASSET" || die "'yum install' failed"
     else
         need_cmd rpm
-        as_root rpm -Uvh "$TMP/$ASSET"
+        as_root rpm -Uvh "$TMP/$ASSET" || die "'rpm -Uvh' failed"
     fi
     command -v "$APP" >/dev/null 2>&1 || die "install finished but '$APP' is not on PATH"
     log "installed: $("$APP" --version)"
@@ -252,8 +260,11 @@ install_aur() {
     log "The AUR package builds the latest main branch, so --devel updates keep it current:"
     log "  yay -Syu --devel"
     if confirm "Build and install vleapp-git now?"; then
-        if [ "$YES" = "1" ]; then "$HELPER" -S --noconfirm vleapp-git;
-        else "$HELPER" -S vleapp-git; fi
+        if [ "$YES" = "1" ]; then
+            "$HELPER" -S --noconfirm vleapp-git || die "'$HELPER -S vleapp-git' failed"
+        else
+            "$HELPER" -S vleapp-git </dev/tty || die "'$HELPER -S vleapp-git' failed"
+        fi
     else
         log "Skipped. Install later with: $HELPER -S vleapp-git"
     fi
@@ -264,11 +275,16 @@ install_appimage() {
     if [ -z "$TO" ]; then
         if [ "$SYSTEM" = "1" ]; then TO="/usr/local/bin"; else TO="$HOME/.local/bin"; fi
     fi
-    mkdir -p "$TO"
+    if [ ! -d "$TO" ]; then
+        mkdir -p "$TO" 2>/dev/null || as_root mkdir -p "$TO" || die "could not create $TO"
+    fi
     DEST="$TO/$APP"
-    if [ -w "$TO" ]; then cp "$TMP/$ASSET" "$DEST";
-    else as_root cp "$TMP/$ASSET" "$DEST"; fi
-    chmod +x "$DEST" 2>/dev/null || as_root chmod +x "$DEST"
+    if [ -w "$TO" ]; then
+        cp "$TMP/$ASSET" "$DEST" || die "could not copy $ASSET to $DEST"
+    else
+        as_root cp "$TMP/$ASSET" "$DEST" || die "could not copy $ASSET to $DEST"
+    fi
+    chmod +x "$DEST" 2>/dev/null || as_root chmod +x "$DEST" || die "could not mark $DEST executable"
     log "installed: $DEST"
     case ":$PATH:" in
         *":$TO:"*) "$DEST" --version ;;
