@@ -86,12 +86,32 @@ With local changes, not in vendored.json:
 
 - `ccl_chromium_indexeddb.py` and `structures.py`: ccl_chromium_reader ad37443, with only their
   imports changed for the flat folder.
-- `ccl_leveldb.py`: ccl_chromium_reader ad37443 with `import ccl_simplesnappy` changed to
-  `from . import ccl_simplesnappy`, and the file handle bounding from VLEAPP b27c977 merged in: a
-  reader closes each .log and .ldb file after checking it and reopens it for each pass, and what
-  a pass skips as damage is copied back to the file's reader. That change is offered upstream as
-  https://github.com/cclgroupltd/ccl_chromium_reader/pull/56; once upstream has it, re-vendor and
-  record the file in vendored.json.
+- `ccl_leveldb.py`: ccl_chromium_reader 7a01b07 (2026-11-16), with only its two
+  `ccl_simplesnappy` imports changed for the flat folder (`from . import ccl_simplesnappy` and
+  `from .ccl_simplesnappy import check_masked_crc`), so it is not in vendored.json. Upstream now
+  carries the two changes this copy used to add. The first bounds the open file handles: a
+  reader opens each .log, .ldb and manifest file only while a pass reads it, and each pass gets
+  its own handle (https://github.com/cclgroupltd/ccl_chromium_reader/pull/58, which replaced
+  https://github.com/cclgroupltd/ccl_chromium_reader/pull/56);
+  admin/test/scripts/test_leveldb_file_lifecycle.py pins it. A reader's `damage` now lists what
+  every pass skipped, not only the last one.
+  The second, from DLEAPP 0e4953a (2026-11-08), is upstream as
+  https://github.com/cclgroupltd/ccl_chromium_reader/pull/57: a data block of a table (.ldb)
+  file that cannot be read whole or whose snappy stream does not decompress is skipped, logged
+  (noting when its checksum does not match) and listed in the reader's `damage`, and reading goes
+  on with the next block and file. Upstream ad37443 raised there, so a caller gets nothing more
+  from that folder. Measured 2026-11-09 over the zip, tar and folder sources in the corpus
+  registries (disk images and other containers were not read): of 9,305 table files (six-digit .ldb and .sst
+  names) under 62 corpus keys, the reader before and after this change returns the same records
+  from 9,287, and both refuse the other 18
+  when the table is opened (footer magic), a check this change does not touch. A skipped block
+  can have held a newer version of a key, so a caller that keeps the newest record per key can
+  then see an older one. admin/test/scripts/test_leveldb_table_damage.py pins the decompression
+  cases and the read of the next file.
+  Measured 2026-11-16 over the zip, tar and folder sources in the corpus registries (disk images
+  and other containers were not read): of 10,658 LevelDB folders (9,308 table files) under 85
+  corpus keys, the copy before and after this re-vendor returns the same 7,588,177 records, and
+  both refuse the same 16 folders when they are opened.
 
 Before 2026-11-03 these readers sat in `scripts/ccl`, with a `ccl_structures.py` that defined the
 location protocol inline. That LevelDB reader was older (closest to upstream 210b5c6, 2021); the

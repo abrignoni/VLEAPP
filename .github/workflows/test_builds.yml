@@ -27,6 +27,7 @@ on:
     paths:
       - 'packaging/**'
       - 'requirements.txt'
+      - 'LICENSES/**'
       - '.github/workflows/test_builds.yml'
 
 permissions:

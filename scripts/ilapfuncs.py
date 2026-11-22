@@ -2,8 +2,10 @@
 import codecs
 import csv
 import hashlib
+import io
 import inspect
 import json
+import ntpath
 import os
 import atexit
 import re
@@ -42,11 +44,13 @@ _console_write = sys.stdout.write
 import pytz
 import simplekml
 from bs4 import BeautifulSoup
+import heicreader
 from scripts.filetype import get_signature_bytes, guess_mime, guess_extension
 from functools import wraps
 
 # LEAPP version unique imports
 from typing import Pattern
+from html import escape as _html_escape
 from scripts.html_safe import esc, safe_local_path
 from scripts.lavafuncs import lava_process_artifact, lava_insert_sqlite_data, lava_iter_artifact_rows, lava_update_record_count, \
     lava_get_media_item, \
@@ -168,6 +172,12 @@ def screen_log_session(func):
     return wrapped
 
 
+def _html_text(value):
+    """Escape a value for HTML element text. Quotes stay as they are, so the log files
+    still read and search the same; a value placed in an attribute goes through esc()."""
+    return _html_escape(str(value), quote=False)
+
+
 def logfunc(message=""):
     def redirect_logs(string):
         _console_write(string)
@@ -189,7 +199,7 @@ def logfunc(message=""):
 
     if OutputParameters.screen_output_file_path:
         _screen_log.write(OutputParameters.screen_output_file_path,
-                          message + '<br>' + OutputParameters.nl)
+                          _html_text(message) + '<br>' + OutputParameters.nl)
     else:
         _screen_log.write('', '')
     print(message)
@@ -287,6 +297,41 @@ def _resolve_media_source(source_path):
         return extraction_path, file_info, file_info.source_path
     return extraction_path, None, Context.get_relative_path(source_path)
 
+# LAVA 2026.1.0 and 2026.1.1 show a media item of type image/heic as "This file could not be
+# shown" (media.cannot_display in RenderMedia.jsx): its viewer cannot decode HEIC.
+_HEIC_MIME_TYPES = ('image/heic', 'image/heif')
+_heic_unavailable_logged = False
+
+
+def _heic_to_viewable(source):
+    '''
+    Decode a HEIC or HEIF image with heicreader and encode it as JPEG, or as PNG when it has
+    transparency, which JPEG cannot hold.
+    Args:
+        source: A file path, or the image's bytes.
+    Returns:
+        (bytes, mime type, extension), or None when the image could not be decoded.
+    '''
+    global _heic_unavailable_logged  # pylint: disable=global-statement
+    try:
+        image = heicreader.to_pil(source)
+    except heicreader.Unavailable as ex:
+        # Said once per run, not once per image: every HEIC would fail the same way.
+        if not _heic_unavailable_logged:
+            logfunc(f'HEIC images are attached as they are: heicreader is not available ({ex})')
+            _heic_unavailable_logged = True
+        return None
+    except (heicreader.HeicReaderError, OSError, ValueError) as ex:
+        logfunc(f'HEIC image could not be converted for display, the original is attached instead: {ex}')
+        return None
+    buffer = io.BytesIO()
+    if image.mode == 'RGBA':
+        image.save(buffer, format='PNG')
+        return buffer.getvalue(), 'image/png', '.png'
+    image.save(buffer, format='JPEG', quality=90)
+    return buffer.getvalue(), 'image/jpeg', '.jpg'
+
+
 def _check_in_media(media_id, source_path, is_embedded, name, media_data=None, converted_file_path=None, force_type=None,
                     force_extension=None, force_creation_date=None, force_modification_date=None):
     '''
@@ -358,9 +403,22 @@ def _check_in_media(media_id, source_path, is_embedded, name, media_data=None, c
             else:
                 media_item.updated_at = 0
 
+        # An image sniffed as image/heic, or forced by the caller as image/heic or image/heif,
+        # is attached as a JPEG copy (PNG when it has transparency) so the report can show it.
+        # The original stays in the evidence copy, and the media's source path still names it.
+        # A caller that passed its own converted file, or forced another type, is left as it
+        # asked.
+        converted_data = None
+        if not converted_file_path and media_item.mimetype in _HEIC_MIME_TYPES:
+            converted = _heic_to_viewable(media_data if is_embedded else str(file_to_copy))
+            if converted is not None:
+                converted_data, media_item.mimetype, suffix = converted
+
         # 1. Create the canonical media file
         canonical_media_path = Path(output_params.media_folder).joinpath(media_id).with_suffix(suffix)
-        if is_embedded:
+        if converted_data is not None:
+            canonical_media_path.write_bytes(converted_data)
+        elif is_embedded:
             canonical_media_path.write_bytes(media_data)
         else:
             try:
@@ -931,7 +989,15 @@ def get_sqlite_db_path(path):
         elif path_str.startswith('\\\\'):       # UNC path
             remainder = '\\UNC' + path_str[1:]
         else:                                   # normal path
-            remainder = path_str
+            # \\?\ turns off Windows path parsing, so it only works in front of
+            # a full path with a drive. Resolve a relative one (admin\test\x.db,
+            # \x.db or C:x.db) against the current directory first, or SQLite
+            # cannot open it.
+            drive, rest = ntpath.splitdrive(path_str)
+            if drive and rest.startswith('\\'):
+                remainder = path_str
+            else:
+                remainder = ntpath.abspath(path_str)
         # Encode special URI characters (e.g. '#', space) so SQLite doesn't
         # treat them as fragment delimiters or query separators. Keep ':' safe
         # so the drive letter is preserved; separators are now all backslashes.
@@ -1393,23 +1459,34 @@ def utf8_in_extended_ascii(input_string, *, raise_on_unexpected=False):
     
     return mis_encoded_utf8_present, "".join(output)
 
+_DEVINFO_LABELLED = re.compile(r'<b>(.*?)</b>(.*)', re.S)
+
+
 def logdevinfo(message=""):
+    # Callers pass "<b>label: </b>value" with the value read from the evidence. The bold
+    # around the label is the only markup kept.
+    labelled = _DEVINFO_LABELLED.fullmatch(message)
+    if labelled:
+        line = f'<b>{_html_text(labelled.group(1))}</b>{_html_text(labelled.group(2))}'
+    else:
+        line = _html_text(message)
     with open(OutputParameters.screen_output_file_path_devinfo, 'a', encoding='utf8') as b:
-        b.write(message + '<br>' + OutputParameters.nl)
+        b.write(line + '<br>' + OutputParameters.nl)
+
 
 def write_device_info():
     with open(OutputParameters.screen_output_file_path_devinfo, 'a', encoding='utf8') as b:
         for category, values in identifiers.items():
-            b.write('<b>--- <u>' + category + ' </u>---</b><br>' + OutputParameters.nl)
+            b.write('<b>--- <u>' + _html_text(category) + ' </u>---</b><br>' + OutputParameters.nl)
             b.write('<ul>' + OutputParameters.nl)
             for label, data in values.items():
                 if isinstance(data, list):
-                    b.write('<li><b>' + label + ':</b><ul>' + OutputParameters.nl)
+                    b.write('<li><b>' + _html_text(label) + ':</b><ul>' + OutputParameters.nl)
                     for item in data:
-                        b.write(f'<li>{item["value"]} <span title="{item["source_file"]}" style="cursor:help"><i>(Source: {item["artifact"]})</i></span></li>' + OutputParameters.nl)
+                        b.write(f'<li>{_html_text(item["value"])} <span title="{esc(str(item["source_file"]))}" style="cursor:help"><i>(Source: {_html_text(item["artifact"])})</i></span></li>' + OutputParameters.nl)
                     b.write('</ul></li>' + OutputParameters.nl)
                 else:
-                    b.write(f'<li><b>{label}:</b> {data["value"]} <span title="{data["source_file"]}" style="cursor:help"><i>(Source: {data["artifact"]})</i></span></li>' + OutputParameters.nl)
+                    b.write(f'<li><b>{_html_text(label)}:</b> {_html_text(data["value"])} <span title="{esc(str(data["source_file"]))}" style="cursor:help"><i>(Source: {_html_text(data["artifact"])})</i></span></li>' + OutputParameters.nl)
             b.write('</ul>' + OutputParameters.nl)
 
 def device_info(category, label, value, source_file=""):
@@ -1550,10 +1627,24 @@ def convert_human_ts_to_utc(ts):  #This is for timestamp in human form
     else:
         return ts
 
+# NSDate.distantPast and NSDate.distantFuture as Cocoa seconds, read from Foundation on
+# macOS. Converted, they read as dates in 1968 and 1972, so they are reported blank like an
+# absent date. The source file in data/ keeps the stored value.
+COCOA_DISTANT_PAST = -63114076800
+COCOA_DISTANT_FUTURE = 63113904000
+
 def convert_cocoa_core_data_ts_to_utc(cocoa_core_data_ts):
+    if cocoa_core_data_ts in (COCOA_DISTANT_PAST, COCOA_DISTANT_FUTURE):
+        return ''
     if cocoa_core_data_ts:
-        unix_timestamp = cocoa_core_data_ts + 978307200
-        return convert_unix_ts_to_utc(unix_timestamp)
+        # Scale to seconds before adding the epoch offset. Added first, the offset was in
+        # seconds while the value was not, and a millisecond, microsecond or nanosecond
+        # value then came out about 31 years early, read as Unix time. Only positive values
+        # from 10**11 (milliseconds from March 2004) are scaled, so NSDate.distantPast and
+        # distantFuture, stored in seconds at about 6.3 * 10**10, keep their earlier path.
+        if cocoa_core_data_ts >= 10**11:
+            cocoa_core_data_ts = convert_unix_ts_in_seconds(cocoa_core_data_ts)
+        return convert_unix_ts_to_utc(cocoa_core_data_ts + 978307200)
     else:
         return cocoa_core_data_ts
 
@@ -1660,11 +1751,13 @@ def get_birthdate(date):
 
 def get_birthdate_from_unix_ts(date):
     utc_date = convert_unix_ts_to_utc(date)
+    if not isinstance(utc_date, datetime):
+        return utc_date
     return utc_date.strftime('%d %B %Y') if utc_date.year != 1604 else utc_date.strftime('%d %B')
 
 def convert_bytes_to_unit(size):
     if size:
-        for unit in ['bytes', 'KB', 'MB', 'GB']:
+        for unit in ['bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB']:
             if size < 1024.0:
                 return f"{size:3.1f} {unit}"
             size /= 1024.0
