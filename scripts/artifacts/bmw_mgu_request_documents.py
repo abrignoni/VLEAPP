@@ -117,6 +117,16 @@ __artifacts_v2__ = {
 _NUMBER = re.compile(r'^(\d+)\.gzip$')
 
 
+def _utc(seconds):
+    """Unix seconds as a UTC datetime in whole seconds, '' for none or a value datetime cannot hold."""
+    if seconds is None:
+        return ''
+    try:
+        return datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=seconds // 1)
+    except OverflowError:
+        return ''
+
+
 def _file_times(seeker, path):
     """(UTC seconds, reading with no zone) the input records for a staged file.
 
@@ -154,13 +164,8 @@ def _documents(context):
         if not isinstance(document, dict) or not isinstance(document.get('position'), dict):
             continue
         modified, no_zone = _file_times(seeker, file_found)
-        stamp = ''
-        if modified is not None:
-            try:
-                stamp = (datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=int(modified))
-                         ).strftime('%Y-%m-%d %H:%M:%S')
-            except OverflowError:
-                stamp = ''
+        when = _utc(modified)
+        stamp = when.strftime('%Y-%m-%d %H:%M:%S') if when else ''
         found.append((int(named.group(1)), document, relative, file_found, stamp, no_zone))
     return sorted(found, key=lambda item: item[0])
 
