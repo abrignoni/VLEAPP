@@ -14,7 +14,7 @@ import gzip
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from scripts.ilapfuncs import artifact_processor, logfunc
 
@@ -155,9 +155,12 @@ def _documents(context):
             continue
         modified, no_zone = _file_times(seeker, file_found)
         stamp = ''
-        if modified is not None and modified > 0:
-            stamp = datetime.fromtimestamp(modified, timezone.utc).strftime(
-                '%Y-%m-%d %H:%M:%S')
+        if modified is not None:
+            try:
+                stamp = (datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=int(modified))
+                         ).strftime('%Y-%m-%d %H:%M:%S')
+            except OverflowError:
+                stamp = ''
         found.append((int(named.group(1)), document, relative, file_found, stamp, no_zone))
     return sorted(found, key=lambda item: item[0])
 
