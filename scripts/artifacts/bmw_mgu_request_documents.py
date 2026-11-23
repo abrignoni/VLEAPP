@@ -14,54 +14,64 @@ import gzip
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from scripts.ilapfuncs import artifact_processor, logfunc
 
 __artifacts_v2__ = {
     "bmw_mgu_request_documents": {
         "name": "BMW MGU - Request Documents",
-        "description": "One row for each request document: the position it carries, the "
-                       "request reason and counter, the mileage and position age bands, and "
-                       "the software levels it states.",
+        "description": "One row for each request document: the position it carries, the request "
+                       "reason and counter, the mileage and position age bands, and the "
+                       "iStepCurrent and mguVersion values it states.",
         "author": "@AlexisBrignoni, Claude",
         "version": "0.1",
         "creation_date": "2026-10-09",
-        "last_update_date": "2026-10-09",
+        "last_update_date": "2026-11-23",
         "requirements": "none",
         "category": "BMW MGU",
         "notes": "From hdshare/tm/dumm/<number>.gzip, gzip-compressed JSON documents that sit "
-                 "among several thousand two-byte files holding 'OK' in the same folder. A "
-                 "file is read only when it inflates to a JSON object with a position member. "
-                 "Tested on one BMW MGU unit read from the logical zip of its persistence "
-                 "volume, which held 150 such documents numbered from 31 to 8,096. What "
-                 "component writes them and where they are sent is not established here; the "
-                 "folder and key names are all there is to go on. All 150 carried a position "
-                 "marked valid, 63 distinct places between them, and the latitude and "
-                 "longitude are reported as stored; a position not marked valid is left empty. "
-                 "Altitude was -999 on 52 documents, which reads as not available, and is "
+                 "among several thousand two-byte files holding 'OK' in the same folder. A file "
+                 "is read only when it inflates to a JSON object with a position member. Tested "
+                 "on one BMW MGU unit read from the logical zip of its persistence volume, which "
+                 "held 150 such documents numbered from 31 to 8,096. What component writes them "
+                 "and where they are sent is not established here; the folder and key names are "
+                 "all there is to go on. All 150 carried a position marked valid, 63 distinct "
+                 "latitude and longitude pairs between them, and the latitude and longitude are "
+                 "reported as stored; a position not marked valid is left empty. Altitude was "
+                 "-999 on 52 documents. What that value means is not established here. It is "
                  "shown as stored. Request Reason was LcResume on 124, PrivacyChange on 24 and "
-                 "LcStartup on one, with one document lacking the key. The document holds no "
-                 "time of its own. Two columns carry a time for the file, not for the event. "
-                 "File Modified Time is filled only when the input records a modified time "
-                 "this tool reads, which the tested zip does not, so it was empty on all 150 "
-                 "rows. Staged File Time is the time the tool gave its staged copy of the "
-                 "file, shown as text because its zone depends on the input: for a zip entry "
-                 "with no NTFS or extended timestamp field it is the zip entry's date and time "
-                 "read back in this computer's zone, and on the "
-                 "tested zip it equalled the entry time on all 150 rows, from 2023-12-06 to "
-                 "2026-02-25. For a zip entry that carries one of those fields it is that "
-                 "field's UTC time shown in this computer's zone. The tested zip was written by qnxprobe --extract, which stores "
-                 "each file's own modified time as UTC (its _zip_time function), so there the "
-                 "column is the file's modified time in UTC; for a zip from another tool, or a "
-                 "folder input, the zone is that tool's or this computer's and has to be "
-                 "checked. The request number is not a reliable order: sorted by it, the zip "
-                 "entries' dates rise from one document to the next on 107 of 149 pairs, and "
-                 "the counter on 107 of 148. Mileage Band and Position Age Band are the "
-                 "document's own coded values, as stored. The documents also carry the VIN, a "
-                 "list of option codes and component version lists, which are not surfaced "
-                 "here. A row records that the unit wrote a document with that position. It "
-                 "does not establish who was driving.",
+                 "LcStartup on one. One document holds no requestReason, counter or "
+                 "requestIdentifier key. No key in the 150 documents names a time and no text "
+                 "value holds a date. A job id in the components list on 38 documents is a number"
+                 " in the Unix time range, and what it encodes is not established. Two columns "
+                 "carry a time for the file, not for the event. File Modified Time is the "
+                 "modification time the tool reads from the input for the file as a UTC time, to "
+                 "the whole second, such as from a tar header or a zip entry's NTFS or extended "
+                 "timestamp field. The tested zip has no such field this tool reads, so it was "
+                 "empty on all 150 rows. Modified (no zone, as stored) is filled when the tool "
+                 "reads no UTC time, and shows the date and time the input holds with no zone "
+                 "conversion. That is the case for a FAT directory entry, an exFAT directory "
+                 "entry (its stored UTC offset is not applied or shown here) and a zip entry with"
+                 " only its DOS date and time. A recorded time of 0 is treated as no time. On the"
+                 " tested zip it is the entry's date and time on all 150 rows. That zip is "
+                 "recorded as written by qnxprobe --extract. Its _zip_time function writes each "
+                 "file's modified time as UTC, to the 2 seconds a zip holds, and 1980-01-01 "
+                 "00:00:00 when there is none, so the reading there is expected to be UTC. It was"
+                 " not compared with the volume's own times here, and the zip does not state a "
+                 "zone. For a zip from another tool the zone is that tool's and has to be "
+                 "checked. For a folder or single-file input File Modified Time is the time the "
+                 "operating system reports for that file on the examiner's machine, including any"
+                 " conversion it applied, and whatever copied the file there may have set it. The"
+                 " staged copy's own time is not reported. The request number is not a reliable "
+                 "order: sorted by it, the zip entries' date and time rise from one document to "
+                 "the next on 107 of 149 pairs and fall on 42, and the counter rises on 85 of 148"
+                 " pairs, stays the same on 22 and falls on 41. Request Number is the number in "
+                 "the file name, and Integration Level is the iStepCurrent value. Mileage Band "
+                 "and Position Age Band are the document's own coded values, as stored. The "
+                 "documents also carry the VIN, an eCodes list and component version lists, which"
+                 " are not surfaced here. A row records that the unit wrote a document with that "
+                 "position. It does not establish who was driving.",
         "paths": ('*/tm/dumm/*.gzip',),
         "sample_data": {
             "bmw_mgu_2024_pers_logical": "BMW MGU, logical zip | 150 rows",
@@ -107,10 +117,49 @@ __artifacts_v2__ = {
 _NUMBER = re.compile(r'^(\d+)\.gzip$')
 
 
+def _utc(seconds):
+    """Unix seconds as a UTC datetime in whole seconds, '' for none or a value datetime cannot hold."""
+    if seconds is None:
+        return ''
+    try:
+        return datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=seconds // 1)
+    except (OverflowError, ValueError):
+        return ''
+
+
+def _usable(value):
+    """Whether a recorded time is a nonzero, finite number."""
+    return isinstance(value, (int, float)) and value != 0 and value == value and abs(value) != float('inf')
+
+
+def _file_times(seeker, path):
+    """(UTC seconds, reading with no zone) the input records for a staged file.
+
+    The staged copy's own time is not used: for a FAT, exFAT or DOS-only zip reading it is
+    that reading placed in the examiner's time zone.
+    """
+    infos = getattr(seeker, 'file_infos', None) or {}
+    windows = str(path).replace('/', '\\')
+    bare = windows.removeprefix('\\\\?\\')
+    info = next((infos[name] for name in (str(path), windows, bare, '\\\\?\\' + bare)
+                 if name in infos), None)
+    times = getattr(info, 'times', None)
+    modified = getattr(times, 'modified', None)
+    if _usable(modified):
+        return modified, ''
+    # a reading with no zone comes before the older field, which is never read as its UTC time
+    reading = getattr(times, 'modified_no_zone', None)
+    if reading:
+        return None, reading
+    modified = getattr(info, 'modification_date', None)
+    if _usable(modified):
+        return modified, ''
+    return None, ''
+
+
 def _documents(context):
-    """(request number, document, relative path, path, modified time, staged time)."""
+    """(request number, document, relative path, path, UTC time, reading with no zone)."""
     seeker = context.get_seeker()
-    infos = getattr(seeker, 'file_infos', {}) or {}
     found = []
     for file_found in set(str(f) for f in context.get_files_found()):
         named = _NUMBER.match(os.path.basename(file_found))
@@ -126,20 +175,10 @@ def _documents(context):
             continue
         if not isinstance(document, dict) or not isinstance(document.get('position'), dict):
             continue
-        modified = getattr(infos.get(file_found), 'modification_date', None)
-        stamp = ''
-        if isinstance(modified, (int, float)) and modified > 0:
-            stamp = datetime.fromtimestamp(modified, timezone.utc).strftime(
-                '%Y-%m-%d %H:%M:%S')
-        try:
-            # The time the tool gave the staged copy. For a zip entry with no NTFS or
-            # extended timestamp field that is the entry's own time, read back as the
-            # wall clock the zip stored; with one, it is that field's UTC time.
-            staged = datetime.fromtimestamp(os.path.getmtime(file_found)).strftime(
-                '%Y-%m-%d %H:%M:%S')
-        except (OSError, OverflowError, ValueError):
-            staged = ''
-        found.append((int(named.group(1)), document, relative, file_found, stamp, staged))
+        modified, no_zone = _file_times(seeker, file_found)
+        when = _utc(modified)
+        stamp = when.strftime('%Y-%m-%d %H:%M:%S') if when else ''
+        found.append((int(named.group(1)), document, relative, file_found, stamp, no_zone))
     return sorted(found, key=lambda item: item[0])
 
 
@@ -151,14 +190,14 @@ def _text(value):
 def bmw_mgu_request_documents(context):
     data_list = []
     source_paths = []
-    for number, document, relative, path, stamp, staged in _documents(context):
+    for number, document, relative, path, stamp, no_zone in _documents(context):
         position = document['position']
         capabilities = document.get('vehicleCapabilities')
         if not isinstance(capabilities, dict):
             capabilities = {}
         source_paths.append(path)
         valid = position.get('valid')
-        data_list.append((stamp, staged, number,
+        data_list.append((stamp, no_zone, number,
                           _text(position.get('latitude')) if valid else '',
                           _text(position.get('longitude')) if valid else '',
                           _text(position.get('altitude')),
@@ -170,7 +209,7 @@ def bmw_mgu_request_documents(context):
                           _text(capabilities.get('mguVersion')),
                           _text(document.get('requestIdentifier')), relative))
 
-    data_headers = (('File Modified Time', 'datetime'), 'Staged File Time (as staged)',
+    data_headers = (('File Modified Time', 'datetime'), 'Modified (no zone, as stored)',
                     'Request Number', 'Latitude',
                     'Longitude', 'Altitude (as stored)', 'Position Valid', 'Request Reason',
                     'Counter', 'Mileage Band (as stored)', 'Position Age Band (as stored)',
