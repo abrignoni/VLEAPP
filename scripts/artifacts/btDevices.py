@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2021-07-02",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford",
         "notes": "",
         "paths": ('*/BT/devlog_*.txt',),
         "output_types": "standard",

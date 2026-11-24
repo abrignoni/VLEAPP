@@ -19,7 +19,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Garmin Navigation App",
+        "category": "Ford",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a "
                  "scratch copy of that store and confirming it executes, joins across the "
@@ -46,7 +46,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Garmin Navigation App",
+        "category": "Ford",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes, joins across the related tables and returns its "
@@ -79,7 +79,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Garmin Navigation App",
+        "category": "Ford",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes, joins across the related tables and returns its "
@@ -112,7 +112,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Garmin Navigation App",
+        "category": "Ford",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a "
                  "scratch copy of that store and confirming it executes, joins across the "
@@ -141,7 +141,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Garmin Navigation App",
+        "category": "Ford",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes, joins across the related tables and returns its "
@@ -173,7 +173,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Garmin Navigation App",
+        "category": "Ford",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes and returns its declared columns, so the SQL is "
@@ -210,7 +210,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Garmin Navigation App",
+        "category": "Ford",
         "notes": "Every table this reads was empty on the one tested extraction. The query "
                  "was verified by staging rows into a scratch copy of that store and "
                  "confirming it executes and returns its declared columns, so the SQL is "

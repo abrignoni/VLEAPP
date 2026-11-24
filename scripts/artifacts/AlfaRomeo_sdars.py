@@ -7,7 +7,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-06-16",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Alfa Romeo Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "",
         "paths": ('*/sdars_db.sqlite*',),
         "output_types": "standard",

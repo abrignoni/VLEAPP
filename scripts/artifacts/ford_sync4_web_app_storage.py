@@ -27,7 +27,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the buckets table of <application>/system_handled/QuotaManager, the "
                  "quota database of the browser engine each SYNC 4 web application runs in. "
                  "Tested on one Ford SYNC 4 unit read from its logical zip: seven applications "

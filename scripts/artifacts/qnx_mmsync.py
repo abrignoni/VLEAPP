@@ -29,7 +29,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "QNX Media Sync",
+        "category": "Infotainment Components",
         "notes": "From storage/bk<n>/Media<kind>_<n>.db, the library database a QNX head unit "
                  "builds for each media device it has synced; a file is read only when it is a "
                  "SQLite database with the _mmsync_info_ table. Tested on one unit, a 2018 "
@@ -68,7 +68,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "QNX Media Sync",
+        "category": "Infotainment Components",
         "notes": "From storage/bk<n>/Media<kind>_<n>.db, the library database a QNX head unit "
                  "builds for each media device it has synced; a file is read only when it is a "
                  "SQLite database with the _mmsync_info_ table. Tested on one unit, a 2018 "
@@ -106,7 +106,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "QNX Media Sync",
+        "category": "Infotainment Components",
         "notes": "From storage/bk<n>/Media<kind>_<n>.db, the library database a QNX head unit "
                  "builds for each media device it has synced; a file is read only when it is a "
                  "SQLite database with the _mmsync_info_ table. Tested on one unit, a 2018 "

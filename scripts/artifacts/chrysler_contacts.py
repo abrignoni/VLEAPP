@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-06-05",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Chrysler Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Lines are read as alternating name / information pairs.",
         "paths": ('*/voice/asr/context/phonebook/*.txt',),
         "output_types": "standard",

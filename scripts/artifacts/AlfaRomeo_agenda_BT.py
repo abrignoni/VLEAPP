@@ -7,7 +7,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-06-16",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Alfa Romeo Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "A numeric Last Sync Date is interpreted as a Unix epoch (auto-detected "
                  "seconds/ms) and normalized to UTC; text that parses as an ISO date and time "
                  "is converted, with a zone-less value taken as UTC; any other text is kept as "

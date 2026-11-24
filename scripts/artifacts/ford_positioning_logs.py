@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the hmi.analytics lines in every file the paths pattern matches: "
                  "fdplog.vn.txt and its rotated and pre_ copies. A file whose bytes equal "
                  "a file already read is skipped, and the Source File column names the "

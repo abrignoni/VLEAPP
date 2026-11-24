@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-06-02",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Chrysler Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "",
         "paths": ('*/betula/bt_log.txt',),
         "output_types": "standard",

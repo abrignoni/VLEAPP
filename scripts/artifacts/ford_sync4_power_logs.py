@@ -28,7 +28,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From fordlogs/sm/reset-history.txt, which holds a summary line and a detail "
                  "block for each recent boot; the two are merged on the boot count. Tested on "
                  "one Ford SYNC 4 unit read from its logical zip. The files record no time "
@@ -69,7 +69,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From fordlogs/sm/smlog.<n>. Debug lines (level D), which are service "
                  "registrations and heartbeats, are left out; the other lines are reported. "
                  "Tested on one Ford SYNC 4 unit read from its logical zip. The files record "

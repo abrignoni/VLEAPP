@@ -7,7 +7,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-06-08",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Chrysler Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "",
         "paths": ('*/media/accessory_data.txt',),
         "output_types": "standard",

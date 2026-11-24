@@ -24,7 +24,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-30",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford SYNC Gen3",
+        "category": "Ford",
         "notes": "From the PhoneBook<N> tables of BT/btpbk, an extension-less SQLite store "
                  "on the user data partition. On the tested unit the tables were numbered 1 "
                  "to 12, and this artifact reads PhoneBook1 to PhoneBook12 only. That each "
@@ -58,7 +58,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-30",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford SYNC Gen3",
+        "category": "Ford",
         "notes": "From the Combined<N> tables of BT/btpbk, which the unit maintains "
                  "alongside separate InCall<N>, DialCall<N> and MissCall<N> tables. "
                  "Combined is the table read. Direction is decoded from CallType, and that "
@@ -92,7 +92,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-30",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford SYNC Gen3",
+        "category": "Ford",
         "notes": "From PairedDevInfo in BT/btpersist, joined to DeviceOrder and "
                  "HFPdeviceOrder on DeviceID (shown as Device ID) for the primary-device "
                  "flags, which are reported as stored because nothing available here "

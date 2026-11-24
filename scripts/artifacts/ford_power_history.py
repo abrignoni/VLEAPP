@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From last-shutdown.txt, a file that held a single record on the tested "
                  "image. real time is read as a Unix time in milliseconds and divided by "
                  "1000. On ford_syncg4_logical that reading and the record's up-time, taken "
@@ -36,7 +36,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From reset-reason.txt, a file that held a single record on the tested "
                  "image. Same field vocabulary as last-shutdown.txt, and real time is read "
                  "the same way, as milliseconds divided by 1000. On the tested image this "

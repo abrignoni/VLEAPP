@@ -28,7 +28,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nuance VCA",
+        "category": "Infotainment Components",
         "notes": "From T_Device in Nuance/VCA/device.sqlite. Tested on three Ford SYNC units "
                  "read from their extracted file sets: a 2019 Ford Fusion (SYNC Gen1v5), a "
                  "2014 Ford Edge SEL and a 2011 Ford Explorer XLT (SYNC Gen2). They held 8, 2 "
@@ -60,7 +60,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Nuance VCA",
+        "category": "Infotainment Components",
         "notes": "From T_Person joined to T_Phone_Number and S_Phone_Number_Type in "
                  "Nuance/VCA/PhoneBook_<address>.sqlite and, on SYNC Gen1v5, "
                  "Nuance/VCA/phone<address>_<n>_<lang>.sqlite, which holds the same three "
@@ -108,7 +108,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nuance VCA",
+        "category": "Infotainment Components",
         "notes": "From Nuance/VCA/Media<n>_<lang>.sqlite (SYNC Gen1v5) and "
                  "Nuance/VCA/media<n>.db (SYNC Gen2), which the voice-control component keeps "
                  "so titles can be spoken. Tested on two Ford SYNC units read from their "
@@ -146,7 +146,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nuance VCA",
+        "category": "Infotainment Components",
         "notes": "From the info table of Nuance/VCA/media<n>.db. Tested on three Ford SYNC "
                  "units read from their extracted file sets. Only the SYNC Gen2 layout has the "
                  "table: a 2011 Ford Explorer XLT gave one row, the SYNC Gen1v5 media "

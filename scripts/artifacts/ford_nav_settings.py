@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Garmin Navigation App",
+        "category": "Ford",
         "notes": "From the user_setting table in the navigation application's "
                  "data_manager.sqlite. time_stamp is read as a Unix time, with the unit chosen "
                  "from the value's magnitude. The table's own definition gives the column a "
@@ -41,7 +41,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Garmin Navigation App",
+        "category": "Ford",
         "notes": "From the global_setting table in the same store as the user settings, with "
                  "the same columns except that no profile is recorded. time_stamp is read as "
                  "a Unix time, with the unit chosen from the value's magnitude, and values "

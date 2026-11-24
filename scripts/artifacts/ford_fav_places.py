@@ -11,7 +11,7 @@ __artifacts_v2__ = {
         "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford",
         "notes": "Latitude/Longitude are exposed for the KML map.",
         "paths": ('*/recents_storage', '*/favorites_storage'),
         "output_types": ['html', 'tsv', 'timeline', 'lava', 'kml'],

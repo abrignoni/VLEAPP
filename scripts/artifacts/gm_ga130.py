@@ -40,7 +40,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM GA-130",
+        "category": "GM",
         "notes": "From the PhoneBook1 to PhoneBook5 tables of storage/NPS/BT_MID/phonebook. "
                  "Tested on two units, a 2014 Chevrolet Equinox LT and a 2015 Chevrolet "
                  "Malibu, read from the file sets extracted from each unit's storage. The file "
@@ -93,7 +93,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM GA-130",
+        "category": "GM",
         "notes": "From the InCall, DialCall and MissCall tables, numbered 1 to 5, of "
                  "storage/NPS/BT_MID/phonebook. Tested on two units, a 2014 Chevrolet Equinox "
                  "LT and a 2015 Chevrolet Malibu, read from the file sets extracted from each "
@@ -129,7 +129,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM GA-130",
+        "category": "GM",
         "notes": "From the name table of HMI_DB/pasa_addressbook_data1.db to "
                  "pasa_addressbook_data5.db. Tested on two units, a 2014 Chevrolet Equinox LT "
                  "and a 2015 Chevrolet Malibu, read from the file sets extracted from each "
@@ -164,7 +164,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM GA-130",
+        "category": "GM",
         "notes": "From the mediastores table of storage/bk1/mme and storage/bk2/mme, plain "
                  "SQLite databases. Tested on two units, a 2014 Chevrolet Equinox LT and a "
                  "2015 Chevrolet Malibu, read from the file sets extracted from each unit's "
@@ -198,7 +198,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM GA-130",
+        "category": "GM",
         "notes": "From the library table of storage/bk1/mme and storage/bk2/mme, joined to "
                  "mediastores on msid for the store's name and identifier. Tested on two units "
                  "read from their extracted file sets, a 2014 Chevrolet Equinox LT and a 2015 "
@@ -235,7 +235,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "GM GA-130",
+        "category": "GM",
         "notes": "From the library table of storage/bk1/mme and storage/bk2/mme, joined to "
                  "mediastores on msid for the store's name, identifier and kind. Tested on two "
                  "units read from their extracted file sets, a 2014 Chevrolet Equinox LT and a "
@@ -283,7 +283,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM GA-130",
+        "category": "GM",
         "notes": "From HMI_DB/pasa_media_data<n>.db, stored as a zlib stream that inflates to "
                  "a SQLite database; an already inflated copy with the same content is read "
                  "once. Tested on two units read from their extracted file sets, a 2014 "

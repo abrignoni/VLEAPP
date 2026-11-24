@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-02-13",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Nissan Vehicles",
+        "category": "Nissan",
         "notes": "Sections are reported in one table with a Section column. Underscores in section "
                  "names are shown as spaces, and keys with an empty value are not listed.",
         "paths": ('*/ffs/phone_config.dat',),

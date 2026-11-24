@@ -38,7 +38,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "From TEL/CALLLOGS/f_incoming<address>.txt, f_outgoing<address>.txt and "
                  "f_miss<address>.txt. Despite the extension they are binary files of "
                  "fixed-size records after a four-byte count. Tested on two units, one of "
@@ -79,7 +79,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "From TEL/HF_MEMORY/f_hf_memory<address>.txt on generation 8000, a binary "
                  "file of 384-byte records after a four-byte count: an index, a UTF-16 name "
                  "and five number slots, each an ASCII number with a four-byte value. Tested "
@@ -113,7 +113,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "From TEL/INFO/f_info.txt on generation 8000 (164-byte slots holding an "
                  "address and a name) and TEL/INFO/f_phonebookinfo.txt on generation 3000 "
                  "(104-byte slots holding an address). Tested on two units, one of generation "
@@ -147,7 +147,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "From USER/DEBUG/LOC/LOC_DS<n>.log. Each file is a run of blocks, a two-byte "
                  "value followed by a zlib stream that inflates to 2,048 bytes, and the "
                  "inflated content holds the unit's positioning records. Tested on one "
@@ -194,7 +194,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "A summary of the GPS Track artifact, one row for each log file that held "
                  "position records. From USER/DEBUG/LOC/LOC_DS<n>.log. Each file is a run of "
                  "blocks, a two-byte value followed by a zlib stream that inflates to 2,048 "
@@ -232,7 +232,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "From USER/USBA/file.lst, USER/USBV/file.lst and USER/DATACD/file.lst. The "
                  "layout was worked out from the files: 5,000 records of 260 bytes, each a "
                  "256-byte name field padded with NUL and four more bytes, with the used "
@@ -266,7 +266,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "From USER/CLIB/cl.dtb.bak. The layout was worked out from the file. A track "
                  "record starts with the path of its audio file, /ALBUM/<fourteen "
                  "digits>/<nn>.SCD, with the title 32 bytes after it and two date fields "
@@ -305,7 +305,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "From USER/CLIB/cl.dtb.bak. The layout was worked out from the file: the "
                  "32-bit number at the start is the number of album records, and they are 920 "
                  "bytes each from offset 0x4a0 with a name, a count and seven bytes of date "
@@ -341,7 +341,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "From USER/CUSTOM/ccu.edb and sccu.edb, files that start with the text "
                  "XANAVI06IT. The layout was worked out from the files. A disc record holds a "
                  "table of numbers and then its text as values each stored as a 32-bit length "
@@ -380,7 +380,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Nissan 08IT",
+        "category": "Nissan",
         "notes": "From BUP/BACKUP.CUR and BACKUP.PRE. On the tested units the files read are "
                  "1,048,576 bytes and start with the text NEPO. The layout was worked out from "
                  "the files. Records are 268 bytes: a text field of up to 32 UTF-16 characters "

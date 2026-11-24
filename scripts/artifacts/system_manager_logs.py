@@ -28,7 +28,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "System Manager Logs",
+        "category": "Infotainment Components",
         "notes": "From logs/sys_error.log.<n>. The same file and line format are kept by the "
                  "Ford SYNC Gen3 module and the GM GA-130 radio, so the artifact is named for "
                  "the log. Tested on three units: a 2018 Ford Expedition (SYNC Gen3), read "
@@ -70,7 +70,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "System Manager Logs",
+        "category": "Infotainment Components",
         "notes": "From logs/sys_cpu_usage and sys_cpu_usage.<n>. The file is written in "
                  "blocks: a 'BOOT COUNT = <n>' line, then one 'CPU <n> Usage' line per core "
                  "about every 30 seconds while the unit runs. The samples themselves are load "

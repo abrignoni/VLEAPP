@@ -27,7 +27,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-30",
         "last_update_date": "2026-08-30",
         "requirements": "none",
-        "category": "Vehicle Acquisition",
+        "category": "Acquisition",
         "notes": "From Vehicle.json at the top of a Berla iVe .iVa export. The .iVa is a ZIP "
                  "holding another ZIP, and the seekers do not descend into nested archives, so "
                  "with any input type other than iva a .iVa reaches only this file and the "

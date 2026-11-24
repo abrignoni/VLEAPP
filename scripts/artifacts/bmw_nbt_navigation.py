@@ -35,7 +35,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-28",
         "last_update_date": "2026-10-29",
         "requirements": "none",
-        "category": "BMW NBT",
+        "category": "BMW",
         "notes": "The format was worked out on one 2017 BMW 540i NBT unit. Coordinate scaling is inferred as "
                  "signed 32-bit values times 360 / 2**32 degree; stored integers remain available for comparison "
                  "with other tools. BeginCoordinatedUniversalTime is inferred as Unix seconds UTC, and time "
@@ -61,7 +61,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-28",
         "last_update_date": "2026-10-29",
         "requirements": "none",
-        "category": "BMW NBT",
+        "category": "BMW",
         "notes": "The format and coordinate scaling (signed 32-bit values times 360 / 2**32 degree) were "
                  "inferred on one 2017 BMW 540i NBT unit. Begin Time and End Time interpret "
                  "BeginCoordinatedUniversalTime and EndCoordinatedUniversalTime as Unix seconds UTC; that "
@@ -88,7 +88,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-28",
         "last_update_date": "2026-10-29",
         "requirements": "none",
-        "category": "BMW NBT",
+        "category": "BMW",
         "notes": "The format and coordinate scaling (signed 32-bit values times 360 / 2**32 degree) were "
                  "inferred on one 2017 BMW 540i NBT unit. Departure Time and Arrival Time interpret "
                  "DepartureCoordinatedUniversalTime and ArrivalCoordinatedUniversalTime as Unix seconds UTC; "

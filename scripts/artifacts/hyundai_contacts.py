@@ -7,7 +7,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-06-09",
         "last_update_date": "2026-09-03",
         "requirements": "none",
-        "category": "Hyundai Vehicles",
+        "category": "Hyundai & Kia",
         "notes": "Extracts contacts per device and derives device Bluetooth MAC address directly "
                  "from the database filename (MC_{mac}.db). Built from one Hyundai/Kia head unit "
                  "extraction that could not be shared. No row counts are recorded here and no test "

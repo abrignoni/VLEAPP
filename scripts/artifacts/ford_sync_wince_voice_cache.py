@@ -50,7 +50,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/<language>_ddg2p_person_name_cache.cac, which the tested units "
                  "name enu_ddg2p_person_name_cache.cac. The unit's speech configuration, "
                  "Application Data/speng.rgs, registers that file under the recogniser token "

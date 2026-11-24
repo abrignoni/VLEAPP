@@ -33,7 +33,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-11-03",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From the SMSstore table of UserData/SMS_<address>.db, one database per "
                  "handset. Tested on two SYNC Gen2 units, a 2014 Ford Edge SEL and a 2011 Ford "
                  "Explorer XLT, read from the file sets extracted from each unit's flash "
@@ -73,7 +73,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-11-03",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From the WiFiNetworkList table of UserData/WiFiList.db. Both tested SYNC "
                  "Gen2 units (a 2014 Ford Edge SEL and a 2011 Ford Explorer XLT) held the "
                  "table with no rows, so this artifact is written from the table's own column "
@@ -103,7 +103,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-11-03",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From the UserProfile table of the databases in UserData/Profiles other than "
                  "DefaultUser.db; on the tested units that was Vehicle.db alone. Tested on two "
                  "Ford SYNC Gen2 units read from their extracted file sets, a 2014 Ford Edge "

@@ -37,7 +37,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/phonebook/CH<address>.xml, one file per handset. Tested on "
                  "eight SYNC Gen1 units: Ford Escape 2010 to 2014 (six units), Ford Edge 2013, "
                  "and Ford Fusion 2019, covering Gen1 versions 2, 3, 4 and 5 and read from the "
@@ -83,7 +83,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/phonebook/PB<address>.SYN and, on one unit, a PB<address>.NEW "
                  "beside it. Tested on eight SYNC Gen1 units: Ford Escape 2010 to 2014 (six "
                  "units), Ford Edge 2013, and Ford Fusion 2019, covering Gen1 versions 2, 3, 4 "
@@ -128,7 +128,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/phonebook/persistentPhonebook_<address>.txt, a text file with "
                  "one name a line and no numbers. Tested on ten Ford SYNC units read from "
                  "their extracted file sets; four SYNC Gen1 units (Ford Escape 2011 to 2014) "
@@ -173,7 +173,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From TextMsgApp/TextMessages_<address>, a file of fixed-size records with "
                  "UTF-16 text. Tested on eight SYNC Gen1 units: Ford Escape 2010 to 2014 (six "
                  "units), Ford Edge 2013, and Ford Fusion 2019, covering Gen1 versions 2, 3, 4 "
@@ -225,7 +225,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From MediaCache/Source_<n>.dat, one file per slot. Tested on eight SYNC Gen1 "
                  "units: Ford Escape 2010 to 2014 (six units), Ford Edge 2013, and Ford Fusion "
                  "2019, covering Gen1 versions 2, 3, 4 and 5 and read from the file sets "
@@ -270,7 +270,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From the 'Paired devices' blocks of Windows/LogFiles/MsgLog<n>.txt. Tested "
                  "on eight SYNC Gen1 units: Ford Escape 2010 to 2014 (six units), Ford Edge "
                  "2013, and Ford Fusion 2019, covering Gen1 versions 2, 3, 4 and 5 and read "
@@ -320,7 +320,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From 'APP-PHONE-CONNECT: Current device' and 'APP-PHONE-DISCONNECT: Last "
                  "device' lines of Windows/LogFiles/MsgLog<n>.txt. Only the version 5 unit "
                  "(Ford Fusion 2019) wrote these lines, 40 of them; the seven earlier units "
@@ -371,7 +371,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From lines of Windows/LogFiles/MsgLog<n>.txt that carry "
                  "'VehicleDataGPSChanged: CanSignal State: <state>/ GPS: LNG:<a>.<b>.<c> "
                  "LAT:<a>.<b>.<c> Alt: COMP: HEAD: SPD: SAT: FAULTY: HLAT: HLONG:'. Tested on "
@@ -448,7 +448,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From 'GetOdometerReading() ODO = <a> (<b>)' lines of "
                  "Windows/LogFiles/MsgLog<n>.txt. Tested on eight SYNC Gen1 units: Ford Escape "
                  "2010 to 2014 (six units), Ford Edge 2013, and Ford Fusion 2019, covering "
@@ -501,7 +501,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From 'SYSHEALTH: start saving retailmsg at <date> <time>' lines of "
                  "Windows/LogFiles/MsgLog<n>.txt. Tested on eight SYNC Gen1 units: Ford Escape "
                  "2010 to 2014 (six units), Ford Edge 2013, and Ford Fusion 2019, covering "
@@ -546,7 +546,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/LogFiles/MsgLog<n>.txt. Tested on eight SYNC Gen1 units: Ford "
                  "Escape 2010 to 2014 (six units), Ford Edge 2013, and Ford Fusion 2019, "
                  "covering Gen1 versions 2, 3, 4 and 5 and read from the file sets extracted "

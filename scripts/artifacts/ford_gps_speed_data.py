@@ -7,7 +7,7 @@ __artifacts_v2__ = {
         "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "Time Stamp is the date and time inside the DR data line, stored as if it were "
                  "UTC with no conversion; the zone of that value is not established here. "
                  "Unparseable values are kept as stored. Only DR data lines marked GPSDataValid=1 "

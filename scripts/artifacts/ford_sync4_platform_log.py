@@ -41,7 +41,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -109,7 +109,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -172,7 +172,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -246,7 +246,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -309,7 +309,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -392,7 +392,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -453,7 +453,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -510,7 +510,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -571,7 +571,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -633,7 +633,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -691,7 +691,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "
@@ -757,7 +757,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the module's rolling platform log. Three inputs are read, and a row "
                  "says which held it in Found In: the live log files "
                  "(rwdata/logs/fdplog.<zone>.txt and pre_fdplog.<zone>.txt with their numbered "

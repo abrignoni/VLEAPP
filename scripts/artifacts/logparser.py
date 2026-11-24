@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "creation_date": "2024-04-06",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "RAM Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the numeric time field of the matched log line, read as a Unix "
                  "time (unit chosen by magnitude) and shown in UTC. Latitude/Longitude exposed "
                  "for "

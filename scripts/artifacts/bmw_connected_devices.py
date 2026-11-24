@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "BMW MGU",
+        "category": "BMW",
         "notes": "On the tested image each store's file name carried an identifier tagged btmac "
                  "or serial. That the unit keeps one store per device is not established here. "
                  "The identifier is parsed from the file name and reported alongside the device "
@@ -40,7 +40,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "BMW MGU",
+        "category": "BMW",
         "notes": "From iap2_media_item joined to the artist, album, album artist, genre and "
                  "composer tables in the same store. Playback duration is reported as "
                  "stored because nothing available here establishes its units. The type and "

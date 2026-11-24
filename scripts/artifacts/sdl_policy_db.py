@@ -32,7 +32,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SDL Policy",
+        "category": "Infotainment Components",
         "notes": "From the SQLite policy database storage/sdl/policy that the head unit's "
                  "app-link component keeps. Tested on two units: a 2018 Ford Expedition (SYNC "
                  "Gen3) read from its export and a Ford SYNC 4 unit read from its logical zip. "
@@ -65,7 +65,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SDL Policy",
+        "category": "Infotainment Components",
         "notes": "From the SQLite policy database storage/sdl/policy that the head unit's "
                  "app-link component keeps. Tested on two units: a 2018 Ford Expedition (SYNC "
                  "Gen3) read from its export and a Ford SYNC 4 unit read from its logical zip. "
@@ -97,7 +97,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SDL Policy",
+        "category": "Infotainment Components",
         "notes": "From the SQLite policy database storage/sdl/policy that the head unit's "
                  "app-link component keeps. Tested on two units: a 2018 Ford Expedition (SYNC "
                  "Gen3) read from its export and a Ford SYNC 4 unit read from its logical zip. "
@@ -129,7 +129,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SDL Policy",
+        "category": "Infotainment Components",
         "notes": "From the SQLite policy database storage/sdl/policy that the head unit's "
                  "app-link component keeps. Tested on two units: a 2018 Ford Expedition (SYNC "
                  "Gen3) read from its export and a Ford SYNC 4 unit read from its logical zip. "
@@ -162,7 +162,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SDL Policy",
+        "category": "Infotainment Components",
         "notes": "From storage/sdl/app_info.dat, a JSON file. Tested on two units: a 2018 Ford "
                  "Expedition (SYNC Gen3) read from its export, which gave 17 rows, and a Ford "
                  "SYNC 4 unit read from its logical zip, which gave one. The first row of a "

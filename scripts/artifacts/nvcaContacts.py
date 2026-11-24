@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "creation_date": "2021-07-15",
         "last_update_date": "2026-09-25",
         "requirements": "none",
-        "category": "Nuance VCA",
+        "category": "Infotainment Components",
         "notes": "Rows are listed by first name, last name, phone number and type.",
         "paths": ('*/Nuance/NuanceVCAdb/Phone*.sqlite*',),
         "output_types": "standard",

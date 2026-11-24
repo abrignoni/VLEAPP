@@ -5,7 +5,7 @@ __artifacts_v2__ = {
                        "dev_loc_results lines (altitude as logged; its unit is not established) in "
                        "a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-07", "requirements": "none", "category": "PAS Debug Log",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford",
         "notes": "Latitude/Longitude exposed for the KML "
                  "map. Supports the PAS log timestamp "
                  "format, including single-digit "
@@ -49,7 +49,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log - Road Speed Limits",
         "description": "Road speed limits from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-07", "requirements": "none", "category": "PAS Debug Log",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford",
         "notes": "Supports the PAS log timestamp format, "
                  "including single-digit month/day/hour "
                  "values; reads plain and gzip-compressed "
@@ -90,7 +90,7 @@ __artifacts_v2__ = {
                        "with the BSSID from the most recent \"Extracted BSSID\" line before "
                        "it. That pairing is by line order.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-07", "requirements": "none", "category": "PAS Debug Log",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford",
         "notes": "Supports the PAS log timestamp format, "
                  "including single-digit month/day/hour "
                  "values; reads plain and gzip-compressed "
@@ -129,7 +129,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log - Vehicle Speed",
         "description": "Vehicle speed readings from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-07", "requirements": "none", "category": "PAS Debug Log",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford",
         "notes": "Supports the PAS log timestamp format, "
                  "including single-digit month/day/hour "
                  "values; reads plain and gzip-compressed "
@@ -168,7 +168,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log - Transmission Status",
         "description": "Transmission status readings from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-07", "requirements": "none", "category": "PAS Debug Log",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford",
         "notes": "Supports the PAS log timestamp format, "
                  "including single-digit month/day/hour "
                  "values; reads plain and gzip-compressed "
@@ -207,7 +207,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log - Outside Temperature",
         "description": "Outside air temperature readings from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-07", "requirements": "none", "category": "PAS Debug Log",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford",
         "notes": "Supports the PAS log timestamp format, "
                  "including single-digit month/day/hour "
                  "values; reads plain and gzip-compressed "
@@ -246,7 +246,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log - Odometer",
         "description": "Odometer readings from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.5", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-07", "requirements": "none", "category": "PAS Debug Log",
+        "last_update_date": "2026-09-07", "requirements": "none", "category": "Ford",
         "notes": "Supports the PAS log timestamp format, "
                  "including single-digit month/day/hour "
                  "values; reads plain and gzip-compressed "
@@ -300,7 +300,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log - Vehicle Info",
         "description": "Vehicle identity (VIN/make/model/platform) from a Ford pas_debug.log.",
         "author": "@AlexisBrignoni", "version": "0.3", "creation_date": "2021-07-08",
-        "last_update_date": "2026-09-06", "requirements": "none", "category": "PAS Debug Log",
+        "last_update_date": "2026-09-06", "requirements": "none", "category": "Ford",
         "notes": "Make, model, VIN and platform version values, also written to the device "
                  "information log. Make and model show the last value seen in the logs; Platform "
                  "Version is the Version Number from a USBUPDT_MID line. Supports the PAS log "

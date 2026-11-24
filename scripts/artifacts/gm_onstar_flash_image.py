@@ -35,7 +35,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "GM OnStar Flash Image",
+        "category": "GM",
         "notes": "Read from the module's raw flash image, matched as "
                  "LargeOutputFiles/image.bin inside an acquisition folder or given on its own "
                  "with the single-file input type. Tested on seven images: three "
@@ -117,7 +117,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "GM OnStar Flash Image",
+        "category": "GM",
         "notes": "Read from the module's raw flash image, matched as "
                  "LargeOutputFiles/image.bin inside an acquisition folder or given on its own "
                  "with the single-file input type. Tested on seven images: three "
@@ -184,7 +184,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "GM OnStar Flash Image",
+        "category": "GM",
         "notes": "Read from the module's raw flash image, matched as "
                  "LargeOutputFiles/image.bin inside an acquisition folder or given on its own "
                  "with the single-file input type. Tested on seven images: three "
