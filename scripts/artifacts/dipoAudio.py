@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-02-08",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Hyundai Vehicles",
+        "category": "Hyundai & Kia",
         "notes": "",
         "paths": ('*/com.daudio.app.dipo/shared_prefs/pref_dipo.xml',),
         "output_types": "standard",

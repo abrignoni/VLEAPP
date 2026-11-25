@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Chrysler Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "",
         "paths": ('*/*DeviceManagerDeviceList.bz*',),
         "output_types": "standard",

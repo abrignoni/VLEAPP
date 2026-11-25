@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "The HMI applications are Chromium based and persist state to IndexedDB, "
                  "whose values are V8 serialized rather than plain text. It is read here "
                  "with the vendored ccl_chromium_indexeddb reader; scanning the raw files "
@@ -43,7 +43,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "From the topic map the HMI applications keep in IndexedDB, read with the "
                  "vendored ccl_chromium_indexeddb reader. Each row is one topic. Where a "
                  "store's files hold several versions of a topic, the version with the "

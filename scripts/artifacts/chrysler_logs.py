@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Chrysler Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Latitude/Longitude are exposed for the KML map. Date and Time are text taken "
                  "from the start of each line and no time zone is applied. An empty zip code is "
                  "shown as \"Not found\" and an empty location method as \"N/A\".",

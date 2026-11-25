@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-08-27",
         "requirements": "none",
-        "category": "Ford SYNC 4",
+        "category": "Ford",
         "notes": "The HMI applications are Chromium based and keep their state in Local "
                  "Storage, which is a LevelDB store. It is read here with the vendored "
                  "ccl_leveldb reader rather than by scanning the files, because LevelDB "

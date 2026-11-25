@@ -7,7 +7,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-06-09",
         "last_update_date": "2026-09-03",
         "requirements": "none",
-        "category": "Hyundai Vehicles",
+        "category": "Hyundai & Kia",
         "notes": "Reads bluetooth_callhistory from each CH_*.db and reports the token in the file "
                  "name as Device MAC; that the token is the phone's Bluetooth address is taken "
                  "from its shape and is not established here. date and date_sort are read as Unix "

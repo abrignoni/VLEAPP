@@ -7,7 +7,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-06-09",
         "last_update_date": "2026-09-03",
         "requirements": "none",
-        "category": "Hyundai Vehicles",
+        "category": "Hyundai & Kia",
         "notes": "Scans wireless_dev_list.dat for an ASCII MAC address followed by a NUL byte, an "
                  "optional second MAC and a run of printable bytes taken as the friendly name. "
                  "Whether a listed device was paired is not established. A repeated address and "

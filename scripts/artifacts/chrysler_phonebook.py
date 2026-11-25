@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Chrysler Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Numeric Last Connected / Last Disconnected values are interpreted as Unix "
                  "epochs and normalized to UTC; text that parses as an ISO date and time is "
                  "converted, with a zone-less value taken as UTC; any other text is kept as "

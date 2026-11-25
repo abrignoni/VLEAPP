@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-06-05",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Chrysler Vehicles",
+        "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Latitude/Longitude are exposed for the KML map. Each longitude is paired with "
                  "the most recently seen latitude, so values split across consecutive log lines "
                  "are paired.",

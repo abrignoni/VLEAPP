@@ -64,7 +64,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/LogFiles/MsgLog<n>.txt and from DiskImages/partition<n>.img, "
                  "the raw partition an acquisition carries, which is read as bytes with no "
                  "file system followed. Tested on ten units from their acquisition folders: "
@@ -218,7 +218,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/LogFiles/MsgLog<n>.txt, the log text beside a crash dump and "
                  "DiskImages/partition<n>.img, read the way the Log Events artifact reads "
                  "them. Three lines are reported. 'PhoneCore: Connecting to phone: [<name>] "
@@ -299,7 +299,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From lines of the form 'device: <n>. [<name>] [0x0000<address>], active = "
                  "<a>, primary = <p>, pairorder = <o>' in Windows/LogFiles/MsgLog<n>.txt, the "
                  "log text beside a crash dump and DiskImages/partition<n>.img, read the way "
@@ -372,7 +372,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/LogFiles/MsgLog<n>.txt, the log text beside a crash dump and "
                  "DiskImages/partition<n>.img, read the way the Log Events artifact reads "
                  "them. Five lines are reported. 'CBTPairSvc::ActivateBTDevice() : Device "
@@ -454,7 +454,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/LogFiles/MsgLog<n>.txt, the log text beside a crash dump and "
                  "DiskImages/partition<n>.img, read the way the Log Events artifact reads "
                  "them. 'PM: PlatformSetSystemPowerState( <name> ) started.' is Power State "
@@ -538,7 +538,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/LogFiles/MsgLog<n>.txt, the log text beside a crash dump and "
                  "DiskImages/partition<n>.img, read the way the Log Events artifact reads "
                  "them. Two lines state a date and time: the log save line ('SYSHEALTH: start "
@@ -610,7 +610,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From LargeOutputFiles/image.nbo, the raw NAND image an acquisition carries, "
                  "matched inside an acquisition folder or given on its own with the "
                  "single-file input type. The image stores each 2,048-byte page followed by 64 "
@@ -665,7 +665,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From DiskImages/partition<n>.img, the raw partition an acquisition carries. "
                  "The image is searched as bytes for complete call list documents, the same "
                  "<Device> XML the module keeps as Windows/phonebook/CH<address>.xml. Only a "

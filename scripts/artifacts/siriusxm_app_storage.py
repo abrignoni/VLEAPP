@@ -10,7 +10,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SiriusXM App",
+        "category": "Infotainment Components",
         "notes": "Each value is a whole file holding an integer, read as a Unix time in "
                  "milliseconds and divided by 1000. No source for the unit is cited; the "
                  "reading rests on the one comparison described below. These are times the "
@@ -42,7 +42,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-08-27",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SiriusXM App",
+        "category": "Infotainment Components",
         "notes": "Values are reported as stored, with surrounding whitespace removed. Two head "
                  "units of different makes hold these files: a BMW MGU, 8 rows, and a Ford "
                  "SYNC 4, 8 rows, where vehicle_info_metric_id is written "
@@ -85,7 +85,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "SiriusXM App",
+        "category": "Infotainment Components",
         "notes": "From the SiriusXM application's local storage folder, which two tested head "
                  "units of different makes hold with the same file names: under "
                  "rwdata/sirius/emma/_localStorage on a Ford SYNC 4 and under a folder named "
@@ -150,7 +150,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SiriusXM App",
+        "category": "Infotainment Components",
         "notes": "From the SiriusXM application's local storage folder, which two tested head "
                  "units of different makes hold with the same file names: under "
                  "rwdata/sirius/emma/_localStorage on a Ford SYNC 4 and under a folder named "
@@ -185,7 +185,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SiriusXM App",
+        "category": "Infotainment Components",
         "notes": "From the SiriusXM application's local storage folder, which two tested head "
                  "units of different makes hold with the same file names: under "
                  "rwdata/sirius/emma/_localStorage on a Ford SYNC 4 and under a folder named "
@@ -218,7 +218,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SiriusXM App",
+        "category": "Infotainment Components",
         "notes": "From the SiriusXM application's local storage folder, which two tested head "
                  "units of different makes hold with the same file names: under "
                  "rwdata/sirius/emma/_localStorage on a Ford SYNC 4 and under a folder named "
@@ -251,7 +251,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "SiriusXM App",
+        "category": "Infotainment Components",
         "notes": "From the SiriusXM application's local storage folder, which two tested head "
                  "units of different makes hold with the same file names: under "
                  "rwdata/sirius/emma/_localStorage on a Ford SYNC 4 and under a folder named "

@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-02-14",
         "last_update_date": "2026-09-25",
         "requirements": "none",
-        "category": "Nissan Vehicles",
+        "category": "Nissan",
         "notes": "The database holds numbered table pairs (NUM_PHONEBOOK_<n> and phonebook_<n>), "
                  "reported in one table with a Phone Book column. That each pair belongs to one "
                  "paired device is not established here. An entry with no number row is not "

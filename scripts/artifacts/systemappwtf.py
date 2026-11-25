@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-03-27",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Kia Vehicles",
+        "category": "Hyundai & Kia",
         "notes": "Timestamp is the number after \"timestamp:\" on the reportLocation line, "
                  "read as a Unix time (unit chosen by magnitude) and shown in UTC; Date is "
                  "the raw log line time. Latitude/Longitude exposed for the KML map.",
@@ -26,7 +26,7 @@ __artifacts_v2__ = {
         "creation_date": "2023-03-27",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Kia Vehicles",
+        "category": "Hyundai & Kia",
         "notes": "Date is the raw log line time. Phone Number, Incoming and State are taken by "
                  "position from [BTCallTracker] lines and shown as the log prints them; what the "
                  "values mean is not established here.",

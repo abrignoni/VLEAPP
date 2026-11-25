@@ -34,7 +34,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From table_devices in bluetooth.db (generation 2.5) or fc_bluetooth.db "
                  "(generation 2.0). Tested on six units: a 2014 Chevrolet Silverado 1500 "
                  "(generation 2.0) and, on generation 2.5, a 2016 Chevrolet Silverado 1500, a "
@@ -79,7 +79,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From PhoneBook_DH2 to PhoneBook_DH11 and PhoneBook_VPB in phonebook.db. "
                  "Tested on six units: a 2014 Chevrolet Silverado 1500 (generation 2.0) and, "
                  "on generation 2.5, a 2016 Chevrolet Silverado 1500, a 2016 GMC Sierra 1500 "
@@ -130,7 +130,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From CallHist_DEVICE0 and CallHist_DEVICE1 in phonebook.db, and from table "
                  "leaf pages on the database's freelist whose records have the eight-column "
                  "shape of those tables with an eight-digit date and a six-digit time. Tested "
@@ -182,7 +182,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From the Devices table of media/db/MyMedia.db on generation 2.5 and the "
                  "Medium table on generation 2.0. Tested on six units: a 2014 Chevrolet "
                  "Silverado 1500 (generation 2.0) and, on generation 2.5, a 2016 Chevrolet "
@@ -231,7 +231,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From DeviceHistory in spi/DeviceHistory.db, present on the five generation "
                  "2.5 units and absent on the generation 2.0 unit. The table carries no time "
                  "column. Access Index is u32AccessIndex as stored; that a higher value means "
@@ -269,7 +269,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From recent_dest_memory in navstorage/navstore.db. Present on the one tested "
                  "unit with embedded navigation (2014 Chevrolet Silverado 1500, generation "
                  "2.0), where it held 128 rows; the five generation 2.5 units had no "
@@ -309,7 +309,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From autocomplete in navstorage/navstore.db, on the one tested unit with "
                  "embedded navigation. Only rows with an access date are reported. The table "
                  "also held 512 undated rows of type 10, at positions 1 to 512, whose text is "
@@ -345,7 +345,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From PredefMsgTable in messaging.db (generation 2.5) or fc_messaging.db "
                  "(generation 2.0). Tested on six units: a 2014 Chevrolet Silverado 1500 "
                  "(generation 2.0) and, on generation 2.5, a 2016 Chevrolet Silverado 1500, a "
@@ -392,7 +392,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From interactionlogger/pcm_recordings/record<date>_<time>.pcm. Tested on six "
                  "units: a 2014 Chevrolet Silverado 1500 (generation 2.0) and, on generation "
                  "2.5, a 2016 Chevrolet Silverado 1500, a 2016 GMC Sierra 1500 and three "
@@ -440,7 +440,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "From deviceTable in internet/database/IAdatabase.db. Tested on six units: a "
                  "2014 Chevrolet Silverado 1500 (generation 2.0) and, on generation 2.5, a "
                  "2016 Chevrolet Silverado 1500, a 2016 GMC Sierra 1500 and three Chevrolet "
@@ -476,7 +476,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM Bosch HMI",
+        "category": "GM",
         "notes": "One row per value, with the file it came from. Sources: LearnedVIN, the "
                  "version text files on the system partition, buildversion.reg, boschpn.txt, "
                  "Vehicle_Info_Table in the Bluetooth database, the System table of MyMedia.db "

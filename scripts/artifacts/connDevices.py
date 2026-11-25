@@ -9,7 +9,7 @@ __artifacts_v2__ = {
         "creation_date": "2021-07-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Connected Devices",
+        "category": "Infotainment Components",
         "notes": "",
         "paths": ('*/devices.db*',),
         "output_types": "standard",

@@ -40,7 +40,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Documents and Settings/system.hv and Documents and "
                  "Settings/<profile>/user.hv, the module's registry hive files (marker EKIM). "
                  "No published description of the layout was found; it was worked out from the "
@@ -94,7 +94,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Documents and Settings/system.hv and Documents and "
                  "Settings/<profile>/user.hv, the module's registry hive files (marker EKIM). "
                  "No published description of the layout was found; it was worked out from the "

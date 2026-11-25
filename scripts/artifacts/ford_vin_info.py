@@ -7,7 +7,7 @@ __artifacts_v2__ = {
         "creation_date": "2024-11-20",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford",
         "notes": "Each distinct non-empty line of vin.txt is reported and written to the device "
                  "information log.",
         "paths": ('*/vin.txt',),

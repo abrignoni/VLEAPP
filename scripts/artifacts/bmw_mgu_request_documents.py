@@ -29,7 +29,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-11-23",
         "requirements": "none",
-        "category": "BMW MGU",
+        "category": "BMW",
         "notes": "From hdshare/tm/dumm/<number>.gzip, gzip-compressed JSON documents that sit "
                  "among several thousand two-byte files holding 'OK' in the same folder. A file "
                  "is read only when it inflates to a JSON object with a position member. Tested "
@@ -89,7 +89,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "BMW MGU",
+        "category": "BMW",
         "notes": "From hdshare/tm/dumm/<number>.gzip, gzip-compressed JSON documents that sit "
                  "among several thousand two-byte files holding 'OK' in the same folder. A "
                  "file is read only when it inflates to a JSON object with a position member. "

@@ -40,7 +40,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From var/sysinfo/BT.dat. Tested on four generation 9 units: a 2012 Chevrolet "
                  "Cruze LT, a 2012 GMC Acadia, a 2014 GMC Sierra 1500 SLE and a 2011 Buick "
                  "Enclave, read from the file sets extracted from each unit's flash image. The "
@@ -92,7 +92,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From var/BTfeature/phoneNN.pb, where NN is the device number of a slot in "
                  "BT.dat. Tested on four generation 9 units: a 2012 Chevrolet Cruze LT, a 2012 "
                  "GMC Acadia, a 2014 GMC Sierra 1500 SLE and a 2011 Buick Enclave, read from "
@@ -145,7 +145,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-11-10",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From the GPSRegularReport sections of the state files under var/sysinfo and of "
                  "the module's raw flash image, DiskImages/NORimage.bin, when the extraction "
                  "carries it. Tested on two generation 10 units: a 2016 Chevrolet Cruze and a "
@@ -242,7 +242,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From var/log/poweroff.log, a one-line file holding a date and time, a comma "
                  "and two numbers. Tested on four generation 9 units: a 2012 Chevrolet Cruze "
                  "LT, a 2012 GMC Acadia, a 2014 GMC Sierra 1500 SLE and a 2011 Buick Enclave, "
@@ -304,7 +304,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From the state files under var/sysinfo and the module's raw flash image, "
                  "DiskImages/NORimage.bin, when the extraction carries it. Tested on two "
                  "generation 10 units: a 2016 Chevrolet Cruze and a 2017 Buick Encore. A state "
@@ -368,7 +368,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From obn/storage/gps, a file of 20-byte big-endian records. Tested on four "
                  "generation 9 units (a 2012 Chevrolet Cruze LT, a 2012 GMC Acadia, a 2014 GMC "
                  "Sierra 1500 SLE and a 2011 Buick Enclave), read from the file sets extracted "
@@ -431,7 +431,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-11-19",
         "last_update_date": "2026-11-19",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From var/sysinfo/gps.dat on generation 9, a binary file of 831 bytes: an "
                  "8-byte header, ten 80-byte slots and the tag <SysInfo1.00> at offset 816. A "
                  "file without that size and tag is logged and not read. Tested on one "
@@ -505,7 +505,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From the 'Dest lat' lines of obn/storage/flight, a text log of time-stamped "
                  "lines. Tested on four generation 9 units (a 2012 Chevrolet Cruze LT, a 2012 "
                  "GMC Acadia, a 2014 GMC Sierra 1500 SLE and a 2011 Buick Enclave), read from "
@@ -559,7 +559,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From the 'VIAMOTOSendHMIData audio' lines of obn/storage/flight. Tested on "
                  "four generation 9 units (a 2012 Chevrolet Cruze LT, a 2012 GMC Acadia, a "
                  "2014 GMC Sierra 1500 SLE and a 2011 Buick Enclave), read from the file sets "
@@ -615,7 +615,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From the 'Dyn Clips' lines of obn/storage/flight, the log the Navigation "
                  "Guidance Prompts artifact reads. A line is 'Dyn Clips,' followed by "
                  "<number>=<text> items separated by commas, and one row is one item, with the "
@@ -657,7 +657,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From var/sysinfo/phone.dat on generation 9, a fixed binary structure of "
                  "38,295 bytes that ends with the tag <SysInfo1.00>. The file has no internal "
                  "framing, so it is read only when it has exactly that size and tag, and a "
@@ -714,7 +714,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From the generation 10 module's state file dtc.dat, CRLF text that opens "
                  "with a [*] section holding a TimeStamp. Every complete document held 28 "
                  "sections named DTCData<n>, each with an index, a code, a symptom and a "
@@ -764,7 +764,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "One row per value with the file it came from. Tested on four generation 9 "
                  "units: a 2012 Chevrolet Cruze LT, a 2012 GMC Acadia, a 2014 GMC Sierra 1500 "
                  "SLE and a 2011 Buick Enclave, read from the file sets extracted from each "
@@ -826,7 +826,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From obn/storage/ViamotoRoute.mem on generation 9, a binary file that starts "
                  "with the marker 0stR and a length. No description of the format was found "
                  "and only part of it is read: most of the file is packed data this module "
@@ -884,7 +884,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From obn/storage/ViamotoRoute.mem on generation 9, a binary file that starts "
                  "with the marker 0stR and a length. No description of the format was found "
                  "and only part of it is read: most of the file is packed data this module "
@@ -946,7 +946,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-11-20",
         "last_update_date": "2026-11-20",
         "requirements": "none",
-        "category": "GM OnStar LG",
+        "category": "GM",
         "notes": "From var/hostapd.conf, a text file of key=value lines. Its ten keys are "
                  "hostapd settings, and a hostapd 0.6.10 program is in the same firmware image. "
                  "The firmware step that passes this file to hostapd was not found. Run on two "

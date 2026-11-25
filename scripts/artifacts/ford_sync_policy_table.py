@@ -33,7 +33,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "Ford SYNC WinCE",
+        "category": "Ford",
         "notes": "From Windows/syncP_Transfer/PolicyTableSnapShot_<number>, JSON files with "
                  "one policy_table object each. Tested on one unit read from its extracted "
                  "file set, a 2019 Ford Fusion (SYNC Gen1v5), which held 24 snapshots and gave "

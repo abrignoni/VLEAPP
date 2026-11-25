@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "creation_date": "2021-07-06",
         "last_update_date": "2026-06-29",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford",
         "notes": "",
         "paths": ('*/ppsp/services/reconn/vehicle',),
         "output_types": "standard",

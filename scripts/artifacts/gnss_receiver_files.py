@@ -29,7 +29,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GNSS Receiver Files",
+        "category": "Infotainment Components",
         "notes": "From the state files a GNSS receiver driver keeps under NAV/gnss. Each "
                  "non-empty file starts with the bytes A5 A5 5A 5A and a 32-bit number. No "
                  "description of the layout was found; what is read was worked out from the "
@@ -66,7 +66,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-09",
         "last_update_date": "2026-10-09",
         "requirements": "none",
-        "category": "GNSS Receiver Files",
+        "category": "Infotainment Components",
         "notes": "From the state files a GNSS receiver driver keeps under NAV/gnss. Each "
                  "non-empty file starts with the bytes A5 A5 5A 5A and a 32-bit number. No "
                  "description of the layout was found; what is read was worked out from the "

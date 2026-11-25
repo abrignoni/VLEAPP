@@ -28,7 +28,7 @@ __artifacts_v2__ = {
         "creation_date": "2026-10-10",
         "last_update_date": "2026-10-10",
         "requirements": "none",
-        "category": "Bluetooth HCI Snoop",
+        "category": "Infotainment Components",
         "notes": "A btsnoop file opens with 'btsnoop', a version and a datalink type, then "
                  "holds records of an original length, an included length, flags, a drop "
                  "count, a 64-bit time and the packet. Files of version 1 with datalink type "

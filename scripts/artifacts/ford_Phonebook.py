@@ -7,7 +7,7 @@ __artifacts_v2__ = {
         "creation_date": "2024-11-20",
         "last_update_date": "2026-10-04",
         "requirements": "none",
-        "category": "Ford Vehicles",
+        "category": "Ford",
         "notes": "Phone Number(s) is a comma-joined list of the tab-separated entries "
                  "that follow NUMBERS on an address insert line, each shown as the file "
                  "holds it. Only entries of 10 or more characters that end in a digit are "
