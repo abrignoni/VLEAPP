@@ -5,7 +5,7 @@ __artifacts_v2__ = {
                        "\"lon:\" and \"heading:\" in a pas_debug log inside a Chrysler "
                        "[H-M]_*.tar.gz archive.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Latitude/Longitude exposed for the KML map. The log is read in memory from "
                  "the tar.gz. pas_debug.log.1 is read when present; pas_debug.log is read only "
                  "when it is not. Timestamp is the log line's clock reading. No zone is read "
@@ -20,7 +20,7 @@ __artifacts_v2__ = {
         "description": "Speed limit values (no road name is reported) from a pas_debug log inside "
                        "a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -37,7 +37,7 @@ __artifacts_v2__ = {
                        "the most recent \"Extracted BSSID\" line before it, from a pas_debug "
                        "log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "BSSID Line Timestamp is the clock reading of the "
                  "most recent \"Extracted BSSID\" line "
                  "before the SSID line, not of the SSID "
@@ -52,7 +52,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log (Chrysler archive) - Vehicle Speed",
         "description": "Vehicle speed (kmph) from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock reading. No "
                  "zone is read from the line. The value is "
                  "stored as if it were UTC, and the offset from "
@@ -64,7 +64,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log (Chrysler archive) - Transmission Status",
         "description": "Transmission status from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock reading. No "
                  "zone is read from the line. The value is "
                  "stored as if it were UTC, and the offset from "
@@ -80,7 +80,7 @@ __artifacts_v2__ = {
                        "inside a "
                        "Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last coordinates "
                  "the parser read before the event line, from "
@@ -107,7 +107,7 @@ __artifacts_v2__ = {
                        "pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last "
                  "coordinates the parser read before the "
@@ -137,7 +137,7 @@ __artifacts_v2__ = {
                        "each with the coordinates last logged before it, from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last "
                  "coordinates the parser read before the "
@@ -167,7 +167,7 @@ __artifacts_v2__ = {
                        "the coordinates last logged before it, from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last coordinates "
                  "the parser read before the event line, from "
@@ -197,7 +197,7 @@ __artifacts_v2__ = {
                        "pas_debug log inside "
                        "a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last coordinates "
                  "the parser read before the event line, from "
@@ -220,7 +220,7 @@ __artifacts_v2__ = {
         "description": "Outside air temperature from a pas_debug log inside a Chrysler "
                        "[H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock reading. No "
                  "zone is read from the line. The value is "
                  "stored as if it were UTC, and the offset from "
@@ -236,7 +236,7 @@ __artifacts_v2__ = {
                        "from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Last Logged Latitude and Last Logged Longitude "
                  "are the last coordinates "
                  "the parser read before the event line, from "
@@ -262,7 +262,7 @@ __artifacts_v2__ = {
                        "CAppLinkService line before it, not the time of the odometer line itself) "
                        "from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-10-04", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-10-04", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "CAppLinkService Line Timestamp is the clock "
                  "reading of the most "
                  "recent CAppLinkService line before the "
@@ -278,7 +278,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log (Chrysler archive) - Current Road",
         "description": "Current road from a pas_debug log inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock reading. No "
                  "zone is read from the line. The value is "
                  "stored as if it were UTC, and the offset from "
@@ -291,7 +291,7 @@ __artifacts_v2__ = {
         "description": "Vehicle identity (make/model/year/VIN/platform) from a pas_debug log "
                        "inside a Chrysler [H-M]_*.tar.gz.",
         "author": "@JaysonU25", "version": "0.2", "creation_date": "2024-11-20",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Make, model, model year, VIN and "
                  "platform version values, also written "
                  "to the device information log. Make, "

@@ -3,7 +3,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log (RAM archive) - GPS Locations",
         "description": "GPS locations from a RAM pas_debug.log.1 inside an archivedata tar.gz.",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Latitude/Longitude exposed for the KML map. The log is read in-memory from the "
                  "tar.gz. Timestamp is the log line's clock reading. No zone is read from the "
                  "line. The value is stored as if it were UTC, and the offset from UTC is not "
@@ -16,7 +16,7 @@ __artifacts_v2__ = {
         "description": "Speed limit values (no road name is reported) from a RAM pas_debug.log.1 "
                        "(tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the "
                  "line. The value is stored as if it "
@@ -34,7 +34,7 @@ __artifacts_v2__ = {
                        "recent \"Extracted BSSID\" line before it, from a RAM pas_debug.log.1 "
                        "(tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -47,7 +47,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log (RAM archive) - Vehicle Speed",
         "description": "Vehicle speed (kmph) from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -60,7 +60,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log (RAM archive) - Transmission Status",
         "description": "Transmission status from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -73,7 +73,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log (RAM archive) - Outside Temperature",
         "description": "Outside air temperature from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -88,7 +88,7 @@ __artifacts_v2__ = {
                        "CAppLinkService line before it, not the time of the odometer line itself) "
                        "from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the clock reading of the "
                  "most recent CAppLinkService line before "
                  "the odometer line, not of the odometer "
@@ -104,7 +104,7 @@ __artifacts_v2__ = {
         "name": "PAS Debug Log (RAM archive) - Current Road",
         "description": "Current road from a RAM pas_debug.log.1 (tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Timestamp is the log line's clock "
                  "reading. No zone is read from the line. "
                  "The value is stored as if it were UTC, "
@@ -118,7 +118,7 @@ __artifacts_v2__ = {
         "description": "Vehicle identity (VIN/make/model/platform) from a RAM pas_debug.log.1 "
                        "(tar.gz).",
         "author": "@AlexisBrignoni", "version": "0.2", "creation_date": "2024-04-05",
-        "last_update_date": "2026-06-29", "requirements": "none", "category": "Ford",
+        "last_update_date": "2026-06-29", "requirements": "none", "category": "Stellantis (Chrysler, RAM, Alfa Romeo)",
         "notes": "Make, model, VIN and platform version "
                  "values, also written to the device "
                  "information log. Make and model show the "
