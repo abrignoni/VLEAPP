@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'scripts/artifacts/**'
+      - 'scripts/**'
+      - 'admin/scripts/helper_index.py'
   workflow_dispatch:
 
 permissions:
@@ -27,7 +28,9 @@ jobs:
         python-version: '3.x'
 
     - name: Run documentation scripts
-      run: python admin/scripts/module_info.py
+      run: |
+        python admin/scripts/module_info.py
+        python admin/scripts/helper_index.py
 
     - name: Check for changes
       id: git-check
@@ -39,7 +42,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add admin/docs/generated/module_info.md
+        git add admin/docs/generated/module_info.md admin/docs/generated/helper_functions_index.md
         git commit -m "Update module info"
 
     - name: Push changes
