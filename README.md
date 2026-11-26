@@ -1,6 +1,6 @@
 ![VLEAPP](https://github.com/abrignoni/VLEAPP/blob/main/assets/VLEAPP_logo.png)
 
-# Vehicle Logs Events And Protobuf Parser
+# Vehicle Logs, Events and Properties Parser
 
 If you want to contribute hit me up on twitter: https://twitter.com/AlexisBrignoni   
 
@@ -86,8 +86,9 @@ RSA private key (`--image_private_key`). A BitLocker volume in an image opens wi
 password or recovery password, given the same way, or its startup key
 (`--bitlocker_key`, repeatable), an APFS volume macOS encrypted in software with its
 password or personal recovery key, and a LUKS container with its passphrase, each given
-the same way. At a terminal whatever is missing is asked for, and the GUI asks in dialogs;
-a BitLocker, APFS or LUKS volume nothing opens is reported and not searched.
+the same way. At a terminal whatever is missing is asked for, and the GUI asks for it in the
+DETECTED card of the Source screen as soon as the image is chosen; a BitLocker, APFS or LUKS
+volume nothing opens is reported and not searched.
 
 The disk images of a Linux software RAID set (md, or LVM2 across disks) are read
 together: give them all to `-i` with `-t raw`, or pick them together in the GUI's file
@@ -107,7 +108,8 @@ extension. A compressed tar, `.tar.gz` included, is decompressed once into the r
 before any file is read, so the run needs free space there for the uncompressed tar. The
 copy is deleted when the run ends, and the run log says how long the step took.
 `iva` reads a Berla iVe export as it stands: the raw image inside it is read the
-same way, and the export's `Vehicle.json` is reported beside the vehicle data.
+same way, and the export's `Vehicle.json` is reported beside the vehicle data. The GUI
+picks `iva` for the `.iVa` extension, although the export is a zip.
 
 ### GUI
 
