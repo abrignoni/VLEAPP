@@ -1,0 +1,47 @@
+# Maintainer: VLEAPP contributors <https://github.com/abrignoni/VLEAPP>
+# Stable releases live on GitHub; this -git package follows the main branch,
+# so an AUR helper with --devel (e.g. `yay -Syu --devel`) keeps it on the
+# latest commit. The version is vleapp_version from scripts/version_info.py
+# plus the commit count and hash, computed by pkgver() at build time.
+pkgname=vleapp-git
+pkgver=2026.4.6.dev.r0.g0000000
+pkgrel=1
+pkgdesc="Vehicle Logs, Events, And Protobuf Parser (latest git)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/abrignoni/VLEAPP"
+license=('MIT')
+depends=('glibc' 'hicolor-icon-theme')
+makedepends=('git' 'python' 'python-pip' 'tk')
+optdepends=('python: run VLEAPP from source instead of the packaged build')
+provides=('vleapp')
+conflicts=('vleapp' 'vleapp-bin')
+source=('git+https://github.com/abrignoni/VLEAPP.git')
+sha256sums=('SKIP')
+
+pkgver() {
+    # The checkout directory keeps the repository's own capitalisation.
+    cd VLEAPP
+    local ver
+    ver="$(python -c "import re; print(re.search(r\"^vleapp_version\s*=\s*['\\\"]([^'\\\"]+)['\\\"]\", open('scripts/version_info.py').read(), re.M).group(1))")"
+    # A pkgver must not contain a hyphen: it separates the release number.
+    ver="${ver//-/.}"
+    printf '%s.r%s.g%s' "$ver" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+    cd VLEAPP
+    python packaging/build.py exe
+}
+
+package() {
+    cd VLEAPP
+    install -dm755 "$pkgdir/opt/vleapp"
+    cp -a dist/VLEAPP/. "$pkgdir/opt/vleapp/"
+    install -Dm755 /dev/stdin "$pkgdir/usr/bin/vleapp" <<'EOF'
+#!/bin/sh
+exec /opt/vleapp/vleapp "$@"
+EOF
+    install -Dm644 packaging/linux/vleapp.desktop "$pkgdir/usr/share/applications/vleapp.desktop"
+    install -Dm644 assets/icon.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/vleapp.png"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

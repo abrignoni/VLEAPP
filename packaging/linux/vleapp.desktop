@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=VLEAPP
+Comment=Vehicle Logs, Events, And Protobuf Parser
+Exec=vleapp
+Icon=vleapp
+Terminal=false
+Categories=Utility;
+StartupWMClass=vleapp
