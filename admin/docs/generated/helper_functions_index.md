@@ -6,10 +6,12 @@ changes anything under `scripts/`.
 
 Read this before writing a helper of your own: a reader, a timestamp conversion, a path
 shortener or a storage-view collapse may already be here. "Used by" is the number of artifact
-modules that import the name. A class's public methods are listed under it, since artifacts
-call them on an object (`context.get_files_found()`). The first line of each docstring is
-shown; open the module for the rest. `admin/docs/helper_functions.md` explains where the five
-cores' helpers differ.
+modules that import the name. A class row shows its constructor, and its public methods and
+properties are listed under it, since artifacts call them on an object
+(`context.get_files_found()`). `scripts.context` is listed even where no artifact imports it,
+because artifacts are handed a Context. A name a module imports from another one is listed
+with the module it is defined in. The first line of each docstring is shown; open the module
+for the rest. `admin/docs/helper_functions.md` explains where the five cores' helpers differ.
 
 ## `scripts.ilapfuncs`
 
@@ -77,18 +79,18 @@ cores' helpers differ.
 | 0 | `iter_data_list_with_media` | `iter_data_list_with_media(media_header_info, data_list, html_output=False)` | Stream rows with media reference columns converted for the requested output. |
 | 0 | `kmlgen` | `kmlgen(report_folder, kmlactivity, data_list, data_headers)` | (no docstring) |
 | 0 | `lava_only_info` | `lava_only_info(category, artifact_name, table_name, records)` | Stores artifact information in the lava_only_artifacts dictionary |
-| 0 | class `MediaItem` | | (no docstring) |
+| 0 | class `MediaItem` | `MediaItem(id)` | (no docstring) |
 | | `MediaItem.set_values` | `set_values(self, media_info)` | (no docstring) |
-| 0 | class `MediaReferences` | | (no docstring) |
+| 0 | class `MediaReferences` | `MediaReferences(id)` | (no docstring) |
 | | `MediaReferences.set_values` | `set_values(self, media_ref_info)` | (no docstring) |
 | 0 | `null_absent_columns` | `null_absent_columns(path, query)` | Replace references to columns the database lacks with NULL. |
-| 0 | class `OutputParameters` | | Defines the parameters that are common for |
+| 0 | class `OutputParameters` | `OutputParameters(output_folder, custom_folder_name=None)` | Defines the parameters that are common for |
 | 0 | `record_html_table_held_back` | `record_html_table_held_back(category, artifact_name, safe_artifact_name, rows)` | Remember a table the HTML report held back, for the index page and the run log. |
 | 0 | `sanitize_report_name` | `sanitize_report_name(name, kind='name')` | Replaces path separators in an artifact name or category so it is usable as a file |
 | 0 | `screen_log_session` | `screen_log_session(func)` | Keep the HTML log open during processing and close it on every exit. |
 | 0 | `set_media_references` | `set_media_references(media_ref_id, media_id, module_name, artifact_name, name)` | Set the media references in the LAVA database. |
 | 0 | `sqlite_databases` | `sqlite_databases(files_found)` | The found files that are not SQLite sidecars, as strings, in their original order. |
-| 0 | class `SqliteRecords` | | The rows of one query, read as the caller iterates. |
+| 0 | class `SqliteRecords` | `SqliteRecords(db, cursor)` | The rows of one query, read as the caller iterates. |
 | | `SqliteRecords.close` | `close(self)` | Release the cursor and the connection. Safe to call more than once. |
 | 0 | `strings` | `strings(data)` | (no docstring) |
 | 0 | `strings_raw` | `strings_raw(data)` | (no docstring) |
@@ -114,14 +116,14 @@ cores' helpers differ.
 | 0 | `confirm_found_members` | `confirm_found_members(parent, search)` | Ask the examiner, in a dialog over ``parent``, whether to read the files the |
 | 0 | `directory_entry_readings` | `directory_entry_readings(walker, recorded)` | The staged_times arguments for the times a FAT or exFAT directory entry |
 | 0 | `distinct_images` | `distinct_images(paths)` | The images ``paths`` name, each disk once: (kept, repeats), ``repeats`` being |
-| 0 | class `FileSeekerRaw` | | Search a raw disk image or an acquisition and stage the files that match. |
+| 0 | class `FileSeekerRaw` | `FileSeekerRaw(image_path, data_folder, password=None, found=None)` | Search a raw disk image or an acquisition and stage the files that match. |
 | | `FileSeekerRaw.search` | `search(self, filepattern, return_on_first_hit=False, force=False)` | (no docstring) |
 | | `FileSeekerRaw.peek` | `peek(self, filepattern, size=PEEK_SIZE)` | Each file ``filepattern`` matches, with its first ``size`` bytes read from |
 | | `FileSeekerRaw.cleanup` | `cleanup(self)` | (no docstring) |
 | 0 | `find_members` | `find_members(path, keys=None)` | A MemberSearch for the image at ``path``, or None when it holds no member of an |
 | 0 | `found_members_text` | `found_members_text(search)` | What the window shows before a run when the search beside the image picked |
 | 0 | `image_paths` | `image_paths(input_path)` | The images of a run as a list: one path, or the several images read together |
-| 0 | class `ImageKeys` | | What opens an encrypted image and the encrypted volumes in it, for one run. |
+| 0 | class `ImageKeys` | `ImageKeys(password=None, private_key=None, bitlocker_secrets=(), bitlocker_keys=(), apfs_secrets=(), luks_secrets=())` | What opens an encrypted image and the encrypted volumes in it, for one run. |
 | | `ImageKeys.password_for` | `password_for(self, path)` | The password that opens the image at ``path``. |
 | | `ImageKeys.private_key_for` | `private_key_for(self, path)` | The private key that opens the image at ``path``. |
 | | `ImageKeys.bitlocker_passwords` | `bitlocker_passwords(self)` | Every secret to try on a BitLocker volume, the image's password first. |
@@ -130,9 +132,9 @@ cores' helpers differ.
 | 0 | `input_text` | `input_text(input_path, found=())` | The input as the report, the run log and LAVA name it: the path itself for one |
 | 0 | `logical_among` | `logical_among(paths)` | The first of several paths that is logical evidence (an L01, Lx01 or AD1), which |
 | 0 | `logical_refusal` | `logical_refusal(path)` | Why several images that include logical evidence are not read together. |
-| 0 | class `MemberSearch` | | What a search beside one image found (qnxprobe.raid_siblings): the other |
-| | `MemberSearch.added` | `added(self)` | The files the search would add, in the order it looked at them. |
-| | `MemberSearch.found` | `found(self)` | The files added to the run: none when the examiner chose only the file given. |
+| 0 | class `MemberSearch` | `MemberSearch(given, result, used=True)` | What a search beside one image found (qnxprobe.raid_siblings): the other |
+| | `MemberSearch.added` | property | The files the search would add, in the order it looked at them. |
+| | `MemberSearch.found` | property | The files added to the run: none when the examiner chose only the file given. |
 | | `MemberSearch.paths` | `paths(self)` | The image given, then each file the run reads with it. |
 | | `MemberSearch.holds` | `holds(self)` | What the image given holds that sent the search looking, in words. |
 | | `MemberSearch.outcome` | `outcome(self)` | The search's result and the examiner's choice, in one sentence. |
@@ -148,18 +150,52 @@ cores' helpers differ.
 | 0 | `open_logical` | `open_logical(path, keys=None)` | The ewfprobe image of logical evidence, an L01, an Lx01 or an AD1 (AD-encrypted or not), |
 | 0 | `padding_lines` | `padding_lines(name, units)` | The run log's lines for ``units``, entries of ewfprobe's ``padded_chunks`` |
 | 0 | `password_opens` | `password_opens(path, password)` | True when ``password`` opens the encrypted image at ``path``, False when it |
-| 0 | class `PathsTooltip` | | A tooltip over ``widget`` listing the paths ``paths()`` returns, shown while the |
+| 0 | class `PathsTooltip` | `PathsTooltip(widget, paths)` | A tooltip over ``widget`` listing the paths ``paths()`` returns, shown while the |
 | | `PathsTooltip.text` | `text(self)` | (no docstring) |
 | | `PathsTooltip.show` | `show(self, _event=None)` | (no docstring) |
 | | `PathsTooltip.hide` | `hide(self, _event=None)` | (no docstring) |
-| 0 | class `RawInput` | | The images a raw run reads and what opens them: ``paths`` (the images given, |
-| | `RawInput.input_path` | `input_path(self)` | What the run is handed: the one path, or the list of images. |
+| 0 | class `RawInput` | `RawInput(paths, keys, search=None, repeats=())` | The images a raw run reads and what opens them: ``paths`` (the images given, |
+| | `RawInput.input_path` | property | What the run is handed: the one path, or the list of images. |
 | 0 | `repeat_lines` | `repeat_lines(repeats)` | What the run says about each image given twice, or given beside another file of |
 | 0 | `repeat_note` | `repeat_note(path, other)` | What is said of ``path``, not read because it opens the disk ``other`` opens, in |
 | 0 | `selected_paths` | `selected_paths(entry_text, selection)` | The input the window's field stands for: the files picked together when the |
 | 0 | `selection_text` | `selection_text(paths)` | What the window's input field shows for the files picked: the path for one, |
 | 0 | `split_image_sibling` | `split_image_sibling(image_path)` | The next segment of a split image, when this file is one segment of it. |
 | 0 | `volume_times` | `volume_times(walker, node, modified, accessed, created, recorded=None)` | The StagedTimes of a file read from a volume: what its reader exposes. |
+
+## `scripts.context`
+
+`scripts/context.py`
+
+| Used by | Name | Signature | First docstring line |
+| ---: | --- | --- | --- |
+| 0 | class `Context` | | Context class provides a static context for managing and accessing global |
+| | `Context.set_output_params` | `set_output_params(output_params)` | Sets the OutputParameters instance in the Context. This should only be |
+| | `Context.set_data_folder` | `set_data_folder(data_folder)` | Sets the folder the seeker stages evidence into, without the rest of the |
+| | `Context.set_report_folder` | `set_report_folder(report_folder)` | Sets the report folder path in the Context. |
+| | `Context.set_seeker` | `set_seeker(seeker)` | Sets the seeker object in the Context class. |
+| | `Context.set_artifact_info` | `set_artifact_info(artifact_info)` | Sets the artifact information in the Context. |
+| | `Context.set_module_name` | `set_module_name(module_name)` | Sets the module name in the Context class. |
+| | `Context.set_module_file_path` | `set_module_file_path(module_file_path)` | Sets the file path for the current module in the Context. |
+| | `Context.set_artifact_name` | `set_artifact_name(artifact_name)` | Sets the artifact name in the Context. |
+| | `Context.set_artifact_func_name` | `set_artifact_func_name(artifact_func_name)` | Sets the function name for the current artifact in the Context. |
+| | `Context.set_files_found` | `set_files_found(files_found)` | Sets the list of files found in the current context. |
+| | `Context.get_output_params` | `get_output_params()` | Retrieves the current OutputParameters instance from the Context. |
+| | `Context.get_report_folder` | `get_report_folder()` | Retrieves the current report folder path from the Context. |
+| | `Context.get_seeker` | `get_seeker()` | Retrieve the current seeker object from the Context. |
+| | `Context.get_artifact_info` | `get_artifact_info()` | Retrieve the current artifact information (__artifact_v2__) from the |
+| | `Context.get_module_name` | `get_module_name()` | Retrieves the current module name from the Context. |
+| | `Context.get_module_file_path` | `get_module_file_path()` | Returns the file path of the current module set in the Context. |
+| | `Context.get_artifact_name` | `get_artifact_name()` | Retrieves the current artifact name from the Context. |
+| | `Context.get_artifact_func_name` | `get_artifact_func_name()` | Retrieves the current artifact processor function name from the Context. |
+| | `Context.get_files_found` | `get_files_found()` | Retrieves the list of files found in the current context. |
+| | `Context.get_filename_lookup_map` | `get_filename_lookup_map()` | Retrieves the filename lookup map, initializing it if necessary. |
+| | `Context.get_source_file_path` | `get_source_file_path(partial_path)` | Finds the full source path for a given partial or relative path. |
+| | `Context.get_data_folder` | `get_data_folder()` | Returns the global extraction folder path. |
+| | `Context.create_artifact_result` | `create_artifact_result(headers=None, source_path=None, estimated_row_count=None, async_write=False, queue_size=5000, batch_size=10000, rows=None)` | Create an artifact result wrapper for modules with large row sets. |
+| | `Context.get_artifact_result` | `get_artifact_result()` | Return the ArtifactResult the current artifact created, or None. |
+| | `Context.get_relative_path` | `get_relative_path(full_path)` | Converts a full on-disk path into one that carries none of the |
+| | `Context.clear` | `clear()` | Resets all context-related class variables to None, effectively |
 
 ## Other modules artifacts import
 
@@ -168,4 +204,5 @@ artifact modules importing any one name from it, or the module itself.
 
 | Used by | Module | Kind |
 | ---: | --- | --- |
-| 1 | `scripts.vendor.ccl` | package |
+| 1 | `scripts.vendor.ccl.ccl_chromium_indexeddb` | vendored or generated |
+| 1 | `scripts.vendor.ccl.ccl_leveldb` | vendored or generated |
