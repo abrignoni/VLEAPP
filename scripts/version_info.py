@@ -4,9 +4,6 @@ Format = [ Name, Blog-url, Twitter-handle, Github-url]
 Leave blank if not available
 """
 
-leapp_name = 'VLEAPP'
-vleapp_version = '2026.4.7-dev'
-
 vleapp_contributors = [
     ['Yogesh Khatri', 'https://swiftforensics.com', '@SwiftForensics', 'https://github.com/ydkhatri'],
     ['Alexis Brignoni', 'https://abrignoni.com', '@AlexisBrignoni', 'https://github.com/abrignoni'],

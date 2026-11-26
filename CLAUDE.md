@@ -31,8 +31,8 @@ loader, same seekers, same glob semantics.
   one executable, `vleapp`, that opens the window without arguments. Every artifact module
   is a hidden import, so what the artifacts import is followed without a list. What it
   cannot follow is a name built at run time (`importlib.import_module(some_variable)`) or a
-  data file kept outside `scripts/`, `leapp_functions/` or `assets/`: expect a working dev
-  run and a broken build, and run `python packaging/build.py smoke` or `test_builds.yml`.
+  data file kept outside `scripts/`, `leapp_functions/`, `assets/` or `data/`: expect a
+  working dev run and a broken build, and run `python packaging/build.py smoke` or `test_builds.yml`.
   The disk image's arrow is not where the other LEAPPs draw theirs, so do not copy their
   `dmg_settings.py`. See `.claude/rules/vleapp-build-and-release.md`.
 - No protobuf dependency, and it should stay that way.
