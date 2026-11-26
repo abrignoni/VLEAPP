@@ -114,6 +114,12 @@ for the rest. `admin/docs/helper_functions.md` explains where the five cores' he
 | 0 | `cli_image_keys` | `cli_image_keys(path, password_file=None, password_env=None, private_key=None, bitlocker_keys=())` | What opens the image at ``path`` and the encrypted volumes in it, for the |
 | 0 | `cli_raw_input` | `cli_raw_input(input_path, password_file=None, password_env=None, private_key=None, bitlocker_keys=(), look_beside=True, say=print)` | The images a command line raw run reads, and what opens them, as RawInput. |
 | 0 | `confirm_found_members` | `confirm_found_members(parent, search)` | Ask the examiner, in a dialog over ``parent``, whether to read the files the |
+| 0 | class `DialogAsker` | `DialogAsker(parent, confirm=None)` | The questions of unlock_raw_input asked in Tk dialogs over ``parent``, as the |
+| | `DialogAsker.ask_secret` | `ask_secret(self, title, prompt)` | A secret typed in a dialog, hidden as it is typed. |
+| | `DialogAsker.ask_file` | `ask_file(self, title, filetypes)` | A file picked in a file dialog. |
+| | `DialogAsker.confirm_members` | `confirm_members(self, search)` | Whether to read the files the member search found beside the image picked. |
+| | `DialogAsker.show_info` | `show_info(self, title, message)` | Something the examiner should know; the sequence goes on. |
+| | `DialogAsker.show_error` | `show_error(self, title, message)` | Why something did not open. |
 | 0 | `directory_entry_readings` | `directory_entry_readings(walker, recorded)` | The staged_times arguments for the times a FAT or exFAT directory entry |
 | 0 | `distinct_images` | `distinct_images(paths)` | The images ``paths`` name, each disk once: (kept, repeats), ``repeats`` being |
 | 0 | class `FileSeekerRaw` | `FileSeekerRaw(image_path, data_folder, password=None, found=None)` | Search a raw disk image or an acquisition and stage the files that match. |
@@ -161,6 +167,7 @@ for the rest. `admin/docs/helper_functions.md` explains where the five cores' he
 | 0 | `selected_paths` | `selected_paths(entry_text, selection)` | The input the window's field stands for: the files picked together when the |
 | 0 | `selection_text` | `selection_text(paths)` | What the window's input field shows for the files picked: the path for one, |
 | 0 | `split_image_sibling` | `split_image_sibling(image_path)` | The next segment of a split image, when this file is one segment of it. |
+| 0 | `unlock_raw_input` | `unlock_raw_input(input_path, asker, look_beside=True)` | The images a raw run reads, and what opens them, as RawInput, or None when the |
 | 0 | `volume_times` | `volume_times(walker, node, modified, accessed, created, recorded=None)` | The StagedTimes of a file read from a volume: what its reader exposes. |
 
 ## `scripts.context`
