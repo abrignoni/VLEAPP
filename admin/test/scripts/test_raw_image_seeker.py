@@ -703,13 +703,15 @@ class RawImageSeekerTest(unittest.TestCase):
         seeker._entries['lba0/odd:$I30'] = seeker._entries[real]      # pylint: disable=protected-access
         found = sorted(seeker.file_infos[path].source_path for path in seeker.search('*:$I30'))
         self.assertEqual(found, ['lba0/:$I30', 'lba0/odd:$I30'])
+        self.assertIn('1 directory can give its index, to a pattern that asks for it (*:$I30)',
+                      self.log.text())
 
     def test_a_reader_without_directory_indexes_lists_none(self):
         with mock.patch.object(raw_image.qnxprobe.NtfsWalker, 'directory_index', None):
             seeker = self._seeker(self.ntfs)
         self.assertEqual(seeker.index_list, [])
         self.assertEqual(seeker.search('*:$I30'), [])
-        self.assertNotIn('can give their index', self.log.text())
+        self.assertNotIn('index, to a pattern that asks for it', self.log.text())
 
     def test_a_pattern_that_names_no_stream_is_never_handed_one(self):
         seeker = self._seeker(self.streams)
@@ -2105,6 +2107,8 @@ class KeysAndLogicalEvidenceTest(unittest.TestCase):
         seeker = self._seeker(image)
         self.assertEqual(seeker.free_list,
                          ['lba0/$Unallocated/lvm-wholedisk.img.lba0.unallocated.bin'])
+        self.assertIn('1 volume can give its free space, to a pattern that asks for it '
+                      '(*.unallocated.bin)', self.log.text())
         staged = seeker.search('*.unallocated.bin')
         self.assertEqual(len(staged), 1)
         mib = 1 << 20
