@@ -187,10 +187,11 @@ def _html_text(value):
 
 
 def _html_log_line(value):
-    """A run log message as HTML: escaped, with the spaces it starts with kept as
-    non-breaking spaces, which a browser would otherwise collapse, so a line indented
-    under another still shows indented in the report."""
-    return re.sub(r'^ +', lambda run: '&nbsp;' * len(run.group()), _html_text(value))
+    """A run log message as HTML: escaped, with the spaces it starts with and every run of
+    two or more spaces kept as non-breaking spaces, which a browser would otherwise
+    collapse, so an indented line stays indented and the columns of a table line stay
+    apart. A single space between words stays a normal space, where a long line can wrap."""
+    return re.sub(r'^ +| {2,}', lambda run: '&nbsp;' * len(run.group()), _html_text(value))
 
 
 def logfunc(message=""):
