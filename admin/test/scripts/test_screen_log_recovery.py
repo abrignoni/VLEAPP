@@ -218,8 +218,9 @@ class LoggingIntegrationTests(unittest.TestCase):
         self.assertEqual(self.path.read_text(encoding='utf8'), 'during exhaustion<br>\nafter recovery<br>\n')
 
     def test_html_keeps_the_indent_a_line_starts_with(self):
-        # A browser collapses leading spaces, so the lines a message indents under another
-        # read flush in the report unless they are kept as non-breaking spaces.
+        # A browser collapses leading spaces and runs of spaces, so indented lines read flush
+        # and table columns run together unless they are kept as non-breaking spaces. A single
+        # space stays, so a long line can still wrap.
         @ilapfuncs.screen_log_session
         def run():
             ilapfuncs.logfunc('Run')
@@ -228,7 +229,7 @@ class LoggingIntegrationTests(unittest.TestCase):
         with patch('sys.stdout', new_callable=io.StringIO) as console:
             run()
         self.assertEqual(self.path.read_text(encoding='utf8'),
-                         'Run<br>\n&nbsp;&nbsp;Input: a  b &lt;c&gt;<br>\n'
+                         'Run<br>\n&nbsp;&nbsp;Input: a&nbsp;&nbsp;b &lt;c&gt;<br>\n'
                          '&nbsp;&nbsp;&nbsp;&nbsp;deeper<br>\n')
         self.assertEqual(console.getvalue(), 'Run\n  Input: a  b <c>\n    deeper\n')
 
