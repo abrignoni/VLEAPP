@@ -481,7 +481,8 @@ def crunch_artifacts(
     logfunc(f'{leapp.name} v{leapp.version}: {leapp.description}')
     logfunc(f'Objective: {leapp.objective}')
     logfunc('By: Alexis Brignoni | @AlexisBrignoni | abrignoni.com')
-    logfunc('By: Yogesh Khatri   | @SwiftForensics | swiftforensics.com\n')
+    logfunc('By: Yogesh Khatri   | @SwiftForensics | swiftforensics.com')
+    logfunc('--------------------------------------------------------------------------------------')
     logdevinfo()
     
     seeker = None
@@ -518,12 +519,14 @@ def crunch_artifacts(
 
     try:
         # Now ready to run
-        logfunc(f'Info: {len(loader)} modules loaded.')
+        logfunc('--------------------------------------------------------------------------------------')
+        logfunc('Run')
+        logfunc(f'  Modules loaded: {len(loader):,}')
         if profile_filename:
-            logfunc(f'Loaded profile: {profile_filename}')
-        logfunc(f'Artifact categories to parse: {len(plugins)}')
+            logfunc(f'  Profile: {profile_filename}')
+        logfunc(f'  Artifact categories to parse: {len(plugins):,}')
         input_path = input_text(input_path, found_members)
-        logfunc(f'File/Directory selected: {input_path}')
+        logfunc(f'  Input: {input_path}')
         hashes = None
         if hash_files:
             # opt in (--hash): each staged file is hashed once, after it is staged and

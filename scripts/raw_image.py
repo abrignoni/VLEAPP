@@ -2062,11 +2062,14 @@ class FileSeekerRaw(FileSeekerBase):
     def _listing_complete(self):
         self._say_padding('  WARNING: the listing read ')
         if self.free_list:
-            logfunc(f'  {len(self.free_list):,} volumes can give their free space, to a '
-                    f'pattern that asks for it (*{FREE_SPACE_SUFFIX})')
+            one = len(self.free_list) == 1
+            logfunc(f"  {len(self.free_list):,} {'volume' if one else 'volumes'} can give "
+                    f"{'its' if one else 'their'} free space, to a pattern that asks for it "
+                    f"(*{FREE_SPACE_SUFFIX})")
         if self.index_list:
-            logfunc(f'  {len(self.index_list):,} directories can give their index, to a '
-                    f'pattern that asks for it (*:$I30)')
+            one = len(self.index_list) == 1
+            logfunc(f"  {len(self.index_list):,} {'directory' if one else 'directories'} can give "
+                    f"{'its' if one else 'their'} index, to a pattern that asks for it (*:$I30)")
         logfunc(f'File listing complete - {len(self.name_list):,} members'
                 + (f' and {len(self.stream_list):,} streams' if self.stream_list else ''))
 

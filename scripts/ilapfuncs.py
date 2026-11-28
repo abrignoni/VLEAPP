@@ -186,6 +186,13 @@ def _html_text(value):
     return _html_escape(str(value), quote=False)
 
 
+def _html_log_line(value):
+    """A run log message as HTML: escaped, with the spaces it starts with kept as
+    non-breaking spaces, which a browser would otherwise collapse, so a line indented
+    under another still shows indented in the report."""
+    return re.sub(r'^ +', lambda run: '&nbsp;' * len(run.group()), _html_text(value))
+
+
 def logfunc(message=""):
     def redirect_logs(string):
         _console_write(string)
@@ -207,7 +214,7 @@ def logfunc(message=""):
 
     if OutputParameters.screen_output_file_path:
         _screen_log.write(OutputParameters.screen_output_file_path,
-                          _html_text(message) + '<br>' + OutputParameters.nl)
+                          _html_log_line(message) + '<br>' + OutputParameters.nl)
     else:
         _screen_log.write('', '')
     print(message)
